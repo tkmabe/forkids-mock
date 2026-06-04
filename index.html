@@ -1349,7 +1349,7 @@ function StaffApp({screen, go}){
 function PhoneFrame({children, tab, setTab}){
   const tabs = [['home','ホーム','home'],['report','成長レポート','heart'],['notice','れんらく','book'],['photo','写真','photo'],['attend','出欠','calendar']];
   return (
-    <div className="mx-auto my-8" style={{width:392}}>
+    <div className="mx-auto my-4 sm:my-8 w-full max-w-[392px] px-2 sm:px-0">
       <div className="rounded-[44px] bg-ink p-3 shadow-phone">
         <div className="rounded-[34px] overflow-hidden bg-cream relative" style={{height:780}}>
           <div className="absolute top-0 left-0 right-0 h-7 flex justify-center"><div className="w-32 h-6 bg-ink rounded-b-2xl"/></div>
@@ -1536,8 +1536,8 @@ function ParentApp({go}){
   const Screen = PARENT_SCREENS[tab];
   return (
     <div className="h-full overflow-y-auto" style={{background:'#efe7df'}}>
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center text-white"><Ic name="leaf" className="w-5 h-5"/></div><span className="font-extrabold text-ink">for Kids ・ 保護者アプリ（PWA）</span></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3">
+        <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center text-white"><Ic name="leaf" className="w-5 h-5"/></div><span className="font-extrabold text-ink text-[14px] sm:text-base">for Kids ・ 保護者アプリ（PWA）</span></div>
         <div className="flex gap-2"><Btn kind="ghost" icon="teacher" onClick={()=>go('teacher')}>保育者画面へ</Btn><Btn kind="ghost" icon="logout" onClick={()=>go('__login')}>ログアウト</Btn></div>
       </div>
       <PhoneFrame tab={tab} setTab={setTab}><Screen setTab={setTab}/></PhoneFrame>
@@ -1548,13 +1548,13 @@ function ParentApp({go}){
 /* ============================== LOGIN ============================== */
 function Login({go}){
   return (
-    <div className="h-full flex items-center justify-center" style={{background:'#FFF7F1'}}>
-      <div className="text-center w-full max-w-md px-6">
-        <div className="w-20 h-20 rounded-3xl bg-brand-500 mx-auto flex items-center justify-center text-white shadow-soft mb-5"><Ic name="leaf" className="w-11 h-11"/></div>
+    <div className="h-full flex items-center justify-center overflow-y-auto" style={{background:'#FFF7F1'}}>
+      <div className="text-center w-full max-w-md px-5 sm:px-6 py-8">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-brand-500 mx-auto flex items-center justify-center text-white shadow-soft mb-5"><Ic name="leaf" className="w-10 h-10 sm:w-11 sm:h-11"/></div>
         <div className="text-[15px] font-bold text-ink">幼稚園まるごとサービス</div>
-        <div className="text-5xl font-extrabold text-brand-500 mt-1">for Kids</div>
+        <div className="text-4xl sm:text-5xl font-extrabold text-brand-500 mt-1">for Kids</div>
         <div className="text-[14px] font-bold text-warm mt-3">感じて、考える。</div>
-        <Card className="mt-8 p-6 text-left">
+        <Card className="mt-6 sm:mt-8 p-5 sm:p-6 text-left">
           <div className="text-[12px] font-bold text-muted mb-1">ログインする立場を選んでください</div>
           <div className="text-[11px] font-bold text-warm mb-3">3つのポータルは完全に分離されています</div>
           <button onClick={()=>go('teacher')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:bg-brand-50 transition mb-3">
@@ -2532,12 +2532,16 @@ function OperatorApp({go, leads, addLead}){
   const opgo=(t)=>{ if(OP_SCREENS[t]) setScreen(t); };
   const NAV_PARENT = { opnewtenant:'optenants', opnewfacility:'opfacilities', opnewlead:'opleads' };
   const navActive = NAV_PARENT[screen] || screen;
+  const [navOpen,setNavOpen]=useState(false);
+  const goScreen=(id)=>{ setScreen(id); setNavOpen(false); };
   return (
     <div className="flex h-full">
-      <aside className="w-64 shrink-0 bg-slate-900 h-full flex flex-col">
+      {navOpen && <div className="md:hidden fixed inset-0 bg-black/40 z-30" onClick={()=>setNavOpen(false)}/>}
+      <aside className={cx("w-64 shrink-0 bg-slate-900 h-full flex flex-col fixed md:static inset-y-0 left-0 z-40 transition-transform", navOpen?"translate-x-0":"-translate-x-full md:translate-x-0")}>
         <div className="flex items-center gap-3 px-4 py-4">
           <div className="w-10 h-10 rounded-2xl bg-brand-500 flex items-center justify-center text-white"><Ic name="globe" className="w-6 h-6"/></div>
-          <div><div className="text-[11px] text-slate-400 font-bold leading-none">運営コンソール</div><div className="font-extrabold text-white text-lg leading-tight">for Kids 外販管理</div></div>
+          <div className="flex-1"><div className="text-[11px] text-slate-400 font-bold leading-none">運営コンソール</div><div className="font-extrabold text-white text-lg leading-tight">for Kids 外販管理</div></div>
+          <button onClick={()=>setNavOpen(false)} className="md:hidden text-slate-400 p-1"><Ic name="logout" className="w-5 h-5"/></button>
         </div>
         <div className="px-4 pb-3"><div className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2"><Avatar name="興縁" color="#E07B4A" size={26}/><div className="text-[12px] leading-tight"><div className="font-bold text-white">興縁 運営チーム</div><div className="text-slate-400 font-bold text-[11px]">販売元アカウント</div></div></div></div>
         <nav className="flex-1 overflow-y-auto noscroll px-3 py-2">
@@ -2545,7 +2549,7 @@ function OperatorApp({go, leads, addLead}){
             <div key={g.group} className="mb-3">
               <div className="px-2 text-[11px] font-bold text-slate-500 mb-1">{g.group}</div>
               {g.items.map(it=>(
-                <button key={it.id} onClick={()=>setScreen(it.id)} className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition', navActive===it.id?'bg-brand-500 text-white':'text-slate-300 hover:bg-slate-800')}>
+                <button key={it.id} onClick={()=>goScreen(it.id)} className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition', navActive===it.id?'bg-brand-500 text-white':'text-slate-300 hover:bg-slate-800')}>
                   <Ic name={it.icon} className="w-[18px] h-[18px]"/><span className="flex-1 text-left">{it.label}</span>
                 </button>
               ))}
@@ -2558,8 +2562,12 @@ function OperatorApp({go, leads, addLead}){
           <div className="px-3 pt-1 text-[10px] text-slate-500 font-bold">運営・マスターポータル v0.5</div>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto" style={{background:'#FFF7F1'}}>
-        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} justApproved={justApproved} clearApproved={clearApproved} facilities={facilities} addFacility={addFacility} leads={LD} addLead={addLead}/></div>
+      <main className="flex-1 min-w-0 overflow-y-auto" style={{background:'#FFF7F1'}}>
+        <div className="md:hidden sticky top-0 z-20 flex items-center gap-2 bg-slate-900 text-white px-3 h-12">
+          <button onClick={()=>setNavOpen(true)} className="p-1"><Ic name="list" className="w-6 h-6"/></button>
+          <span className="font-extrabold">for Kids 外販管理</span>
+        </div>
+        <div className="px-4 sm:px-6 md:px-8 py-5 md:py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} justApproved={justApproved} clearApproved={clearApproved} facilities={facilities} addFacility={addFacility} leads={LD} addLead={addLead}/></div>
       </main>
     </div>
   );
@@ -2590,19 +2598,19 @@ function PublicContact({go, addLead}){
   const inputCls = "w-full bg-cream rounded-xl px-4 py-2.5 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300";
   return (
     <div className="h-full overflow-y-auto" style={{background:'#FFF7F1'}}>
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0E2D5] bg-white/70 sticky top-0 backdrop-blur z-10">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-[#F0E2D5] bg-white/70 sticky top-0 backdrop-blur z-10">
         <div className="flex items-center gap-2"><div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center text-white"><Ic name="leaf" className="w-5 h-5"/></div><div><div className="text-[10px] text-muted font-bold leading-none">幼稚園まるごと</div><div className="font-extrabold text-ink leading-tight">for Kids <span className="text-[11px] text-warm font-bold">公式サイト（デモ）</span></div></div></div>
         <Btn kind="ghost" icon="logout" onClick={()=>go&&go('__login')}>ログインへ</Btn>
       </div>
-      <div className="max-w-3xl mx-auto px-6 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <div className="text-center mb-6">
           <Badge tone="orange">資料請求・お問い合わせ</Badge>
-          <h1 className="text-3xl font-extrabold text-ink mt-3">for Kids について<br/>お気軽にお問い合わせください</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-ink mt-3">for Kids について<br/>お気軽にお問い合わせください</h1>
           <p className="text-[13px] text-muted font-bold mt-2">「感じて、考える」を支える幼稚園まるごとSaaS。デモ・お見積り・移行のご相談を承ります。</p>
         </div>
         {!sent ? (
-          <Card className="p-6">
-            <div className="grid grid-cols-2 gap-4">
+          <Card className="p-5 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>{label('園名・法人名')}<input className={inputCls} placeholder="あおば幼稚園 / 学校法人 川村学園" value={f.org} onChange={e=>set('org',e.target.value)}/></div>
               <div>{label('ご担当者名')}<input className={inputCls} placeholder="園田 はるこ" value={f.contact} onChange={e=>set('contact',e.target.value)}/></div>
               <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="contact@example.ed.jp" value={f.email} onChange={e=>set('email',e.target.value)}/></div>
