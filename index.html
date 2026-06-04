@@ -1783,19 +1783,23 @@ function OpOnboard(){
     </Card>
   </div>);
 }
-function OpFacilities({go}){
-  const facs=[
-    ['あおば幼稚園','あおば学園','幼稚園','180名','142名','プレミアム','稼働中','green'],
-    ['ふたば幼稚園','あおば学園','幼稚園','120名','86名','プレミアム','稼働中','green'],
-    ['つぼみ保育園','あおば学園','認定こども園','80名','64名','プレミアム','稼働中','green'],
-    ['みどり幼稚園','みどり幼稚園','幼稚園','100名','92名','スタンダード','稼働中','green'],
-    ['さくら第一','さくら学園','幼稚園','110名','98名','スタンダード','導入中','amber'],
-    ['さくら第二','さくら学園','保育園','70名','56名','スタンダード','導入中','amber'],
-    ['なごみ中央','なごみ学園','認定こども園','160名','148名','プレミアム','移行中','blue'],
-  ];
+const OP_FACILITIES=[
+  ['あおば幼稚園','あおば学園','幼稚園','180名','142名','プレミアム','稼働中','green'],
+  ['ふたば幼稚園','あおば学園','幼稚園','120名','86名','プレミアム','稼働中','green'],
+  ['つぼみ保育園','あおば学園','認定こども園','80名','64名','プレミアム','稼働中','green'],
+  ['みどり幼稚園','みどり幼稚園','幼稚園','100名','92名','スタンダード','稼働中','green'],
+  ['さくら第一','さくら学園','幼稚園','110名','98名','スタンダード','導入中','amber'],
+  ['さくら第二','さくら学園','保育園','70名','56名','スタンダード','導入中','amber'],
+  ['なごみ中央','なごみ学園','認定こども園','160名','148名','プレミアム','移行中','blue'],
+];
+const FACILITY_KINDS=['幼稚園','認定こども園','保育所型','保育園'];
+const FACILITY_STATUSES=['準備中','導入中','移行中','稼働中'];
+const FAC_STATUS_TONE={'準備中':'gray','導入中':'amber','移行中':'blue','稼働中':'green'};
+function OpFacilities({go, facilities}){
+  const facs = facilities||OP_FACILITIES;
   return (<div>
     <PageHead title="園・施設管理" sub="テナント配下の園・施設を横断管理。施設ごとにプラン・定員・在籍・稼働状態を把握。"
-      action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus">施設を追加</Btn></div>}/>
+      action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewfacility')}>施設を追加</Btn></div>}/>
     <div className="grid grid-cols-4 gap-4 mb-5">
       {[['登録施設','38','ink'],['稼働中','31','green'],['導入・移行中','5','amber'],['総在籍児童','3,420名','orange']].map((s,i)=>(
         <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
@@ -1818,6 +1822,93 @@ function OpFacilities({go}){
         ))}</tbody>
       </table>
     </Card>
+  </div>);
+}
+function OpNewFacility({go, addFacility, tenants}){
+  const TEN = tenants||TENANTS;
+  const [f,setF] = useState({ name:'', tenant:(TEN[0]&&TEN[0][0])||'', kind:'幼稚園', addr:'', cap:'', classes:'', enrolled:'', planMode:'継承', plan:'スタンダード', start:'2026-04-01', adminName:'', adminEmail:'', status:'準備中', note:'' });
+  const set = (k,v)=> setF(s=>({...s, [k]:v}));
+  const tenantRow = TEN.find(t=>t[0]===f.tenant);
+  const inheritedPlan = (tenantRow && tenantRow[2]) || 'スタンダード';
+  const effectivePlan = f.planMode==='継承' ? inheritedPlan : f.plan;
+  const save = ()=>{
+    const name = (f.name||'新規施設').trim();
+    const cap = parseInt(f.cap,10);
+    const enr = parseInt(f.enrolled,10);
+    const row = [ name, f.tenant||'—', f.kind, (isNaN(cap)?0:cap)+'名', (isNaN(enr)?0:enr)+'名', effectivePlan, f.status, FAC_STATUS_TONE[f.status]||'gray' ];
+    addFacility && addFacility(row);
+    go && go('opfacilities');
+  };
+  const label = (t)=> <div className="text-[12px] text-muted font-bold mb-1">{t}</div>;
+  const inputCls = "w-full bg-cream rounded-xl px-4 py-2.5 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300";
+  return (<div>
+    <div className="flex items-center gap-2 mb-3">
+      <button onClick={()=>go&&go('opfacilities')} className="text-brand-500"><Ic name="chevron" className="w-5 h-5 rotate-180"/></button>
+      <span className="text-[12px] font-bold text-muted">園・施設管理 に戻る</span>
+    </div>
+    <PageHead title="新規施設登録" sub="施設＝テナント配下で実際に運用する園。ここで定員／在籍／プラン／稼働を個別管理します。"/>
+    <div className="grid grid-cols-3 gap-5">
+      <div className="col-span-2 space-y-5">
+        <Card className="p-5">
+          <CardHead icon="home" title="基本情報"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('施設名（園名）')}<input className={inputCls} placeholder="あおば幼稚園" value={f.name} onChange={e=>set('name',e.target.value)}/></div>
+            <div>{label('所属テナント（契約法人）')}<select className={inputCls} value={f.tenant} onChange={e=>set('tenant',e.target.value)}>{TEN.map(t=><option key={t[0]}>{t[0]}</option>)}</select><div className="text-[11px] text-muted font-bold mt-1">どの契約法人の配下かを指定します。</div></div>
+            <div>{label('施設種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{FACILITY_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
+            <div>{label('所在地')}<input className={inputCls} placeholder="茨城県守谷市…" value={f.addr} onChange={e=>set('addr',e.target.value)}/></div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="users" title="規模"/>
+          <div className="px-5 pb-5 grid grid-cols-3 gap-4">
+            <div>{label('定員')}<input type="number" className={inputCls} placeholder="180" value={f.cap} onChange={e=>set('cap',e.target.value)}/></div>
+            <div>{label('クラス数')}<input type="number" className={inputCls} placeholder="8" value={f.classes} onChange={e=>set('classes',e.target.value)}/></div>
+            <div>{label('現在籍数')}<input type="number" className={inputCls} placeholder="142" value={f.enrolled} onChange={e=>set('enrolled',e.target.value)}/></div>
+          </div>
+          <div className="px-5 pb-5 -mt-2 text-[11px] text-muted font-bold">定員・在籍は規模従量課金やクラス編成の基礎になります。</div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="money" title="契約・プラン"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('プランの適用')}<select className={inputCls} value={f.planMode} onChange={e=>set('planMode',e.target.value)}><option value="継承">所属テナント契約を継承</option><option value="施設別">施設別に設定</option></select></div>
+            <div>{label('適用プラン')}{f.planMode==='継承'
+              ? <div className={cx(inputCls,'flex items-center justify-between text-muted')}><span>{inheritedPlan}</span><Badge tone="gray">継承</Badge></div>
+              : <select className={inputCls} value={f.plan} onChange={e=>set('plan',e.target.value)}>{PLAN_OPTIONS.map(p=><option key={p}>{p}</option>)}</select>}</div>
+            <div>{label('利用開始日')}<input type="date" className={inputCls} value={f.start} onChange={e=>set('start',e.target.value)}/></div>
+            <div>{label('稼働状態')}<select className={inputCls} value={f.status} onChange={e=>set('status',e.target.value)}>{FACILITY_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="teacher" title="施設管理者（園長）アカウント発行"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('氏名')}<input className={inputCls} placeholder="塚田 のぞみ" value={f.adminName} onChange={e=>set('adminName',e.target.value)}/></div>
+            <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="owner@example.ed.jp" value={f.adminEmail} onChange={e=>set('adminEmail',e.target.value)}/></div>
+            <div className="col-span-2 flex items-center gap-2 text-[12px] font-bold text-muted bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl px-3 py-2"><Ic name="send" className="w-4 h-4 text-purple-600"/>保存時に園長へ招待メール（初回ログインURL）を送信します。</div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="edit" title="備考"/>
+          <div className="px-5 pb-5"><textarea className={cx(inputCls,'h-24 leading-relaxed')} placeholder="移行元・分園/本園の別・特記事項など" value={f.note} onChange={e=>set('note',e.target.value)}/></div>
+        </Card>
+      </div>
+      <div className="space-y-5">
+        <Card className="p-5">
+          <h3 className="font-bold text-ink mb-3">登録プレビュー</h3>
+          <div className="space-y-2 text-[13px]">
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">施設名</span><span className="font-bold text-ink">{f.name||'—'}</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">所属テナント</span><span className="font-bold text-ink">{f.tenant||'—'}</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">種別</span><Badge tone={f.kind==='幼稚園'?'orange':f.kind==='保育園'?'blue':'purple'}>{f.kind}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">定員 / 在籍</span><span className="font-bold text-ink">{f.cap||'—'} / {f.enrolled||'—'}名</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">プラン</span><Badge tone={effectivePlan==='プレミアム'?'orange':effectivePlan==='スタンダード'?'blue':'gray'}>{effectivePlan}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">状態</span><Badge tone={FAC_STATUS_TONE[f.status]||'gray'}>{f.status}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">園長</span><span className="font-bold text-ink">{f.adminName||'—'}</span></div>
+          </div>
+        </Card>
+        <Btn kind="primary" icon="check" className="w-full py-3" onClick={save}>保存して一覧に追加</Btn>
+        <Btn kind="ghost" icon="logout" className="w-full" onClick={()=>go&&go('opfacilities')}>キャンセル</Btn>
+        <p className="text-[12px] text-muted font-bold text-center px-2">※ プロトタイプのため入力内容はダミーとして施設一覧に追加されます。</p>
+      </div>
+    </div>
   </div>);
 }
 function OpLegal(){
@@ -1971,15 +2062,20 @@ function OpAudit(){
     </Card>
   </div>);
 }
-const OP_SCREENS={ ophome:OpHome, optenants:OpTenants, opnewtenant:OpNewTenant, opfacilities:OpFacilities, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
+const OP_SCREENS={ ophome:OpHome, optenants:OpTenants, opnewtenant:OpNewTenant, opfacilities:OpFacilities, opnewfacility:OpNewFacility, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
+OP_TITLES.opnewtenant='新規テナント登録';
+OP_TITLES.opnewfacility='新規施設登録';
 
 function OperatorApp({go}){
   const [screen,setScreen]=useState('ophome');
   const [tenants,setTenants]=useState(TENANTS);
   const addTenant=(row)=> setTenants(s=>[...s, row]);
+  const [facilities,setFacilities]=useState(OP_FACILITIES);
+  const addFacility=(row)=> setFacilities(s=>[...s, row]);
   const Screen=OP_SCREENS[screen]||OpHome;
   const opgo=(t)=>{ if(OP_SCREENS[t]) setScreen(t); };
-  const navActive = screen==='opnewtenant' ? 'optenants' : screen;
+  const NAV_PARENT = { opnewtenant:'optenants', opnewfacility:'opfacilities' };
+  const navActive = NAV_PARENT[screen] || screen;
   return (
     <div className="flex h-full">
       <aside className="w-64 shrink-0 bg-slate-900 h-full flex flex-col">
@@ -2007,7 +2103,7 @@ function OperatorApp({go}){
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto" style={{background:'#FFF7F1'}}>
-        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant}/></div>
+        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} facilities={facilities} addFacility={addFacility}/></div>
       </main>
     </div>
   );
