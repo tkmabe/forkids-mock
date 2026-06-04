@@ -150,11 +150,12 @@ function AIChip(){ return <Badge tone="purple"><Ic name="ai" className="w-3 h-3"
 
 /* ============================== SAMPLE DATA (架空) ============================== */
 const CAT = ['#FDC089','#C8B3ED','#FFD0D8','#ADDABB','#AFD0F0','#F4C6A6'];
+// klass（所属クラス）は単一情報源。各画面はこの値を参照し、主役児「さくら」は全画面あおば組で一貫。
 const KIDS = [
-  {n:'ひなた', age:'年長', rec:true}, {n:'さくら', age:'年長', rec:true}, {n:'あおい', age:'年長', rec:false},
-  {n:'りく', age:'年長', rec:true}, {n:'ゆうと', age:'年長', rec:false}, {n:'めい', age:'年長', rec:true},
-  {n:'そうた', age:'年長', rec:false}, {n:'ねね', age:'年長', rec:true}, {n:'かいと', age:'年長', rec:false},
-  {n:'みお', age:'年長', rec:true}, {n:'はると', age:'年長', rec:false}, {n:'ことね', age:'年長', rec:true},
+  {n:'ひなた', age:'年長', klass:'あおば組', rec:true}, {n:'さくら', age:'年長', klass:'あおば組', rec:true}, {n:'あおい', age:'年長', klass:'ふたば組', rec:false},
+  {n:'りく', age:'年長', klass:'ふたば組', rec:true}, {n:'ゆうと', age:'年長', klass:'つぼみ組', rec:false}, {n:'めい', age:'年長', klass:'つぼみ組', rec:true},
+  {n:'そうた', age:'年長', klass:'あおば組', rec:false}, {n:'ねね', age:'年長', klass:'ふたば組', rec:true}, {n:'かいと', age:'年長', klass:'つぼみ組', rec:false},
+  {n:'みお', age:'年長', klass:'あおば組', rec:true}, {n:'はると', age:'年長', klass:'ふたば組', rec:false}, {n:'ことね', age:'年長', klass:'つぼみ組', rec:true},
 ].map((k,i)=>({...k, color:CAT[i%CAT.length], id:i}));
 
 /* ============================== NAV CONFIG ============================== */
@@ -467,7 +468,8 @@ function OutputPreview(){
 }
 
 function Roster(){
-  const rows = KIDS.slice(0,8).map((k,i)=>({...k, klass:['あおば組','ふたば組','つぼみ組'][i%3], cert:['1号','2号','3号'][i%3], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
+  // klass は KIDS（単一情報源）を参照。cert は年長児のため3号認定は付かない（1号／2号のみ・施設サマリと整合）。
+  const rows = KIDS.slice(0,8).map((k,i)=>({...k, cert:['1号','2号'][i%2], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
   return (
     <div>
       <PageHead title="名簿センター" sub="在園児・未就園児・職員を一元管理。すべての機能のハブ。"
@@ -1568,10 +1570,14 @@ function Login({go}){
           <div className="border-t border-dashed border-[#E8D5C4] my-3"/>
           <button onClick={()=>go('__operator')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 transition">
             <div className="w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center text-white"><Ic name="globe" className="w-6 h-6"/></div>
-            <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">運営（マスター）として</span><Badge tone="gray">販売元</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">テナント／園・施設／課金／契約・法務／サポート／監査</div></div>
+            <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">運営（マスター）として</span><Badge tone="gray">販売元</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">テナント／園・施設／課金／契約・法務／サポート／監査</div><div className="inline-flex items-center gap-1 mt-1 text-[11px] font-bold text-slate-500"><Ic name="lock" className="w-3 h-3"/>管理者認証＋MFA必須（本デモは省略）</div></div>
             <Ic name="chevron" className="w-5 h-5 text-slate-400"/>
           </button>
         </Card>
+        <div className="mt-4 flex items-start gap-2 text-left text-[11px] font-bold text-warm bg-cream/60 border border-[#F3E6D9] rounded-xl px-3 py-2">
+          <Ic name="lock" className="w-4 h-4 shrink-0 mt-0.5 text-slate-500"/>
+          <span>本デモは認証ゲートを省略し、ボタンで立場を切り替えています。本番では各ポータルにログイン認証を設け、運営（マスター）は管理者認証＋MFA／SSO・接続元IP制限を必須とします。</span>
+        </div>
         <button onClick={()=>go('__public')} className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-brand-600 hover:text-brand-700">
           <Ic name="globe" className="w-4 h-4"/>for Kids 公式サイト ／ お問い合わせ（デモ）<Ic name="chevron" className="w-4 h-4"/>
         </button>
@@ -1688,11 +1694,40 @@ function OpHome({go, tenants, leads}){
     </Card>
   </div>);
 }
-function OpTenants({go, tenants, approveTenant, rejectTenant}){
+function OpTenants({go, tenants, approveTenant, rejectTenant, justApproved, clearApproved}){
   const TEN = tenants||TENANTS;
+  const [showArchived,setShowArchived] = useState(false);
+  // 商談→申込→承認→初期登録 の現在地（承認直後＝3まで完了、次は初期登録）
+  const STEPS = ['商談','申込','承認','初期登録'];
+  const rejectAt = (i,name)=>{ if(window.confirm(name+' の申込を却下します。\n物理削除はせず「却下」としてアーカイブに残します（履歴保持）。よろしいですか？')) rejectTenant&&rejectTenant(i); };
+  const archivedCount = TEN.filter(t=>t[5]==='却下').length;
   return (<div>
     <PageHead title="契約テナント" sub="販売先の法人・園を一元管理。プラン・課金・利用状況・テナント分離。"
       action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewtenant')}>テナントを追加</Btn></div>}/>
+    {justApproved && <Card className="overflow-hidden mb-5 border-2 border-[#CDEBD6]">
+      <div className="p-5 bg-[#F2FBF5]">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#E8F5E9] text-green-600 flex items-center justify-center shrink-0"><Ic name="check" className="w-6 h-6"/></div>
+          <div className="flex-1">
+            <div className="font-extrabold text-ink">「{justApproved}」を本テナント化しました</div>
+            <div className="text-[12px] text-muted font-bold mt-0.5">次は配下の園・施設の初期登録です。続けてセットアップに進みましょう。</div>
+          </div>
+          <button onClick={()=>clearApproved&&clearApproved()} className="text-muted hover:text-ink"><Ic name="logout" className="w-4 h-4"/></button>
+        </div>
+        <div className="flex items-center gap-2 mt-4 mb-4">
+          {STEPS.map((s,i)=>(
+            <React.Fragment key={s}>
+              <div className="flex flex-col items-center">
+                <div className={cx('w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold', i<3?'bg-green-500 text-white':'bg-brand-500 text-white ring-4 ring-brand-100')}>{i<3?'✓':i+1}</div>
+                <span className={cx('text-[11px] font-bold mt-1', i===3?'text-brand-600':'text-muted')}>{s}</span>
+              </div>
+              {i<STEPS.length-1 && <div className={cx('flex-1 h-1 rounded-full mb-4', i<2?'bg-green-300':'bg-brand-200')}/>}
+            </React.Fragment>
+          ))}
+        </div>
+        <Btn kind="primary" icon="home" onClick={()=>go&&go('opfacilitysetup')}>園・施設 初期登録へ進む</Btn>
+      </div>
+    </Card>}
     {TEN.some(t=>t[5]==='申込受領') && <Card className="overflow-hidden mb-5 border-2 border-[#EEE7FB]">
       <CardHead icon="edit" title="申込内容レビュー（承認待ち）" action={<span className="text-[12px] text-muted font-bold">承認＝本テナント化（申込≠契約）</span>}/>
       <div className="px-5 pb-5 space-y-2">
@@ -1700,7 +1735,7 @@ function OpTenants({go, tenants, approveTenant, rejectTenant}){
           <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#EEE7FB] bg-[#FBFAFF]">
             <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600"><Ic name="building" className="w-5 h-5"/></div>
             <div className="flex-1"><div className="font-bold text-ink">{t[0]} <Badge tone="purple">申込受領</Badge></div><div className="text-[12px] text-muted font-bold">{t[1]}・希望プラン {t[2]}・{t[3]}園・想定 {t[4]}名</div></div>
-            <Btn kind="ghost" icon="logout" onClick={()=>rejectTenant&&rejectTenant(i)}>却下</Btn>
+            <Btn kind="ghost" icon="logout" onClick={()=>rejectAt(i,t[0])}>却下</Btn>
             <Btn kind="primary" icon="check" onClick={()=>{ if(window.confirm(t[0]+' を承認して本テナント化します。よろしいですか？（申込≠契約：課金開始は別途）')) approveTenant&&approveTenant(i); }}>承認して本テナント化</Btn>
           </div>
         ) : null)}
@@ -1708,8 +1743,8 @@ function OpTenants({go, tenants, approveTenant, rejectTenant}){
     </Card>}
     <Card className="overflow-hidden"><table className="w-full text-[13px]">
       <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['テナント','種別','プラン','園数','利用人数','状態',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-      <tbody>{TEN.map((t,i)=>(
-        <tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40">
+      <tbody>{TEN.map((t,i)=> (t[5]==='却下' && !showArchived) ? null : (
+        <tr key={i} className={cx('border-b border-[#F7EFE7] hover:bg-cream/40', t[5]==='却下'&&'opacity-60')}>
           <td className="px-5 py-3 font-bold text-ink">{t[0]}</td>
           <td className="px-5 py-3 text-gray-600 font-bold">{t[1]}</td>
           <td className="px-5 py-3"><Badge tone={t[2]==='プレミアム'?'orange':t[2]==='スタンダード'?'blue':'gray'}>{t[2]}</Badge></td>
@@ -1720,6 +1755,9 @@ function OpTenants({go, tenants, approveTenant, rejectTenant}){
         </tr>
       ))}</tbody>
     </table></Card>
+    {archivedCount>0 && <button onClick={()=>setShowArchived(v=>!v)} className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-muted hover:text-ink">
+      <Ic name="file" className="w-4 h-4"/>{showArchived?'却下（アーカイブ）を隠す':'却下（アーカイブ）'+archivedCount+'件を表示'}
+    </button>}
   </div>);
 }
 function OpNewTenant({go, addTenant}){
@@ -2478,9 +2516,15 @@ OP_TITLES.opnewlead='リードを追加';
 function OperatorApp({go, leads, addLead}){
   const [screen,setScreen]=useState('ophome');
   const [tenants,setTenants]=useState(TENANTS);
+  const [justApproved,setJustApproved]=useState(null);
   const addTenant=(row)=> setTenants(s=>[...s, row]);
-  const approveTenant=(idx)=> setTenants(s=>s.map((t,i)=> i===idx ? [t[0],t[1],t[2],t[3],t[4],'契約中','green'] : t));
-  const rejectTenant=(idx)=> setTenants(s=>s.filter((t,i)=> i!==idx));
+  const approveTenant=(idx)=>{
+    setTenants(s=>s.map((t,i)=> i===idx ? [t[0],t[1],t[2],t[3],t[4],'契約中','green'] : t));
+    setJustApproved(tenants[idx] ? tenants[idx][0] : '');
+  };
+  // 却下は物理削除せず「却下」ステータス（アーカイブ）にして履歴を残す
+  const rejectTenant=(idx)=> setTenants(s=>s.map((t,i)=> i===idx ? [t[0],t[1],t[2],t[3],t[4],'却下','red'] : t));
+  const clearApproved=()=> setJustApproved(null);
   const [facilities,setFacilities]=useState(OP_FACILITIES);
   const addFacility=(row)=> setFacilities(s=>[...s, row]);
   const LD = leads||OP_LEADS;
@@ -2515,7 +2559,7 @@ function OperatorApp({go, leads, addLead}){
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto" style={{background:'#FFF7F1'}}>
-        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} facilities={facilities} addFacility={addFacility} leads={LD} addLead={addLead}/></div>
+        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} justApproved={justApproved} clearApproved={clearApproved} facilities={facilities} addFacility={addFacility} leads={LD} addLead={addLead}/></div>
       </main>
     </div>
   );
