@@ -1,0 +1,1956 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>for Kids デザインプロトタイプ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50:'#FDF3EC',100:'#FAE3D3',200:'#F4C6A6',300:'#EDA877',400:'#E78B52',500:'#E07B4A',600:'#C9632F',700:'#A44E26' },
+        cream: '#FFF7F1', ink:'#0F172A', muted:'#8A94A6', warm:'#C4A882',
+        cat: { purple:'#C8B3ED', orange:'#FDC089', pink:'#FFD0D8', green:'#ADDABB', blue:'#AFD0F0' },
+      },
+      fontFamily: { sans: ['"M PLUS Rounded 1c"','"Hiragino Maru Gothic ProN"','system-ui','sans-serif'] },
+      boxShadow: {
+        card:'0 1px 3px rgba(0,0,0,0.07), 0 1px 2px -1px rgba(0,0,0,0.05)',
+        soft:'0 10px 30px -12px rgba(201,99,47,0.25)',
+        phone:'0 30px 60px -20px rgba(15,23,42,0.45)',
+      },
+    },
+  },
+};
+</script>
+<style>
+  html,body,#root{height:100%;}
+  body{background:#efe7df;font-family:'M PLUS Rounded 1c',system-ui,sans-serif;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#e3d3c4;border-radius:8px;border:2px solid transparent;background-clip:content-box;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  .noscroll::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+
+/* ============================== ICONS ============================== */
+const P = (d, props={}) => React.createElement('path', {d, ...props});
+function Ic({name, className='w-5 h-5', stroke=1.7}){
+  const common = { fill:'none', stroke:'currentColor', strokeWidth:stroke, strokeLinecap:'round', strokeLinejoin:'round', viewBox:'0 0 24 24', className };
+  const paths = {
+    home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',
+    teacher:'M12 3l9 5-9 5-9-5 9-5zM6 10v5c0 1.6 2.7 3 6 3s6-1.4 6-3v-5',
+    users:'M16 19v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 9a3 3 0 100-6 3 3 0 000 6zM22 19v-2a4 4 0 00-3-3.87M16 3.13A4 4 0 0119 7a4 4 0 01-3 3.87',
+    mic:'M12 2a3 3 0 00-3 3v6a3 3 0 006 0V5a3 3 0 00-3-3zM5 11a7 7 0 0014 0M12 18v3',
+    camera:'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 17a4 4 0 100-8 4 4 0 000 8z',
+    edit:'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z',
+    file:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M9 13h6M9 17h6',
+    bell:'M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0',
+    calendar:'M3 4h18v18H3zM3 9h18M8 2v4M16 2v4',
+    chart:'M3 3v18h18M7 15l4-5 3 3 5-7',
+    money:'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
+    clock:'M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2',
+    heart:'M19 14c1.5-1.5 3-3.3 3-5.5A4.5 4.5 0 0012 5 4.5 4.5 0 002 8.5c0 2.2 1.5 4 3 5.5l7 7 7-7z',
+    check:'M20 6L9 17l-5-5',
+    plus:'M12 5v14M5 12h14',
+    search:'M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.3-4.3',
+    chevron:'M9 18l6-6-6-6',
+    grid:'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+    book:'M4 19.5A2.5 2.5 0 016.5 17H20M4 4.5A2.5 2.5 0 016.5 2H20v20H6.5A2.5 2.5 0 014 19.5z',
+    bus:'M8 6v6M16 6v6M2 12h19.6M18 18h2a1 1 0 001-1V8a4 4 0 00-4-4H7a4 4 0 00-4 4v9a1 1 0 001 1h2M9 18h6M7 18a2 2 0 11-4 0 2 2 0 014 0zM21 18a2 2 0 11-4 0 2 2 0 014 0z',
+    shop:'M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0',
+    ai:'M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9zM19 14l.9 2.1 2.1.9-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z',
+    building:'M3 21h18M5 21V5a2 2 0 012-2h6a2 2 0 012 2v16M15 21v-9h4v9M9 7h2M9 11h2M9 15h2',
+    arrow:'M5 12h14M13 6l6 6-6 6',
+    photo:'M3 3h18v18H3zM3 15l5-5 4 4 4-4 5 5',
+    play:'M5 3l14 9-14 9z',
+    send:'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+    leaf:'M11 20A7 7 0 014 13c0-5 4-9 16-10 1 10-3 17-9 17zM4 21c2.5-6 7-9 12-10',
+    settings:'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-2.7 1.1V21a2 2 0 11-4 0v-.1A1.6 1.6 0 005 19.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.6 1.6 0 002 14.6H2a2 2 0 110-4h.1A1.6 1.6 0 004.6 5l-.1-.1a2 2 0 112.8-2.8l.1.1A1.6 1.6 0 0010 2.6V2a2 2 0 114 0v.1a1.6 1.6 0 002.7 1.1l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00.4 2.7h.1a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z',
+    logout:'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
+    star:'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z',
+    list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+    org:'M12 3a2 2 0 100 4 2 2 0 000-4zM5 17a2 2 0 100 4 2 2 0 000-4zM19 17a2 2 0 100 4 2 2 0 000-4zM12 7v4M12 11l-6 4M12 11l6 4',
+    clipboard:'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4',
+    folder:'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z',
+    video:'M15 10l4.55-2.28A1 1 0 0121 8.6v6.8a1 1 0 01-1.45.88L15 14M3 6h10a2 2 0 012 2v8a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2z',
+    lock:'M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2zM7 11V7a5 5 0 0110 0v4',
+    globe:'M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2a15 15 0 010 20 15 15 0 010-20z',
+    headset:'M4 14v-2a8 8 0 0116 0v2M4 14a2 2 0 012 2v1a2 2 0 01-2 2 1 1 0 01-1-1v-3a1 1 0 011-1zM20 14a2 2 0 00-2 2v1a2 2 0 002 2 1 1 0 001-1v-3a1 1 0 00-1-1z',
+    shield:'M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z',
+  };
+  return React.createElement('svg', common, P(paths[name]||paths.home));
+}
+
+/* ============================== PRIMITIVES ============================== */
+const cx = (...a)=>a.filter(Boolean).join(' ');
+
+function Card({children, className=''}){
+  return <div className={cx('bg-white rounded-2xl border border-[#F3E6D9] shadow-card', className)}>{children}</div>;
+}
+function CardHead({icon, title, action}){
+  return (
+    <div className="flex items-center justify-between px-5 pt-4 pb-3">
+      <div className="flex items-center gap-2">
+        {icon && <span className="text-brand-500"><Ic name={icon} className="w-[18px] h-[18px]"/></span>}
+        <h3 className="font-bold text-ink text-[15px]">{title}</h3>
+      </div>
+      {action}
+    </div>
+  );
+}
+function Badge({children, tone='gray'}){
+  const t = {
+    gray:'bg-gray-100 text-gray-600', green:'bg-[#E8F5E9] text-green-700',
+    orange:'bg-brand-50 text-brand-600', pink:'bg-[#FFE4EA] text-pink-600',
+    purple:'bg-[#EEE7FB] text-purple-600', blue:'bg-[#E7F0FB] text-blue-600',
+    amber:'bg-amber-50 text-amber-600', red:'bg-red-50 text-red-600',
+  }[tone];
+  return <span className={cx('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold', t)}>{children}</span>;
+}
+function Avatar({name, color='#FDC089', size=40, ring=false}){
+  const ch = (name||'?').trim().charAt(0);
+  return <div className={cx('flex items-center justify-center rounded-full font-bold text-white shrink-0', ring&&'ring-2 ring-white shadow')} style={{width:size,height:size,background:color,fontSize:size*0.42}}>{ch}</div>;
+}
+function Btn({children, kind='primary', icon, onClick, className=''}){
+  const k = {
+    primary:'bg-brand-500 hover:bg-brand-600 text-white shadow-soft',
+    soft:'bg-brand-50 hover:bg-brand-100 text-brand-600',
+    ghost:'bg-white hover:bg-brand-50 text-gray-500 border border-[#E8D5C4]',
+    dark:'bg-ink hover:bg-slate-800 text-white',
+  }[kind];
+  return <button onClick={onClick} className={cx('inline-flex items-center justify-center gap-1.5 rounded-xl font-bold text-[13px] px-4 py-2 transition active:scale-[0.98]', k, className)}>
+    {icon && <Ic name={icon} className="w-4 h-4"/>}{children}
+  </button>;
+}
+function Tabs({tabs, active, onChange}){
+  return (
+    <div className="inline-flex bg-cream rounded-xl p-1 border border-[#F3E6D9]">
+      {tabs.map(t=> <button key={t} onClick={()=>onChange(t)}
+        className={cx('px-4 py-1.5 rounded-lg text-[13px] font-bold transition', active===t?'bg-white text-brand-600 shadow-card':'text-gray-500 hover:text-gray-700')}>{t}</button>)}
+    </div>
+  );
+}
+function Stat({label, value, tone='ink'}){
+  const c = {ink:'text-ink', orange:'text-brand-500', red:'text-red-500', green:'text-green-600'}[tone];
+  return <div className="text-center"><div className="text-[12px] text-muted font-bold mb-1">{label}</div><div className={cx('text-2xl font-extrabold',c)}>{value}</div></div>;
+}
+function AIChip(){ return <Badge tone="purple"><Ic name="ai" className="w-3 h-3"/>AI生成</Badge>; }
+
+/* ============================== SAMPLE DATA (架空) ============================== */
+const CAT = ['#FDC089','#C8B3ED','#FFD0D8','#ADDABB','#AFD0F0','#F4C6A6'];
+const KIDS = [
+  {n:'ひなた', age:'年長', rec:true}, {n:'さくら', age:'年長', rec:true}, {n:'あおい', age:'年長', rec:false},
+  {n:'りく', age:'年長', rec:true}, {n:'ゆうと', age:'年長', rec:false}, {n:'めい', age:'年長', rec:true},
+  {n:'そうた', age:'年長', rec:false}, {n:'ねね', age:'年長', rec:true}, {n:'かいと', age:'年長', rec:false},
+  {n:'みお', age:'年長', rec:true}, {n:'はると', age:'年長', rec:false}, {n:'ことね', age:'年長', rec:true},
+].map((k,i)=>({...k, color:CAT[i%CAT.length], id:i}));
+
+/* ============================== NAV CONFIG ============================== */
+const NAV = [
+  { group:'マイページ', items:[
+    {id:'teacher', label:'先生マイページ', icon:'teacher', star:true},
+    {id:'exec', label:'管理職マイページ', icon:'chart'},
+  ]},
+  { group:'記録（コアループ）', items:[
+    {id:'record', label:'日常記録入力', icon:'mic', star:true},
+    {id:'output', label:'3方向出力プレビュー', icon:'ai', star:true},
+    {id:'renraku', label:'れんらく帳', icon:'book'},
+    {id:'check', label:'まいにちチェック', icon:'check'},
+    {id:'docs', label:'ドキュメンテーション', icon:'camera'},
+    {id:'lesson', label:'指導計画・日誌', icon:'clipboard'},
+    {id:'portfolio', label:'ポートフォリオ', icon:'star'},
+  ]},
+  { group:'要録・書類', items:[
+    {id:'youroku', label:'要録一覧', icon:'file'},
+    {id:'filebox', label:'資料・ファイルBOX', icon:'folder'},
+  ]},
+  { group:'保護者とつながる', items:[
+    {id:'monthly', label:'月次配信エディタ', icon:'photo'},
+    {id:'broadcast', label:'一斉連絡・配信', icon:'send'},
+    {id:'notices', label:'お知らせ・お便り', icon:'bell'},
+    {id:'media', label:'メディア管理', icon:'play'},
+    {id:'attendance', label:'出欠申請の確認', icon:'calendar'},
+    {id:'feedback', label:'ご意見・アンケート', icon:'heart'},
+  ]},
+  { group:'台帳・業務', items:[
+    {id:'roster', label:'名簿センター', icon:'users'},
+    {id:'kids', label:'園児カルテ', icon:'book'},
+    {id:'allergy', label:'給食・アレルギー', icon:'search'},
+    {id:'billing', label:'登降園・精算', icon:'money'},
+    {id:'shift', label:'シフト・労務', icon:'clock'},
+    {id:'bus', label:'バスなび', icon:'bus'},
+    {id:'shop', label:'物販（注文管理）', icon:'shop'},
+    {id:'calendar', label:'年間カレンダー', icon:'calendar'},
+  ]},
+  { group:'園運営（主任・園長）', items:[
+    {id:'approve', label:'承認ボックス', icon:'check'},
+    {id:'roles', label:'権限管理', icon:'lock'},
+    {id:'settings', label:'設定・連携', icon:'settings'},
+    {id:'org', label:'組織可視化', icon:'org', star:true},
+    {id:'help', label:'使い方・サポート', icon:'grid'},
+  ]},
+];
+const SCREEN_TITLES = {};
+NAV.forEach(g=>g.items.forEach(i=>SCREEN_TITLES[i.id]=i.label));
+
+/* ============================== RBAC（役割×機能アクセス） ============================== */
+// 役割の定義（園内）。owner=園長は全権。
+const ROLES = {
+  owner:   { label:'園長',  desc:'全機能・権限管理・設定', color:'#E07B4A' },
+  manager: { label:'主任',  desc:'記録〜承認・育成。精算/設定は不可', color:'#C8B3ED' },
+  teacher: { label:'担任',  desc:'日々の記録・保育中心。精算/注文/労務/承認は非表示', color:'#FDC089' },
+  jimu:    { label:'事務',  desc:'精算・注文・労務・台帳。保育記録/評価は不可', color:'#ADDABB' },
+};
+const ROLE_ORDER = ['owner','manager','teacher','jimu'];
+// 機能（画面id）→ 閲覧できる役割。owner は常に全許可。未掲載は全役割可。
+const SCREEN_ROLES = {
+  teacher:['owner','manager','teacher'], exec:['owner','manager'],
+  record:['owner','manager','teacher'], output:['owner','manager','teacher'],
+  renraku:['owner','manager','teacher'], check:['owner','manager','teacher'],
+  docs:['owner','manager','teacher'], lesson:['owner','manager','teacher'],
+  portfolio:['owner','manager','teacher'], youroku:['owner','manager','teacher'],
+  filebox:['owner','manager','teacher','jimu'],
+  monthly:['owner','manager','teacher'], broadcast:['owner','manager','teacher'],
+  notices:['owner','manager','teacher'], media:['owner','manager','teacher'],
+  attendance:['owner','manager','teacher'], feedback:['owner','manager'],
+  roster:['owner','manager','teacher','jimu'], kids:['owner','manager','teacher','jimu'],
+  allergy:['owner','manager','teacher','jimu'], calendar:['owner','manager','teacher','jimu'],
+  bus:['owner','manager','jimu'],
+  // ↓ 一般の先生(担任)には見せない：精算・注文管理・労務・承認・設定・権限管理
+  billing:['owner','jimu'], shop:['owner','jimu'], shift:['owner','manager','jimu'],
+  approve:['owner','manager'], settings:['owner'], roles:['owner'], org:['owner','manager'],
+  help:['owner','manager','teacher','jimu'],
+};
+const canAccess = (role, id) => role==='owner' || (SCREEN_ROLES[id] || ROLE_ORDER).includes(role);
+
+function AccessDenied({label, role}){
+  return (
+    <div className="max-w-lg">
+      <Card className="p-8 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-3"><Ic name="lock" className="w-7 h-7"/></div>
+        <h2 className="text-xl font-extrabold text-ink">この機能は権限がありません</h2>
+        <p className="text-[13px] text-muted font-bold mt-2">「{label}」は現在の役割（{ROLES[role]?.label}）では表示できません。<br/>必要な場合は園長・管理者に権限の付与を依頼してください。</p>
+        <div className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-brand-600 bg-brand-50 rounded-lg px-3 py-2"><Ic name="lock" className="w-4 h-4"/>権限管理は［園運営 ▶ 権限管理］で設定できます</div>
+      </Card>
+    </div>
+  );
+}
+
+/* ============================== SCREENS (STAFF) ============================== */
+function PageHead({title, sub, action}){
+  return (
+    <div className="flex items-end justify-between mb-5">
+      <div>
+        <h1 className="text-2xl font-extrabold text-ink">{title}</h1>
+        {sub && <p className="text-muted text-[13px] mt-1 font-bold">{sub}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function TeacherHome({go}){
+  const [tab,setTab] = useState('クラス');
+  return (
+    <div>
+      <PageHead title="おはようございます、田中先生" sub="2026年6月2日（火）・あおば組（年長）担任"
+        action={<Btn kind="ghost" icon="bell">通知 3</Btn>} />
+      <div className="mb-5"><Tabs tabs={['クラス','わたしの育成','給与・有給']} active={tab} onChange={setTab}/></div>
+
+      {tab==='クラス' && <>
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <Card className="p-4"><Stat label="今日の記録" value="7 / 12" tone="orange"/></Card>
+          <Card className="p-4"><Stat label="未記録" value="5" tone="red"/></Card>
+          <Card className="p-4"><Stat label="今月の保護者配信" value="下書き中" tone="ink"/></Card>
+        </div>
+        <Card>
+          <CardHead icon="users" title="あおば組の子どもたち（12名）" action={<span className="text-[12px] text-muted font-bold">タップで記録 →</span>}/>
+          <div className="grid grid-cols-4 gap-3 px-5 pb-5">
+            {KIDS.map(k=>(
+              <button key={k.id} onClick={()=>go('record')} className="group rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:shadow-card p-3 flex flex-col items-center transition bg-cream/40">
+                <Avatar name={k.n} color={k.color} size={52} ring/>
+                <div className="mt-2 font-bold text-[13px] text-ink">{k.n}</div>
+                <div className="mt-1">{k.rec? <Badge tone="green">記録あり</Badge> : <Badge tone="orange">未記録</Badge>}</div>
+              </button>
+            ))}
+          </div>
+        </Card>
+      </>}
+
+      {tab==='わたしの育成' && <div className="grid grid-cols-3 gap-5">
+        <Card className="col-span-2 p-5">
+          <h3 className="font-bold text-ink mb-1">今月のわたしの軸</h3>
+          <p className="text-[13px] text-muted font-bold mb-4">「感じて、考える」— 子どもが自分で気づくまで待つ関わりを意識する</p>
+          <div className="space-y-3">
+            {[['6/1','戸外あそびで、虫を見つけた子に答えを言わず "どう思う？" と問い返せた','green'],
+              ['5/30','製作活動、つい手を出しすぎた。明日は見守る時間を増やす','amber'],
+              ['5/28','主任から「保護者対応の言葉選びが良い」とフィードバック','purple']].map((r,i)=>(
+              <div key={i} className="flex gap-3">
+                <div className="text-[12px] text-muted font-bold w-12 shrink-0 pt-0.5">{r[0]}</div>
+                <div className="flex-1 bg-cream rounded-xl px-3 py-2 text-[13px] text-ink border border-[#F3E6D9]">{r[1]}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="p-5">
+          <h3 className="font-bold text-ink mb-3">キャリアステージ</h3>
+          <div className="text-center mb-3">
+            <div className="text-[12px] text-muted font-bold">ステージ</div>
+            <div className="text-3xl font-extrabold text-brand-500">Lv.3</div>
+            <div className="text-[12px] text-muted font-bold">中堅保育者</div>
+          </div>
+          <div className="h-2.5 rounded-full bg-cream overflow-hidden mb-2"><div className="h-full bg-brand-400" style={{width:'68%'}}/></div>
+          <p className="text-[12px] text-muted font-bold mb-4">次ステージまで 研修2件・実践ログ32件</p>
+          <Btn kind="soft" icon="star" className="w-full" onClick={()=>go('output')}>キャリア評価ログを見る</Btn>
+        </Card>
+      </div>}
+
+      {tab==='給与・有給' && <div className="grid grid-cols-3 gap-5">
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">今月の給与（見込）</h3>
+          <div className="text-3xl font-extrabold text-ink">¥283,500</div>
+          <p className="text-[12px] text-muted font-bold mt-1">基本給＋処遇改善＋キャリアアップ手当</p>
+          <div className="mt-4 space-y-2 text-[13px]">
+            <div className="flex justify-between"><span className="text-muted font-bold">処遇改善等加算</span><span className="font-bold">¥38,000</span></div>
+            <div className="flex justify-between"><span className="text-muted font-bold">キャリアアップ手当(Lv.3)</span><span className="font-bold text-brand-600">¥15,000</span></div>
+          </div>
+        </Card>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">有給休暇</h3>
+          <div className="flex items-end gap-2"><div className="text-3xl font-extrabold text-green-600">12.5</div><div className="text-muted font-bold mb-1">日 残</div></div>
+          <p className="text-[12px] text-muted font-bold mt-1">付与20日 / 取得7.5日</p>
+          <Btn kind="ghost" icon="plus" className="w-full mt-4">休暇を申請する</Btn>
+        </Card>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">研修・処遇のつながり</h3>
+          <p className="text-[13px] text-muted font-bold mb-3">記録・評価ログが研修と給与にそのまま連動します。</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[13px]"><Badge tone="green"><Ic name="check" className="w-3 h-3"/>修了</Badge><span className="font-bold">マネジメント研修</span></div>
+            <div className="flex items-center gap-2 text-[13px]"><Badge tone="amber">受講中</Badge><span className="font-bold">乳幼児保育 専門研修</span></div>
+          </div>
+        </Card>
+      </div>}
+    </div>
+  );
+}
+
+function RecordInput({go}){
+  const child = KIDS[1];
+  const [axes,setAxes] = useState(['健康','言葉']);
+  const allAxes = ['健康','人間関係','環境','言葉','表現'];
+  const toggle = a => setAxes(s=> s.includes(a)? s.filter(x=>x!==a):[...s,a]);
+  return (
+    <div>
+      <PageHead title="日常記録入力" sub="1回の記録が、要録・保護者配信・キャリア評価の3方向へ自動でつながります"/>
+      <div className="grid grid-cols-3 gap-5">
+        <div className="col-span-2 space-y-5">
+          <Card className="p-5">
+            <div className="flex items-center gap-3 mb-5">
+              <Avatar name={child.n} color={child.color} size={56} ring/>
+              <div><div className="font-extrabold text-ink text-lg">{child.n} ちゃん</div><div className="text-[12px] text-muted font-bold">あおば組（年長）</div></div>
+              <button className="ml-auto text-[12px] font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-lg">別の子に切替</button>
+            </div>
+            <div className="flex flex-col items-center py-6 bg-cream rounded-2xl border border-[#F3E6D9]">
+              <button className="w-20 h-20 rounded-full bg-brand-500 text-white flex items-center justify-center shadow-soft active:scale-95 transition"><Ic name="mic" className="w-9 h-9"/></button>
+              <p className="mt-3 font-bold text-ink text-[14px]">タップして話すだけ</p>
+              <p className="text-[12px] text-muted font-bold">音声・写真・メールからも記録できます</p>
+              <div className="flex gap-2 mt-4">
+                <Btn kind="ghost" icon="camera">写真</Btn>
+                <Btn kind="ghost" icon="edit">テキスト</Btn>
+                <Btn kind="ghost" icon="send">メール取込</Btn>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-2"><AIChip/><span className="text-[12px] text-muted font-bold">音声を文字起こし → 要約・補完しました</span></div>
+            <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-4 text-[14px] text-ink leading-relaxed">
+              戸外あそびの時間に、だんごむしを見つけて友だち3人で観察。「あしは何本あるのかな」と<strong className="text-brand-600">自分から問いを立てて</strong>数えていた。図鑑コーナーまで自分で行き、調べた内容を友だちに説明する姿。
+            </div>
+            <div className="mt-4">
+              <div className="text-[12px] text-muted font-bold mb-2">5領域タグ（自動提案・タップで調整）</div>
+              <div className="flex flex-wrap gap-2">
+                {allAxes.map(a=> <button key={a} onClick={()=>toggle(a)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border transition', axes.includes(a)?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{a}</button>)}
+              </div>
+            </div>
+          </Card>
+        </div>
+        <div className="space-y-5">
+          <Card className="p-5">
+            <h3 className="font-bold text-ink mb-3">この記録のつながり先</h3>
+            {[['要録','5領域「環境・言葉」のドラフトに反映','purple'],
+              ['保護者配信','6月の成長レポートの個人ハイライト候補','pink'],
+              ['キャリア評価','"問いを引き出す関わり" の実践ログに加算','orange']].map((r,i)=>(
+              <div key={i} className="flex gap-3 mb-3 last:mb-0">
+                <span className="mt-1"><Badge tone={r[2]}>{r[0]}</Badge></span>
+                <p className="text-[12px] text-ink font-bold flex-1">{r[1]}</p>
+              </div>
+            ))}
+          </Card>
+          <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>go('output')}>記録を保存して出力を見る</Btn>
+          <p className="text-[12px] text-muted font-bold text-center px-4">保存後はAIが下書きを更新。先生は確認・編集するだけ。</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OutputPreview(){
+  const [tab,setTab] = useState('要録');
+  return (
+    <div>
+      <PageHead title="3方向出力プレビュー" sub="ひとつの記録から、3つの宛先へ。AIが下書き、先生が仕上げる。"
+        action={<Tabs tabs={['要録','保護者フィードバック','キャリア評価ログ']} active={tab} onChange={setTab}/>} />
+      {tab==='要録' && <Card className="p-6 max-w-3xl">
+        <div className="flex items-center justify-between mb-4">
+          <div><div className="font-extrabold text-ink text-lg">幼稚園幼児指導要録（さくら）</div><div className="text-[12px] text-muted font-bold">守谷市様式 v2025 ・ 年長</div></div>
+          <div className="flex gap-2"><AIChip/><Badge tone="amber">主任承認待ち</Badge></div>
+        </div>
+        {[['健康','基本的な生活習慣が身につき、戸外で全身を使って意欲的に遊ぶ。'],
+          ['人間関係','友だちと目的を共有し、考えを伝え合いながら遊びを進める。'],
+          ['環境','身近な自然に興味を持ち、"なぜ" を自分から問い、調べようとする。'],
+          ['言葉','気づいたことを言葉で伝え、友だちに説明する姿が増えた。'],
+          ['表現','観察したことを絵や言葉で表現することを楽しむ。']].map((r,i)=>(
+          <div key={i} className="flex gap-3 py-3 border-t border-[#F3E6D9]">
+            <div className="w-20 shrink-0"><Badge tone="purple">{r[0]}</Badge></div>
+            <p className="text-[14px] text-ink leading-relaxed flex-1">{r[1]}</p>
+            <button className="text-brand-500 shrink-0"><Ic name="edit" className="w-4 h-4"/></button>
+          </div>
+        ))}
+        <div className="flex gap-2 mt-4"><Btn kind="primary" icon="check">承認に回す</Btn><Btn kind="ghost" icon="file">PDF / Excel 出力</Btn></div>
+      </Card>}
+
+      {tab==='保護者フィードバック' && <Card className="p-0 max-w-md overflow-hidden">
+        <div className="h-40 bg-gradient-to-br from-cat-orange to-brand-300 relative flex items-end p-5">
+          <div className="text-white"><div className="text-[12px] font-bold opacity-90">2026年6月</div><div className="text-2xl font-extrabold">さくらの ひとつき</div></div>
+        </div>
+        <div className="p-5">
+          <div className="flex gap-2 mb-3"><AIChip/><Badge tone="green">写真6枚・動画1本</Badge></div>
+          <p className="text-[14px] text-ink leading-relaxed">今月のさくらちゃんは、だんごむしの観察に夢中でした。「あしは何本？」と自分から問いを立て、図鑑で調べてお友だちに教えてあげる姿が印象的でした。</p>
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {['#FDC089','#C8B3ED','#ADDABB','#FFD0D8','#AFD0F0','#F4C6A6'].map((c,i)=><div key={i} className="aspect-square rounded-xl" style={{background:c}}/>)}
+          </div>
+          <div className="mt-4 bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-ink"><span className="font-bold text-brand-600">担任より：</span> ご家庭でも "なんでだろうね？" と一緒に考えてあげてください。</div>
+        </div>
+      </Card>}
+
+      {tab==='キャリア評価ログ' && <Card className="p-6 max-w-3xl">
+        <div className="flex items-center justify-between mb-4">
+          <div className="font-extrabold text-ink text-lg">田中先生・実践評価ログ</div>
+          <Badge tone="orange"><Ic name="star" className="w-3 h-3"/>変化量ではなく "取り組み方" を評価</Badge>
+        </div>
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <Card className="p-4 bg-cream/50"><Stat label="今月の実践ログ" value="32" tone="orange"/></Card>
+          <Card className="p-4 bg-cream/50"><Stat label="第三者評価" value="A" tone="green"/></Card>
+          <Card className="p-4 bg-cream/50"><Stat label="研修連動" value="2件" tone="ink"/></Card>
+        </div>
+        {[['問いを引き出す関わり','よくできている','green','戸外・製作で計18回の実践ログ'],
+          ['見守りの姿勢','成長中','amber','"つい手を出す" の内省ログから改善傾向'],
+          ['保護者対応の言葉選び','よくできている','green','主任フィードバックでも高評価']].map((r,i)=>(
+          <div key={i} className="flex items-center gap-3 py-3 border-t border-[#F3E6D9]">
+            <div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[3]}</div></div>
+            <Badge tone={r[2]}>{r[1]}</Badge>
+          </div>
+        ))}
+        <p className="text-[12px] text-muted font-bold mt-4">※ ストライド思想：結果の大小ではなく、取り組みのプロセスを評価し、研修・処遇につなげます。</p>
+      </Card>}
+    </div>
+  );
+}
+
+function Roster(){
+  const rows = KIDS.slice(0,8).map((k,i)=>({...k, klass:['あおば組','ふたば組','つぼみ組'][i%3], cert:['1号','2号','3号'][i%3], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
+  return (
+    <div>
+      <PageHead title="名簿センター" sub="在園児・未就園児・職員を一元管理。すべての機能のハブ。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV入出力</Btn><Btn kind="primary" icon="plus">園児を追加</Btn></div>} />
+      <Card className="p-3 mb-4">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-cream rounded-xl px-3 py-2 flex-1 border border-[#F3E6D9]"><Ic name="search" className="w-4 h-4 text-muted"/><span className="text-[13px] text-muted font-bold">名前・ふりがな・保護者で検索</span></div>
+          {['全クラス','年長','年中','年少','1号認定','2号認定'].map((f,i)=><button key={i} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{f}</button>)}
+        </div>
+      </Card>
+      <Card className="overflow-hidden">
+        <table className="w-full text-[13px]">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">
+            {['園児','クラス','認定区分','保護者','タグ',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {rows.map(r=>(
+              <tr key={r.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
+                <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={r.n} color={r.color} size={32}/><span className="font-bold text-ink">{r.n}</span></div></td>
+                <td className="px-5 py-3 font-bold text-gray-600">{r.klass}</td>
+                <td className="px-5 py-3"><Badge tone="blue">{r.cert}認定</Badge></td>
+                <td className="px-5 py-3 font-bold text-gray-600">{r.guardian}家</td>
+                <td className="px-5 py-3">{r.id%2===0? <Badge tone="red">アレルギー</Badge> : <Badge tone="green">兄弟あり</Badge>}</td>
+                <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+function Broadcast(){
+  return (
+    <div>
+      <PageHead title="一斉連絡・配信" sub="宛先を選んで、プッシュ＋メールで確実に届ける"/>
+      <div className="grid grid-cols-3 gap-5">
+        <Card className="col-span-2 p-5 space-y-4">
+          <div><div className="text-[12px] text-muted font-bold mb-1">宛先</div>
+            <div className="flex flex-wrap gap-2">{['あおば組','年長 全体','アレルギー対象家庭'].map((t,i)=><Badge key={i} tone={i===0?'orange':'gray'}>{t} ×</Badge>)}<button className="text-[12px] font-bold text-brand-600">+ 追加</button></div>
+          </div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">件名</div><div className="bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] font-bold">【あおば組】6月の保育参観のお知らせ</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">本文</div><div className="bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] leading-relaxed h-28">保護者のみなさまへ。6月の保育参観を下記の通り実施します。持ち物は…</div></div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-[13px] font-bold text-ink"><span className="w-9 h-5 bg-brand-500 rounded-full relative"><span className="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"/></span>予約送信</label>
+            <span className="text-[13px] text-muted font-bold">6月3日 7:30</span>
+            <Btn kind="ghost" icon="camera" className="ml-auto">添付</Btn>
+            <Btn kind="primary" icon="send">配信する</Btn>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="chart" title="直近の配信"/>
+          <div className="px-5 pb-5 space-y-3">
+            {[['遠足のしおり','98%','green'],['献立変更のお知らせ','86%','amber'],['写真販売開始','72%','amber']].map((r,i)=>(
+              <div key={i}><div className="flex justify-between text-[13px]"><span className="font-bold text-ink">{r[0]}</span><Badge tone={r[2]}>既読 {r[1]}</Badge></div>
+                <div className="h-1.5 rounded-full bg-cream mt-1.5 overflow-hidden"><div className="h-full bg-brand-400" style={{width:r[1]}}/></div></div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function AttendanceApprove(){
+  const items = [
+    {n:'ひなた', type:'欠席', reason:'発熱のため', tone:'red', t:'07:12'},
+    {n:'りく', type:'遅刻', reason:'通院後に登園', tone:'amber', t:'07:30'},
+    {n:'めい', type:'朝フレンド', reason:'8:00から', tone:'blue', t:'昨日'},
+    {n:'そうた', type:'早退', reason:'15:00お迎え', tone:'purple', t:'昨日'},
+    {n:'ことね', type:'午後フレンド', reason:'17:00まで', tone:'green', t:'昨日'},
+  ];
+  return (
+    <div>
+      <PageHead title="出欠申請の確認" sub="2026年6月2日（火）" action={<Btn kind="primary" icon="check">まとめて確認</Btn>}/>
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        {[['欠席','2','red'],['遅刻','1','amber'],['早退','1','purple'],['預かり','2','green']].map((s,i)=>(
+          <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='red'?'red':'ink'}/></Card>
+        ))}
+      </div>
+      <Card>
+        <CardHead icon="bell" title="本日の申請（5件）"/>
+        <div className="px-5 pb-5 space-y-2">
+          {items.map((it,i)=>(
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40">
+              <Avatar name={it.n} color={CAT[i]} size={40}/>
+              <div className="flex-1"><div className="font-bold text-ink text-[14px]">{it.n} <span className="ml-1"><Badge tone={it.tone}>{it.type}</Badge></span></div><div className="text-[12px] text-muted font-bold">{it.reason}</div></div>
+              <div className="text-[12px] text-muted font-bold">{it.t}</div>
+              <Btn kind="soft" icon="check">確認</Btn>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function MonthlyEditor(){
+  return (
+    <div>
+      <PageHead title="月次配信エディタ" sub="AIが下書き、先生が仕上げ、主任・園長が承認して配信"
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">AIで下書き生成</Btn><Btn kind="primary" icon="send">承認に回す</Btn></div>}/>
+      <div className="grid grid-cols-5 gap-5">
+        <Card className="col-span-3 p-5 space-y-4">
+          <div className="h-36 rounded-2xl bg-gradient-to-br from-cat-orange to-brand-300 flex items-center justify-center text-white font-extrabold">＋ カバー画像を選ぶ</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">個人ハイライト</div><div className="text-[13px] text-ink">記録から自動ピックアップ（12名分）</div></div>
+            <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">クラス活動</div><div className="text-[13px] text-ink">どろんこ遊び・お店やさんごっこ</div></div>
+            <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">季節イラスト</div><div className="text-[13px] text-ink">6月 / あじさい・かたつむり</div></div>
+            <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">成長メモ</div><div className="text-[13px] text-ink">先生コメント欄</div></div>
+          </div>
+        </Card>
+        <Card className="col-span-2 p-5">
+          <h3 className="font-bold text-ink mb-3">承認フロー</h3>
+          {[['担任','完了','green'],['主任','承認待ち','amber'],['園長','—','gray']].map((r,i)=>(
+            <div key={i} className="flex items-center gap-3 py-2.5 border-b border-[#F3E6D9] last:border-0">
+              <div className="w-7 h-7 rounded-full bg-cream flex items-center justify-center text-[12px] font-bold text-brand-600 border border-[#F3E6D9]">{i+1}</div>
+              <span className="font-bold text-ink text-[14px] flex-1">{r[0]}</span><Badge tone={r[2]}>{r[1]}</Badge>
+            </div>
+          ))}
+          <div className="mt-4 bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink"><span className="font-bold text-purple-600">配信先：</span> 写真NG家庭は自動でオプトアウト。兄弟はまとめて1通に。</div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Billing(){
+  return (
+    <div>
+      <PageHead title="登降園・精算" sub="タッチ打刻 → 時間記録 → 月次精算（無償化・全銀・インボイス対応）"/>
+      <div className="grid grid-cols-3 gap-5 mb-5">
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">タッチ打刻（iPad）</h3>
+          <div className="grid grid-cols-3 gap-2">{KIDS.slice(0,6).map(k=><div key={k.id} className="flex flex-col items-center bg-cream rounded-xl p-2 border border-[#F3E6D9]"><Avatar name={k.n} color={k.color} size={36}/><span className="text-[11px] font-bold mt-1">{k.n}</span></div>)}</div>
+          <div className="flex gap-2 mt-3"><Btn kind="primary" className="flex-1">登園</Btn><Btn kind="ghost" className="flex-1">降園</Btn></div>
+        </Card>
+        <Card className="col-span-2 p-5"><CardHead icon="money" title="6月分 精算サマリ"/>
+          <div className="grid grid-cols-4 gap-3 px-1">
+            <Stat label="請求対象" value="118名"/><Stat label="無償化適用" value="92名" tone="green"/><Stat label="請求額" value="¥1.86M" tone="orange"/><Stat label="未確定" value="6件" tone="red"/>
+          </div>
+          <div className="mt-4 flex gap-2"><Btn kind="ghost" icon="file">全銀フォーマット出力</Btn><Btn kind="ghost" icon="file">適格請求書(インボイス)</Btn><Btn kind="primary" icon="check">精算を確定</Btn></div>
+        </Card>
+      </div>
+      <Card className="overflow-hidden">
+        <table className="w-full text-[13px]">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','基本料','延長','給食・物販','無償化','請求額'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+          <tbody>{KIDS.slice(0,5).map((k,i)=>(
+            <tr key={k.id} className="border-b border-[#F7EFE7]">
+              <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td>
+              <td className="px-5 py-3 font-bold">¥27,000</td><td className="px-5 py-3">¥{(i*1500).toLocaleString()}</td><td className="px-5 py-3">¥{(4500+i*300).toLocaleString()}</td>
+              <td className="px-5 py-3"><Badge tone="green">-¥25,700</Badge></td><td className="px-5 py-3 font-extrabold text-ink">¥{(5800+i*1800).toLocaleString()}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+function Shift(){
+  const staff = ['田中','佐々木','塚田','久保','渡辺'];
+  const days = ['月','火','水','木','金','土'];
+  const cellColors = ['#FDC089','#ADDABB','#AFD0F0','#C8B3ED','#FFD0D8'];
+  return (
+    <div>
+      <PageHead title="シフト・労務" sub="2026年6月 ・ 配置基準を自動チェック"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="file">給与連携CSV</Btn><Btn kind="primary" icon="plus">シフト作成</Btn></div>}/>
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        <Card className="p-4"><Stat label="配置基準" value="充足" tone="green"/></Card>
+        <Card className="p-4"><Stat label="要注意日" value="2日" tone="red"/></Card>
+        <Card className="p-4"><Stat label="休暇申請" value="3件" tone="ink"/></Card>
+        <Card className="p-4"><Stat label="時間有給" value="可" tone="green"/></Card>
+      </div>
+      <Card className="overflow-hidden">
+        <table className="w-full text-[13px] text-center">
+          <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40"><th className="px-4 py-3 text-left">職員</th>{days.map(d=><th key={d} className="px-2 py-3">{d}</th>)}</tr></thead>
+          <tbody>{staff.map((s,si)=>(
+            <tr key={s} className="border-b border-[#F7EFE7]">
+              <td className="px-4 py-3 text-left font-bold text-ink">{s} 先生</td>
+              {days.map((d,di)=> <td key={di} className="px-2 py-2">{(si+di)%4!==0? <span className="inline-block px-2 py-1 rounded-lg text-[11px] font-bold text-ink/70" style={{background:cellColors[si%5]+'66'}}>{['早','日','遅','日'][di%4]}</span> : <span className="text-muted">休</span>}</td>)}
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+      <div className="mt-4"><Card className="p-4 border-l-4 border-l-red-300"><div className="flex items-center gap-2 text-[13px]"><Badge tone="red">配置基準アラート</Badge><span className="font-bold text-ink">6/15(月) 午後 ・ 年少クラスが基準人数 -1名。早番の調整を推奨。</span></div></Card></div>
+    </div>
+  );
+}
+
+function Shop(){
+  const goods = [['通園帽子','¥2,200','#FDC089'],['体操服セット','¥4,800','#AFD0F0'],['上履き','¥1,600','#ADDABB'],['お道具箱','¥3,200','#C8B3ED'],['名札','¥600','#FFD0D8'],['絵本バッグ','¥2,900','#F4C6A6']];
+  return (
+    <div>
+      <PageHead title="物販（注文管理）" sub="2026年11月の受付開始に向けた最小フロー ・ 注文 → 集計 → 帳票"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="chart">注文集計</Btn><Btn kind="primary" icon="plus">商品を追加</Btn></div>}/>
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        <Card className="p-4"><Stat label="受付中の商品" value="6" tone="ink"/></Card>
+        <Card className="p-4"><Stat label="今月の注文" value="143件" tone="orange"/></Card>
+        <Card className="p-4"><Stat label="売上(見込)" value="¥412,800" tone="green"/></Card>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        {goods.map((g,i)=>(
+          <Card key={i} className="overflow-hidden">
+            <div className="h-28 flex items-center justify-center" style={{background:g[2]+'55'}}><Ic name="shop" className="w-10 h-10 text-ink/30"/></div>
+            <div className="p-4"><div className="font-bold text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600">{g[1]}</span><Badge tone="green">受付中</Badge></div></div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Renraku(){
+  return (
+    <div>
+      <PageHead title="れんらく帳" sub="先生と保護者の双方向。写真・既読・PDF出力対応。"/>
+      <div className="grid grid-cols-3 gap-5">
+        <Card className="p-2">
+          <div className="px-3 py-2 text-[12px] text-muted font-bold">あおば組（12名）</div>
+          {KIDS.slice(0,6).map((k,i)=>(
+            <div key={k.id} className={cx('flex items-center gap-2 p-2 rounded-xl cursor-pointer', i===1?'bg-brand-50':'hover:bg-cream/60')}>
+              <Avatar name={k.n} color={k.color} size={36}/><div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{i%2?'返信あり':'未読'}</div></div>
+              {i%2===0 && <span className="w-2 h-2 rounded-full bg-brand-500"/>}
+            </div>
+          ))}
+        </Card>
+        <Card className="col-span-2 p-5">
+          <div className="flex items-center gap-2 mb-4"><Avatar name="さくら" color="#C8B3ED" size={40}/><div className="font-extrabold text-ink">さくら ・ 6月2日</div></div>
+          <div className="space-y-3">
+            <div className="flex gap-2"><Badge tone="orange">先生</Badge><div className="flex-1 bg-cream rounded-2xl rounded-tl-sm p-3 text-[14px] text-ink border border-[#F3E6D9]">今日は戸外でだんごむしを観察していました。お家でも自然の話をしてみてください🐛</div></div>
+            <div className="flex gap-2 flex-row-reverse"><Badge tone="green">保護者</Badge><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[14px] text-ink">帰ってからずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
+          </div>
+          <div className="mt-4 flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><Ic name="camera" className="w-5 h-5 text-muted ml-1"/><span className="flex-1 text-[13px] text-muted font-bold">メッセージを入力…</span><Btn kind="primary" icon="send">送信</Btn></div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function DailyCheck(){
+  const cols = ['午睡','排便','検温','食事','水分','服薬'];
+  return (
+    <div>
+      <PageHead title="まいにちチェック" sub="午睡・排便・検温・食事・水分・服薬を一括記録。前回コピーも。"
+        action={<Btn kind="soft" icon="check">前回をコピー</Btn>}/>
+      <Card className="overflow-hidden">
+        <table className="w-full text-[13px] text-center">
+          <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40"><th className="px-4 py-3 text-left">園児</th>{cols.map(c=><th key={c} className="px-3 py-3">{c}</th>)}</tr></thead>
+          <tbody>{KIDS.slice(0,8).map((k,ri)=>(
+            <tr key={k.id} className="border-b border-[#F7EFE7]">
+              <td className="px-4 py-3 text-left"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td>
+              <td className="px-3 py-3">{ri%3?'😴':'—'}</td>
+              <td className="px-3 py-3">{ri%2?'○':'—'}</td>
+              <td className="px-3 py-3 font-bold text-ink">36.{5+ri%4}℃</td>
+              <td className="px-3 py-3">{['完食','半分','少し'][ri%3]}</td>
+              <td className="px-3 py-3">{ri%2?'○':'△'}</td>
+              <td className="px-3 py-3">{ri%4===0? <Badge tone="amber">あり</Badge> : '—'}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+function YoroukuList(){
+  return (
+    <div>
+      <PageHead title="要録一覧" sub="AI下書き → 編集 → 承認 → 小学校引継ぎ。履歴も保持。"
+        action={<Btn kind="primary" icon="file">一括PDF出力</Btn>}/>
+      <Card className="overflow-hidden">
+        <table className="w-full text-[13px]">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','クラス','AI下書き','承認状況','出力'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+          <tbody>{KIDS.slice(0,7).map((k,i)=>(
+            <tr key={k.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
+              <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={30}/><span className="font-bold text-ink">{k.n}</span></div></td>
+              <td className="px-5 py-3 font-bold text-gray-600">年長</td>
+              <td className="px-5 py-3">{i%3===2? <Badge tone="gray">未生成</Badge> : <AIChip/>}</td>
+              <td className="px-5 py-3">{[<Badge tone="green">園長承認済</Badge>,<Badge tone="amber">主任承認待ち</Badge>,<Badge tone="gray">下書き</Badge>][i%3]}</td>
+              <td className="px-5 py-3"><div className="flex gap-1"><button className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button><button className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button></div></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+function ExecHome(){
+  return (
+    <div>
+      <PageHead title="管理職マイページ" sub="あおばグループ 経営ダッシュボード ・ 教育・育成の質を中心に"/>
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        {[['在園率','96.4%','green'],['保護者配信 開封率','88%','orange'],['要録 進捗','64%','ink'],['職員エンゲージ','A-','green']].map((s,i)=>(
+          <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':'text-ink')}>{s[1]}</div></Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-5">
+        <Card className="col-span-2 p-5"><CardHead icon="chart" title="園別サマリ（あおば・ふたば・つぼみ）"/>
+          <div className="px-5 pb-5 space-y-3">
+            {[['あおば幼稚園','118名','満足度 4.6'],['ふたば幼稚園','86名','満足度 4.5'],['つぼみ保育園','64名','満足度 4.7']].map((r,i)=>(
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]">
+                <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="building" className="w-5 h-5"/></div>
+                <div className="flex-1"><div className="font-bold text-ink">{r[0]}</div><div className="text-[12px] text-muted font-bold">在園 {r[1]}</div></div>
+                <Badge tone="green">{r[2]}</Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">経営報告書</h3>
+          <p className="text-[13px] text-muted font-bold mb-4">月次の数値と現場の質を1枚に。AIが下書きします。</p>
+          <Btn kind="soft" icon="ai" className="w-full mb-2">月次レポートを生成</Btn>
+          <Btn kind="ghost" icon="file" className="w-full">前月分PDFを見る</Btn>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function CalendarScreen(){
+  const months = ['4月','5月','6月','7月','8月','9月','10月','11月','12月','1月','2月','3月'];
+  const events = {1:'親子遠足',2:'保育参観',3:'プール開き',5:'夏祭り',7:'運動会',8:'発表会',11:'卒園式'};
+  return (
+    <div>
+      <PageHead title="年間カレンダー" sub="「今ここ」マーカーで、1年の見通しと残り時間が見える"/>
+      <Card className="p-6">
+        <div className="relative pt-8 pb-2">
+          <div className="absolute left-0 right-0 top-12 h-1 bg-cream rounded-full"/>
+          <div className="absolute top-12 h-1 bg-brand-300 rounded-full" style={{left:0,width:'20%'}}/>
+          <div className="grid grid-cols-12 gap-0 relative">
+            {months.map((m,i)=>(
+              <div key={i} className="flex flex-col items-center">
+                <div className="h-8 text-[11px] font-bold text-ink mb-1">{events[i]||''}</div>
+                <div className={cx('w-4 h-4 rounded-full border-2 z-10', i===2?'bg-brand-500 border-brand-500 ring-4 ring-brand-100':'bg-white border-[#E8D5C4]')}/>
+                <div className={cx('text-[12px] font-bold mt-2', i===2?'text-brand-600':'text-muted')}>{m}</div>
+              </div>
+            ))}
+          </div>
+          <div className="absolute" style={{left:'20%',top:0,transform:'translateX(-50%)'}}><Badge tone="orange"><Ic name="star" className="w-3 h-3"/>今ここ</Badge></div>
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-8">
+          {[['次の行事','プール開き','6月20日','blue'],['準備中','夏祭り','あと52日','orange'],['卒園まで','あおば組','あと292日','purple']].map((c,i)=>(
+            <Card key={i} className="p-4 bg-cream/40"><div className="text-[12px] text-muted font-bold">{c[0]}</div><div className="font-extrabold text-ink mt-1">{c[1]}</div><div className="mt-1"><Badge tone={c[3]}>{c[2]}</Badge></div></Card>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function OrgScreen(){
+  return (
+    <div>
+      <PageHead title="組織可視化（あおばグループ専用）" sub="「ローハチって何？」を見える化。法人・事業・園のつながり。"/>
+      <Card className="p-6">
+        <svg viewBox="0 0 900 460" className="w-full">
+          <defs>
+            <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#E8D5C4"/></marker>
+          </defs>
+          {/* lines */}
+          {[[450,80,200,210],[450,80,450,210],[450,80,700,210],[450,80,820,210]].map((l,i)=>(
+            <line key={i} x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke="#E8D5C4" strokeWidth="2" markerEnd="url(#ar)"/>
+          ))}
+          {[[200,250,120,360],[200,250,280,360],[450,250,450,360]].map((l,i)=>(
+            <line key={'b'+i} x1={l[0]} y1={l[1]} x2={l[2]} y2={l[3]} stroke="#F0DECF" strokeWidth="2"/>
+          ))}
+          {/* center */}
+          <g><rect x="350" y="40" width="200" height="60" rx="16" fill="#E07B4A"/><text x="450" y="66" textAnchor="middle" fill="#fff" fontWeight="800" fontSize="16">あおばグループ</text><text x="450" y="86" textAnchor="middle" fill="#FBE3D4" fontSize="11">教育プロダクト群の協働体</text></g>
+          {/* level 2 */}
+          {[[110,180,'学校法人 川村学園','園の運営','#C8B3ED'],
+            [360,180,'株式会社 Aoo','本体・システム','#FDC089'],
+            [610,180,'株式会社 ROHACHI','テナント事業','#ADDABB'],
+            [760,180,'興縁（株）','プロダクト開発','#AFD0F0']].map((n,i)=>(
+            <g key={i}><rect x={n[0]} y={n[1]} width="170" height="56" rx="14" fill="#fff" stroke={n[4]} strokeWidth="2.5"/>
+              <text x={n[0]+85} y={n[1]+24} textAnchor="middle" fill="#0F172A" fontWeight="800" fontSize="13">{n[2]}</text>
+              <text x={n[0]+85} y={n[1]+42} textAnchor="middle" fill="#8A94A6" fontSize="11">{n[3]}</text></g>
+          ))}
+          {/* level 3 (parks) */}
+          {[[60,330,'あおば幼稚園','#C8B3ED'],[220,330,'ふたば幼稚園','#C8B3ED'],[390,330,'つぼみ保育園','#FDC089'],
+            [600,330,'発達支援事業','#ADDABB'],[720,330,'for Kids / こしょこしょ','#AFD0F0']].map((n,i)=>(
+            <g key={i}><rect x={n[0]} y={n[1]} width="140" height="46" rx="12" fill={n[3]+'33'} stroke={n[3]} strokeWidth="2"/>
+              <text x={n[0]+70} y={n[1]+28} textAnchor="middle" fill="#0F172A" fontWeight="700" fontSize="12">{n[2]}</text></g>
+          ))}
+        </svg>
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9]"><div className="font-bold text-ink mb-1">ROHACHI（ローハチ）とは？</div><p className="text-[13px] text-muted font-bold">あおばグループのテナント事業を担う会社。園に関わる物販・サービスの運営主体。組織図で役割が一目で分かります。</p></div>
+          <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9]"><div className="font-bold text-ink mb-1">for Kids の位置づけ</div><p className="text-[13px] text-muted font-bold">興縁が開発、あおばグループ各園で利用。既存「こしょこしょ」を内包する上位サービスとして設計。</p></div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function BusScreen(){
+  const stops = ['みどり公園前','さくら団地','駅前ロータリー','本町三丁目','ひがし台'];
+  const courses = [['Aコース（北回り）','大型バス','8:05',KIDS.slice(0,5)],['Bコース（南回り）','中型バス','8:20',KIDS.slice(5,9)],['Cコース（駅前）','中型バス','8:35',KIDS.slice(9,12)]];
+  return (
+    <div>
+      <PageHead title="バスなび" sub="運行ルート・乗降確認・お迎え時刻を保護者と共有。欠席連絡は乗車予定から自動で除外。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="bell">遅延を一斉連絡</Btn><Btn kind="primary" icon="plus">コースを編集</Btn></div>}/>
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        <Card className="p-4"><Stat label="運行コース" value="3" tone="ink"/></Card>
+        <Card className="p-4"><Stat label="本日の乗車" value="10名" tone="orange"/></Card>
+        <Card className="p-4"><Stat label="欠席で除外" value="2名" tone="red"/></Card>
+        <Card className="p-4"><Stat label="運行状況" value="定刻" tone="green"/></Card>
+      </div>
+      <div className="grid grid-cols-3 gap-5">
+        {courses.map((c,i)=>(
+          <Card key={i} className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="bus" className="w-5 h-5"/></div>
+              <div><div className="font-bold text-ink text-[14px]">{c[0]}</div><div className="text-[11px] text-muted font-bold">{c[1]}・出発 {c[2]}</div></div>
+            </div>
+            <div className="space-y-2">
+              {c[3].map((k,ki)=>(
+                <div key={k.id} className="flex items-center gap-2 p-2 rounded-xl border border-[#F3E6D9]">
+                  <Avatar name={k.n} color={k.color} size={30}/>
+                  <div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{stops[ki%stops.length]}</div></div>
+                  {k.rec? <Badge tone="green"><Ic name="check" className="w-3 h-3"/>乗車</Badge> : <Badge tone="red">欠席</Badge>}
+                </div>
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ApproveBox(){
+  const items = [
+    {kind:'要録', who:'田中先生', target:'さくら（年長）', tone:'purple', note:'5領域すべてAI下書き済み・主任承認待ち', t:'10分前'},
+    {kind:'月次配信', who:'田中先生', target:'あおば組 6月号', tone:'pink', note:'写真6・動画1。写真NG家庭は自動オプトアウト済み', t:'1時間前'},
+    {kind:'休暇申請', who:'佐々木先生', target:'6/18 有給1日', tone:'green', note:'配置基準クリア（代替：渡辺先生）', t:'昨日'},
+    {kind:'シフト変更', who:'久保先生', target:'6/15 早番→遅番', tone:'blue', note:'年少クラスの配置基準に影響なし', t:'昨日'},
+    {kind:'物販価格', who:'ROHACHI', target:'体操服セット ¥4,800', tone:'orange', note:'仕入改定にともなう価格変更の承認依頼', t:'2日前'},
+  ];
+  return (
+    <div>
+      <PageHead title="承認ボックス" sub="主任・園長の承認待ちを1か所に。記録から要録・配信・労務までワンストップで回す。"
+        action={<Btn kind="primary" icon="check">条件を満たす項目を一括承認</Btn>}/>
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        {[['承認待ち','5','red'],['本日承認済','8','green'],['要録 進捗','64%','ink'],['配信 待ち','1','orange']].map((s,i)=>(
+          <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='red'?'red':s[2]==='green'?'green':s[2]==='orange'?'orange':'ink'}/></Card>
+        ))}
+      </div>
+      <Card>
+        <CardHead icon="check" title="承認待ち（5件）" action={<span className="text-[12px] text-muted font-bold">古い順</span>}/>
+        <div className="px-5 pb-5 space-y-2">
+          {items.map((it,i)=>(
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40">
+              <span className="shrink-0"><Badge tone={it.tone}>{it.kind}</Badge></span>
+              <div className="flex-1 min-w-0"><div className="font-bold text-ink text-[14px]">{it.target} <span className="text-muted font-bold text-[12px]">／ {it.who}</span></div><div className="text-[12px] text-muted font-bold truncate">{it.note}</div></div>
+              <div className="text-[12px] text-muted font-bold shrink-0">{it.t}</div>
+              <div className="flex gap-1 shrink-0"><Btn kind="ghost">差戻し</Btn><Btn kind="soft" icon="check">承認</Btn></div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function SettingsScreen(){
+  const [tab,setTab] = useState('自園の施設');
+  return (
+    <div>
+      <PageHead title="設定・連携" sub="自園の職員権限・外部連携・データ移行・ブランディングを管理（テナント／施設の発行は運営ポータル）"
+        action={<Tabs tabs={['自園の施設','職員権限','連携・移行']} active={tab} onChange={setTab}/>}/>
+      {tab==='自園の施設' && <div className="grid grid-cols-3 gap-5">
+        <Card className="col-span-2 p-5">
+          <CardHead icon="building" title="自テナントの園・施設（あおばグループ）" action={<Badge tone="gray">閲覧のみ</Badge>}/>
+          <div className="px-5 pb-5 space-y-2">
+            {[['あおば幼稚園','118名','1号・2号','#C8B3ED'],['ふたば幼稚園','86名','1号','#FDC089'],['つぼみ保育園','64名','2号・3号','#ADDABB']].map((r,i)=>(
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-ink/70" style={{background:r[3]+'55'}}><Ic name="building" className="w-5 h-5"/></div>
+                <div className="flex-1"><div className="font-bold text-ink">{r[0]}</div><div className="text-[12px] text-muted font-bold">在園 {r[1]}・{r[2]}認定</div></div>
+                <Badge tone="green">運用中</Badge>
+              </div>
+            ))}
+            <div className="mt-1 flex items-center gap-2 rounded-xl border border-dashed border-[#E8D5C4] px-3 py-2.5 text-[12px] font-bold text-muted"><Ic name="lock" className="w-4 h-4"/>園・施設の追加／テナント契約の変更は、運営（販売元）ポータルで行います。</div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <h3 className="font-bold text-ink mb-3">ブランディング</h3>
+          <div className="space-y-3 text-[13px]">
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">テーマカラー</span><div className="flex gap-1">{CAT.slice(0,4).map((c,i)=><span key={i} className="w-5 h-5 rounded-full" style={{background:c}}/>)}</div></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">ロゴ</span><Badge tone="green">設定済</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">独自ドメイン</span><span className="font-bold text-ink">aoba.for-kids.jp</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">カントリーパック</span><Badge tone="blue">日本 / JP</Badge></div>
+          </div>
+        </Card>
+      </div>}
+      {tab==='職員権限' && <Card className="overflow-hidden">
+        <table className="w-full text-[13px]">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['職員','役割','記録','承認','精算','設定'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+          <tbody>{[['田中 みさき','担任',1,0,0,0],['佐々木 ゆい','主任',1,1,0,0],['塚田 のぞみ','園長',1,1,1,1],['久保 けんと','フリー',1,0,0,0],['渡辺 事務','事務',0,0,1,0]].map((r,i)=>(
+            <tr key={i} className="border-b border-[#F7EFE7]">
+              <td className="px-5 py-3 font-bold text-ink">{r[0]}</td>
+              <td className="px-5 py-3"><Badge tone={r[1]==='園長'?'orange':r[1]==='主任'?'purple':'gray'}>{r[1]}</Badge></td>
+              {[2,3,4,5].map(ci=> <td key={ci} className="px-5 py-3">{r[ci]? <span className="text-green-600"><Ic name="check" className="w-4 h-4"/></span> : <span className="text-muted">—</span>}</td>)}
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>}
+      {tab==='連携・移行' && <div className="grid grid-cols-2 gap-5">
+        <Card className="p-5">
+          <CardHead icon="ai" title="他システムからの移行"/>
+          <p className="px-5 text-[13px] text-muted font-bold mb-3">移行容易性が for Kids の最重要KPI。AIが既存データを変換して取り込みます。</p>
+          <div className="px-5 pb-5 space-y-2">
+            {[['コミュなび','取込可','green'],['おうちえん','取込可','green'],['こしょこしょ','内包・連携','blue'],['バスキャッチ','取込可','green']].map((r,i)=>(
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]"><div className="flex-1 font-bold text-ink">{r[0]}</div><Badge tone={r[2]}>{r[1]}</Badge><Btn kind="ghost" icon="arrow">移行</Btn></div>
+            ))}
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="settings" title="外部連携"/>
+          <div className="px-5 pb-5 space-y-2">
+            {[['会計（インボイス・全銀）','連携済','green'],['処遇改善・キャリアアップ研修','連携済','green'],['市の要録様式（守谷市）','適用中','blue'],['顔認証・写真自動分類','次フェーズ','gray']].map((r,i)=>(
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]"><div className="flex-1 font-bold text-ink">{r[0]}</div><Badge tone={r[2]}>{r[1]}</Badge></div>
+            ))}
+          </div>
+        </Card>
+      </div>}
+    </div>
+  );
+}
+
+function Docs(){
+  const acts=[['だんごむし観察','戸外あそび',['環境','言葉'],'#ADDABB'],['お店やさんごっこ','表現あそび',['人間関係','表現'],'#FDC089'],['どろんこ遊び','感触あそび',['健康','環境'],'#AFD0F0'],['絵本の読み聞かせ','言語活動',['言葉'],'#C8B3ED']];
+  return (
+    <div>
+      <PageHead title="ドキュメンテーション" sub="日々の活動を写真＋気づきで記録。AIが5領域を提案し、要録・保護者配信へそのままつながる。"
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">AIで活動をまとめる</Btn><Btn kind="primary" icon="plus">活動を記録</Btn></div>}/>
+      <div className="grid grid-cols-2 gap-5">
+        {acts.map((a,i)=>(
+          <Card key={i} className="overflow-hidden">
+            <div className="h-32 grid grid-cols-3 gap-1 p-1" style={{background:a[3]+'33'}}>{[0,1,2].map(j=><div key={j} className="rounded-lg" style={{background:a[3]+(j===0?'cc':'88')}}/>)}</div>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-1"><h3 className="font-bold text-ink">{a[0]}</h3><Badge tone="gray">{a[1]}</Badge></div>
+              <div className="flex items-center gap-2 mb-2"><AIChip/><span className="text-[12px] text-muted font-bold">先生の気づきをAIが整文</span></div>
+              <p className="text-[13px] text-ink leading-relaxed mb-3">子どもが自分から「なぜ？」と問いを立て、友だちと考えを伝え合う姿が見られた。</p>
+              <div className="flex flex-wrap items-center gap-1.5">{a[2].map((t,k)=><Badge key={k} tone="purple">{t}</Badge>)}<span className="ml-auto text-[12px] text-brand-600 font-bold">保護者へ公開 →</span></div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Lesson(){
+  const [tab,setTab]=useState('週案');
+  const days=['月','火','水','木','金'];
+  return (
+    <div>
+      <PageHead title="指導計画・日誌" sub="ねらい→活動→振り返りを一本化。日々の記録から日誌をAIが下書き。"
+        action={<Tabs tabs={['週案','日誌','月案']} active={tab} onChange={setTab}/>}/>
+      {tab==='週案' && <Card className="p-5">
+        <div className="flex items-center gap-2 mb-4"><Badge tone="orange">あおば組（年長）</Badge><span className="text-[13px] font-bold text-ink">6月 第1週</span><span className="ml-auto"><AIChip/></span></div>
+        <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9] mb-4"><div className="text-[12px] font-bold text-brand-600 mb-1">今週のねらい</div><p className="text-[14px] text-ink">身近な自然に触れ、気づいたことを自分の言葉で表現する。</p></div>
+        <div className="grid grid-cols-5 gap-2">{days.map((d,i)=>(
+          <div key={i} className="rounded-xl border border-[#F3E6D9] overflow-hidden">
+            <div className="bg-cream px-2 py-1.5 text-center text-[12px] font-bold text-ink">{d}</div>
+            <div className="p-2 text-[12px] text-ink space-y-1 h-28"><div className="font-bold">{['戸外あそび','製作','クッキング','音楽','遠足準備'][i]}</div><p className="text-muted font-bold text-[11px]">{['だんごむし観察','あじさい制作','梅シロップ','リズム遊び','しおり作り'][i]}</p></div>
+          </div>
+        ))}</div>
+      </Card>}
+      {tab==='日誌' && <Card className="p-5 max-w-3xl">
+        <div className="flex items-center gap-2 mb-3"><span className="font-extrabold text-ink">2026年6月2日（火）の日誌</span><Badge tone="amber">主任承認待ち</Badge><span className="ml-auto"><AIChip/></span></div>
+        {[['活動','戸外でだんごむし観察。図鑑で足の数を調べる子が複数。'],['子どもの育ち','「なぜ」を自分から問い、友だちに説明する姿。'],['明日への手立て','図鑑コーナーを充実させ、問いが深まる環境を用意する。']].map((r,i)=>(
+          <div key={i} className="py-3 border-t border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">{r[0]}</div><p className="text-[14px] text-ink leading-relaxed">{r[1]}</p></div>
+        ))}
+        <div className="flex gap-2 mt-4"><Btn kind="primary" icon="check">承認に回す</Btn><Btn kind="ghost" icon="edit">編集</Btn></div>
+      </Card>}
+      {tab==='月案' && <Card className="p-5"><div className="text-[13px] text-muted font-bold mb-3">6月の月案（年長）</div>
+        <div className="grid grid-cols-2 gap-4">{[['ねらい','梅雨期の自然に親しみ、探究する姿を育てる'],['環境構成','図鑑・観察道具・雨の日コーナー'],['行事','保育参観・プール開き'],['家庭連携','成長レポートで探究の姿を共有']].map((r,i)=>(
+          <div key={i} className="bg-cream rounded-xl p-4 border border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">{r[0]}</div><p className="text-[13px] text-ink">{r[1]}</p></div>
+        ))}</div>
+      </Card>}
+    </div>
+  );
+}
+
+function Portfolio(){
+  const child=KIDS[1];
+  return (
+    <div>
+      <PageHead title="ポートフォリオ" sub="園児ごとに記録・作品・成長を時系列で蓄積。卒園時に1冊の物語に。"
+        action={<Btn kind="ghost" icon="file">PDFアルバム出力</Btn>}/>
+      <div className="grid grid-cols-3 gap-5">
+        <Card className="p-5">
+          <div className="flex flex-col items-center"><Avatar name={child.n} color={child.color} size={64} ring/><div className="font-extrabold text-ink mt-2">{child.n}</div><div className="text-[12px] text-muted font-bold">あおば組（年長）</div></div>
+          <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+            <div><div className="text-xl font-extrabold text-brand-500">48</div><div className="text-[11px] text-muted font-bold">記録</div></div>
+            <div><div className="text-xl font-extrabold text-brand-500">23</div><div className="text-[11px] text-muted font-bold">作品</div></div>
+            <div><div className="text-xl font-extrabold text-brand-500">9</div><div className="text-[11px] text-muted font-bold">月数</div></div>
+          </div>
+        </Card>
+        <Card className="col-span-2 p-5">
+          <CardHead icon="star" title="成長のあゆみ"/>
+          <div className="px-5 pb-5 space-y-3">{[['6月','探究','だんごむしの観察。問いを立てる力が伸びた','#ADDABB'],['5月','表現','こいのぼり制作で色の組合せを工夫','#FDC089'],['4月','人間関係','進級し、年下の子に優しく接する姿','#C8B3ED']].map((r,i)=>(
+            <div key={i} className="flex gap-3"><div className="text-[12px] font-bold text-muted w-10 shrink-0 pt-1">{r[0]}</div><div className="flex-1 rounded-xl p-3 border border-[#F3E6D9]" style={{background:r[3]+'22'}}><Badge tone="purple">{r[1]}</Badge><p className="text-[13px] text-ink mt-1">{r[2]}</p></div></div>
+          ))}</div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function KidsInfo(){
+  const [tab,setTab]=useState('基本情報');
+  return (
+    <div>
+      <PageHead title="園児カルテ" sub="基本情報・健康・身体測定・緊急連絡を一元化。名簿センターと連動。"
+        action={<Tabs tabs={['基本情報','健康・身体測定','緊急連絡']} active={tab} onChange={setTab}/>}/>
+      {tab==='基本情報' && <Card className="overflow-hidden"><table className="w-full text-[13px]">
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','生年月日','クラス','認定','入園日','きょうだい'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+        <tbody>{KIDS.slice(0,8).map((k,i)=>(<tr key={k.id} className="border-b border-[#F7EFE7]"><td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td><td className="px-5 py-3 text-gray-600 font-bold">2020/{(i%12)+1}/{(i*2)%28+1}</td><td className="px-5 py-3 font-bold text-gray-600">あおば組</td><td className="px-5 py-3"><Badge tone="blue">{['1号','2号','3号'][i%3]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">2023/4/1</td><td className="px-5 py-3">{i%2? <Badge tone="green">あり</Badge>:'—'}</td></tr>))}</tbody>
+      </table></Card>}
+      {tab==='健康・身体測定' && <div className="grid grid-cols-3 gap-5">
+        <Card className="col-span-2 p-5"><CardHead icon="chart" title="身体測定の推移（さくら）"/>
+          <div className="px-5 pb-5"><div className="flex items-end gap-2 h-40">{[104,106,108,110,112,114].map((h,i)=>(<div key={i} className="flex-1 flex flex-col items-center gap-1"><div className="w-full bg-brand-300 rounded-t-lg" style={{height:`${(h-100)*8}px`}}/><span className="text-[10px] text-muted font-bold">{['1月','2月','3月','4月','5月','6月'][i]}</span></div>))}</div>
+          <div className="flex gap-4 mt-3 text-[12px] font-bold"><span className="text-brand-600">身長 114.2cm</span><span className="text-green-600">体重 19.8kg</span><span className="text-muted">カウプ指数 標準</span></div></div>
+        </Card>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">健康診断・予防接種</h3>
+          <div className="space-y-2 text-[13px]">{[['内科健診','6/10 予定','amber'],['歯科健診','5/20 完了','green'],['視力検査','済','green'],['MR2期','接種済','green']].map((r,i)=>(<div key={i} className="flex items-center justify-between"><span className="text-ink font-bold">{r[0]}</span><Badge tone={r[2]}>{r[1]}</Badge></div>))}</div>
+        </Card>
+      </div>}
+      {tab==='緊急連絡' && <Card className="overflow-hidden"><table className="w-full text-[13px]">
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','保護者','続柄','電話','お迎え可能者'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+        <tbody>{KIDS.slice(0,6).map((k,i)=>(<tr key={k.id} className="border-b border-[#F7EFE7]"><td className="px-5 py-3 font-bold text-ink">{k.n}</td><td className="px-5 py-3 text-gray-600 font-bold">{['佐藤','鈴木','高橋'][i%3]} {['花子','美咲','恵'][i%3]}</td><td className="px-5 py-3 text-gray-600 font-bold">{['母','父','祖母'][i%3]}</td><td className="px-5 py-3 text-gray-600 font-bold">090-xxxx-{1000+i}</td><td className="px-5 py-3 text-gray-600 font-bold">{['母・祖母','父・母','母・祖父'][i%3]}</td></tr>))}</tbody>
+      </table></Card>}
+    </div>
+  );
+}
+
+function Allergy(){
+  const menu=['ごはん','みそ汁','鶏のからあげ','ひじき煮','牛乳'];
+  const rows=[['ひなた',['卵','乳'],'代替食','red'],['りく',['えび','かに'],'除去','amber'],['めい',['小麦'],'代替食','red'],['そうた',['そば'],'要確認','amber']];
+  return (
+    <div>
+      <PageHead title="給食・アレルギー" sub="献立 × アレルゲンを自動クロス。該当児を色で警告し、配膳ミスを防ぐ。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="calendar">献立を取込</Btn><Btn kind="primary" icon="file">対応表を印刷</Btn></div>}/>
+      <Card className="p-5 mb-5"><div className="flex items-center gap-3"><Badge tone="orange">本日の献立</Badge><div className="flex flex-wrap gap-2">{menu.map((m,i)=><span key={i} className="px-3 py-1.5 rounded-lg bg-cream border border-[#F3E6D9] text-[13px] font-bold text-ink">{m}</span>)}</div></div></Card>
+      <Card>
+        <CardHead icon="search" title="アレルギー対応が必要な園児（4名）" action={<Badge tone="red">本日 該当 3件</Badge>}/>
+        <div className="px-5 pb-5 space-y-2">{rows.map((r,i)=>(
+          <div key={i} className={cx('flex items-center gap-3 p-3 rounded-xl border', r[3]==='red'?'border-red-200 bg-red-50/50':'border-[#F3E6D9]')}>
+            <Avatar name={r[0]} color={CAT[i]} size={36}/>
+            <div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="flex gap-1 mt-0.5">{r[1].map((a,k)=><Badge key={k} tone="red">{a}</Badge>)}</div></div>
+            <Badge tone={r[3]==='red'?'red':'amber'}>{r[2]}</Badge>
+          </div>
+        ))}</div>
+      </Card>
+    </div>
+  );
+}
+
+function MediaMgmt(){
+  const [tab,setTab]=useState('写真・動画');
+  return (
+    <div>
+      <PageHead title="メディア管理" sub="写真・動画の整理→販売、クラスアルバム編集、行事のライブ配信まで。"
+        action={<Tabs tabs={['写真・動画','アルバム','ライブ配信']} active={tab} onChange={setTab}/>}/>
+      {tab==='写真・動画' && <div>
+        <div className="grid grid-cols-3 gap-4 mb-5"><Card className="p-4"><Stat label="今月の写真" value="312枚" tone="orange"/></Card><Card className="p-4"><Stat label="販売中" value="180枚" tone="ink"/></Card><Card className="p-4"><Stat label="売上(今月)" value="¥86,400" tone="green"/></Card></div>
+        <Card className="p-4"><div className="grid grid-cols-6 gap-2">{CAT.concat(CAT).concat(CAT.slice(0,6)).map((c,i)=>(<div key={i} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}><span className="absolute bottom-1 right-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span>{i%5===0&&<div className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-6 h-6 text-white"/></div>}</div>))}</div></Card>
+      </div>}
+      {tab==='アルバム' && <div className="grid grid-cols-3 gap-5">{[['6月 保育参観','#FDC089',24],['5月 親子遠足','#ADDABB',58],['4月 入園式','#C8B3ED',42]].map((a,i)=>(
+        <Card key={i} className="overflow-hidden"><div className="h-32" style={{background:`linear-gradient(135deg,${a[1]},${a[1]}99)`}}/><div className="p-4"><div className="font-bold text-ink">{a[0]}</div><div className="flex items-center justify-between mt-1"><span className="text-[12px] text-muted font-bold">{a[2]}枚</span><Badge tone="green">公開中</Badge></div></div></Card>
+      ))}</div>}
+      {tab==='ライブ配信' && <div className="grid grid-cols-2 gap-5">
+        <Card className="p-5"><CardHead icon="video" title="配信枠"/><div className="px-5 pb-5 space-y-2">{[['保育参観','6/3 10:00','本日配信','green'],['運動会','10/12 9:00','予約受付中','blue'],['発表会','12/7 10:00','準備中','amber']].map((r,i)=>(<div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]"><div className="flex-1"><div className="font-bold text-ink">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[1]}</div></div><Badge tone={r[3]}>{r[2]}</Badge></div>))}</div></Card>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">配信設定</h3><div className="space-y-3 text-[13px]">{[['視聴URLの限定共有','ON'],['アーカイブ保存（30日）','ON'],['同時視聴上限','200'],['写真NG家庭の配慮','自動マスク']].map((r,i)=>(<div key={i} className="flex items-center justify-between"><span className="text-muted font-bold">{r[0]}</span><span className="font-bold text-ink">{r[1]}</span></div>))}</div><Btn kind="primary" icon="video" className="w-full mt-4">配信を開始する</Btn></Card>
+      </div>}
+    </div>
+  );
+}
+
+function NoticeBoard(){
+  const items=[['6月の保育参観のお知らせ','行事','配信済','98%','green'],['園だより 6月号','おたより','配信済','91%','green'],['プール開きと持ち物','連絡','予約 6/10','—','amber'],['夏祭りボランティア募集','募集','下書き','—','gray']];
+  return (
+    <div>
+      <PageHead title="お知らせ・お便り" sub="園だより・行事連絡をテンプレから作成。既読率も追える。"
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">AIで園だより生成</Btn><Btn kind="primary" icon="plus">新規作成</Btn></div>}/>
+      <Card><CardHead icon="bell" title="お知らせ一覧"/>
+        <div className="px-5 pb-5 space-y-2">{items.map((n,i)=>(
+          <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40"><span className="shrink-0"><Badge tone={n[4]==='green'?'orange':n[4]==='amber'?'amber':'gray'}>{n[1]}</Badge></span><div className="flex-1 font-bold text-ink text-[14px]">{n[0]}</div><Badge tone={n[4]}>{n[2]}</Badge>{n[3]!=='—'&&<span className="text-[12px] text-muted font-bold w-16 text-right">既読 {n[3]}</span>}</div>
+        ))}</div>
+      </Card>
+    </div>
+  );
+}
+
+function FileBox(){
+  const files=[['入園のしおり2026.pdf','PDF','2.4MB','全体'],['年間行事予定.pdf','PDF','0.8MB','全体'],['給食だより6月.pdf','PDF','1.1MB','全体'],['保健だより6月.pdf','PDF','0.9MB','全体'],['制服・用品リスト.pdf','PDF','1.6MB','新入園'],['運動会プログラム.pdf','PDF','3.2MB','年長']];
+  return (
+    <div>
+      <PageHead title="資料・ファイルBOX" sub="園からの配布資料を保護者へ。クラス・対象で出し分け。"
+        action={<Btn kind="primary" icon="plus">資料をアップロード</Btn>}/>
+      <Card className="overflow-hidden"><table className="w-full text-[13px]">
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['ファイル','種別','サイズ','公開対象','DL'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+        <tbody>{files.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
+      </table></Card>
+    </div>
+  );
+}
+
+function Feedback(){
+  return (
+    <div>
+      <PageHead title="ご意見・アンケート" sub="保護者アンケートを配信→AIが自由記述を要約。満足度の推移も。"
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">回答をAI要約</Btn><Btn kind="primary" icon="plus">アンケート作成</Btn></div>}/>
+      <div className="grid grid-cols-4 gap-4 mb-5">{[['実施中','2件','ink'],['回答率','78%','orange'],['総合満足度','4.6','green'],['要対応の声','3件','red']].map((s,i)=>(<Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]}/></Card>))}</div>
+      <div className="grid grid-cols-3 gap-5">
+        <Card className="col-span-2 p-5"><CardHead icon="ai" title="自由記述のAI要約"/>
+          <div className="px-5 pb-5 space-y-3">{[['ポジティブ','green','成長レポートが嬉しい・先生の対応が丁寧という声が多数（68%）'],['改善要望','amber','送迎時の駐車場が混雑。時間分散の案内を希望（12件）'],['要フォロー','red','アレルギー対応の確認連絡を増やしてほしい（3件）']].map((r,i)=>(<div key={i} className="rounded-xl p-3 border border-[#F3E6D9]"><Badge tone={r[1]}>{r[0]}</Badge><p className="text-[13px] text-ink mt-1">{r[2]}</p></div>))}</div>
+        </Card>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">満足度の推移</h3><div className="flex items-end gap-2 h-32">{[4.2,4.3,4.4,4.5,4.6].map((v,i)=>(<div key={i} className="flex-1 flex flex-col items-center gap-1"><div className="w-full bg-green-300 rounded-t-lg" style={{height:`${(v-4)*120}px`}}/><span className="text-[10px] text-muted font-bold">{['2月','3月','4月','5月','6月'][i]}</span></div>))}</div></Card>
+      </div>
+    </div>
+  );
+}
+
+function Help(){
+  const guides=[['はじめての記録入力','音声・写真・テキストでの記録のコツ','mic'],['要録のAI下書き','下書き→編集→承認の流れ','file'],['保護者配信のつくり方','月次レポート作成手順','photo'],['他システムからの移行','コミュなび/おうちえんからの取込','ai']];
+  return (
+    <div>
+      <PageHead title="使い方・サポート" sub="動画ガイドとよくある質問。困ったらAIサポートにすぐ相談。"
+        action={<Btn kind="primary" icon="ai">AIサポートに聞く</Btn>}/>
+      <div className="grid grid-cols-2 gap-4 mb-5">{guides.map((g,i)=>(
+        <Card key={i} className="p-4 flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={g[2]} className="w-6 h-6"/></div><div className="flex-1"><div className="font-bold text-ink">{g[0]}</div><div className="text-[12px] text-muted font-bold">{g[1]}</div></div><span className="text-brand-500"><Ic name="play" className="w-5 h-5"/></span></Card>
+      ))}</div>
+      <Card className="p-5"><CardHead icon="book" title="よくある質問"/>
+        <div className="px-5 pb-2">{['記録した内容はいつ保護者に公開されますか？','要録の様式は自治体ごとに変えられますか？','写真にAIの自動タグはつきますか？','データのバックアップはどうなっていますか？'].map((q,i)=>(
+          <div key={i} className="flex items-center gap-2 py-3 border-t border-[#F3E6D9]"><span className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></span><span className="text-[14px] font-bold text-ink">{q}</span></div>
+        ))}</div>
+      </Card>
+    </div>
+  );
+}
+
+function Roles(){
+  const counts={owner:1,manager:2,teacher:8,jimu:1};
+  const staff=[['塚田 のぞみ','owner'],['佐々木 ゆい','manager'],['田中 みさき','teacher'],['久保 けんと','teacher'],['渡辺 さき','jimu']];
+  return (
+    <div>
+      <PageHead title="権限管理" sub="役割ごとに使える機能を管理。一般の先生に精算・注文などを見せない設定もここで行います。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="plus">役割を追加</Btn><Btn kind="primary" icon="check">変更を保存</Btn></div>}/>
+      <div className="grid grid-cols-4 gap-4 mb-5">
+        {ROLE_ORDER.map(r=>(
+          <Card key={r} className="p-4">
+            <div className="flex items-center gap-2 mb-1"><span className="w-3 h-3 rounded-full" style={{background:ROLES[r].color}}/><span className="font-bold text-ink">{ROLES[r].label}</span><span className="ml-auto text-[12px] text-muted font-bold">{counts[r]}名</span></div>
+            <p className="text-[11px] text-muted font-bold leading-snug">{ROLES[r].desc}</p>
+          </Card>
+        ))}
+      </div>
+      <Card className="overflow-hidden mb-5">
+        <CardHead icon="lock" title="機能 × 役割 アクセス表" action={<span className="text-[12px] text-muted font-bold">✓=利用可 / 🔒=非表示</span>}/>
+        <div className="overflow-x-auto"><table className="w-full text-[13px]">
+          <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">
+            <th className="px-5 py-2 text-left">機能</th>
+            {ROLE_ORDER.map(r=><th key={r} className="px-3 py-2 text-center">{ROLES[r].label}</th>)}
+          </tr></thead>
+          <tbody>
+            {NAV.map(g=>(
+              <React.Fragment key={g.group}>
+                <tr className="bg-cream/30"><td className="px-5 py-1.5 text-[11px] font-bold text-warm" colSpan={5}>{g.group}</td></tr>
+                {g.items.map(it=>(
+                  <tr key={it.id} className="border-b border-[#F7EFE7]">
+                    <td className="px-5 py-2 font-bold text-ink"><div className="flex items-center gap-2"><Ic name={it.icon} className="w-4 h-4 text-brand-400"/>{it.label}</div></td>
+                    {ROLE_ORDER.map(r=>(
+                      <td key={r} className="px-3 py-2 text-center">
+                        {canAccess(r,it.id)
+                          ? <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-green-50 text-green-600"><Ic name="check" className="w-4 h-4"/></span>
+                          : <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-gray-50 text-gray-300"><Ic name="lock" className="w-3.5 h-3.5"/></span>}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table></div>
+      </Card>
+      <Card className="overflow-hidden">
+        <CardHead icon="users" title="職員への役割割当"/>
+        <table className="w-full text-[13px]">
+          <tbody>{staff.map((s,i)=>(
+            <tr key={i} className="border-b border-[#F7EFE7] last:border-0">
+              <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={s[0]} color={ROLES[s[1]].color} size={30}/><span className="font-bold text-ink">{s[0]}</span></div></td>
+              <td className="px-5 py-3 text-right">
+                <span className="inline-flex items-center gap-2 bg-cream border border-[#E8D5C4] rounded-lg px-3 py-1.5 font-bold text-ink"><span className="w-2.5 h-2.5 rounded-full" style={{background:ROLES[s[1]].color}}/>{ROLES[s[1]].label}<Ic name="chevron" className="w-3.5 h-3.5 text-muted rotate-90"/></span>
+              </td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
+
+const STAFF_SCREENS = {
+  teacher:TeacherHome, record:RecordInput, output:OutputPreview, roster:Roster, broadcast:Broadcast,
+  attendance:AttendanceApprove, monthly:MonthlyEditor, billing:Billing, shift:Shift, shop:Shop,
+  renraku:Renraku, check:DailyCheck, youroku:YoroukuList, exec:ExecHome, calendar:CalendarScreen, org:OrgScreen,
+  bus:BusScreen, approve:ApproveBox, settings:SettingsScreen,
+  docs:Docs, lesson:Lesson, portfolio:Portfolio, kids:KidsInfo, allergy:Allergy, media:MediaMgmt,
+  notices:NoticeBoard, filebox:FileBox, feedback:Feedback, help:Help, roles:Roles,
+};
+
+/* ============================== STAFF SHELL ============================== */
+const ROLE_USER = { owner:'塚田 のぞみ', manager:'佐々木 ゆい', teacher:'田中 みさき', jimu:'渡辺 さき' };
+function Sidebar({screen, go, role, setRole}){
+  return (
+    <aside className="w-64 shrink-0 bg-cream h-full flex flex-col border-r border-[#F0E2D5]">
+      <div className="flex items-center gap-3 px-4 py-4">
+        <div className="w-10 h-10 rounded-2xl bg-brand-500 flex items-center justify-center text-white shadow-soft"><Ic name="leaf" className="w-6 h-6"/></div>
+        <div><div className="text-[11px] text-muted font-bold leading-none">幼稚園まるごと</div><div className="font-extrabold text-ink text-lg leading-tight">for Kids</div></div>
+      </div>
+      <div className="px-4 pb-2">
+        <div className="text-[10px] font-bold text-warm mb-1 flex items-center gap-1"><Ic name="lock" className="w-3 h-3"/>表示中の役割（切替で権限を体験）</div>
+        <div className="flex gap-1 bg-white rounded-xl p-1 border border-[#F3E6D9]">
+          {ROLE_ORDER.map(r=>(
+            <button key={r} onClick={()=>setRole(r)} className={cx('flex-1 px-1 py-1 rounded-lg text-[11px] font-bold transition', role===r?'text-white':'text-gray-500 hover:bg-brand-50')} style={role===r?{background:ROLES[r].color}:{}}>{ROLES[r].label}</button>
+          ))}
+        </div>
+      </div>
+      <div className="px-4 pb-3"><div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-[#F3E6D9]"><Avatar name={ROLE_USER[role]} color={ROLES[role].color} size={26}/><div className="text-[12px] leading-tight"><div className="font-bold text-ink">{ROLE_USER[role]}</div><div className="text-muted font-bold text-[11px]">あおば園・{ROLES[role].label}</div></div></div></div>
+      <nav className="flex-1 overflow-y-auto noscroll px-3 pb-4">
+        {NAV.map(g=>{
+          const items=g.items.filter(it=>canAccess(role,it.id));
+          if(!items.length) return null;
+          return (
+            <div key={g.group} className="mb-3">
+              <div className="px-2 text-[11px] font-bold text-warm mb-1">{g.group}</div>
+              {items.map(it=>(
+                <button key={it.id} onClick={()=>go(it.id)}
+                  className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition',
+                    screen===it.id?'bg-brand-500 text-white shadow-soft':'text-gray-600 hover:bg-brand-50')}>
+                  <Ic name={it.icon} className="w-[18px] h-[18px]"/>
+                  <span className="flex-1 text-left">{it.label}</span>
+                  {it.star && <span className={cx(screen===it.id?'text-white':'text-brand-300')}><Ic name="star" className="w-3.5 h-3.5"/></span>}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </nav>
+      <div className="px-3 py-3 border-t border-[#F0E2D5]">
+        <button onClick={()=>go('__parent')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-brand-50"><Ic name="users" className="w-[18px] h-[18px]"/>保護者画面を見る</button>
+        <button onClick={()=>go('__operator')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold text-gray-600 hover:bg-brand-50"><Ic name="globe" className="w-[18px] h-[18px]"/>運営ポータルを見る</button>
+        <button onClick={()=>go('__login')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold text-gray-400 hover:bg-brand-50"><Ic name="logout" className="w-[18px] h-[18px]"/>ログアウト</button>
+        <div className="px-3 pt-1 text-[10px] text-warm font-bold">for Kids ・ 園ポータル v0.5</div>
+      </div>
+    </aside>
+  );
+}
+
+function StaffApp({screen, go}){
+  const [role,setRole]=useState('owner');
+  const allowed = canAccess(role, screen);
+  const Screen = STAFF_SCREENS[screen] || TeacherHome;
+  return (
+    <div className="flex h-full">
+      <Sidebar screen={screen} go={go} role={role} setRole={setRole}/>
+      <main className="flex-1 overflow-y-auto" style={{background:'#FFF7F1'}}>
+        <div className="px-8 py-7 max-w-6xl">{allowed ? <Screen go={go}/> : <AccessDenied label={SCREEN_TITLES[screen]||screen} role={role}/>}</div>
+      </main>
+    </div>
+  );
+}
+
+/* ============================== PARENT (MOBILE) ============================== */
+function PhoneFrame({children, tab, setTab}){
+  const tabs = [['home','ホーム','home'],['report','成長レポート','heart'],['notice','れんらく','book'],['photo','写真','photo'],['attend','出欠','calendar']];
+  return (
+    <div className="mx-auto my-8" style={{width:392}}>
+      <div className="rounded-[44px] bg-ink p-3 shadow-phone">
+        <div className="rounded-[34px] overflow-hidden bg-cream relative" style={{height:780}}>
+          <div className="absolute top-0 left-0 right-0 h-7 flex justify-center"><div className="w-32 h-6 bg-ink rounded-b-2xl"/></div>
+          <div className="h-full overflow-y-auto noscroll pt-8 pb-20">{children}</div>
+          <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-[#F3E6D9] flex justify-around px-2 py-2">
+            {tabs.map(t=>(
+              <button key={t[0]} onClick={()=>setTab(t[0])} className={cx('flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl', tab===t[0]?'text-brand-500':'text-muted')}>
+                <Ic name={t[2]} className="w-5 h-5"/><span className="text-[10px] font-bold">{t[1]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function PTitle({children, sub}){ return <div className="px-5 pt-2 pb-3"><h2 className="text-xl font-extrabold text-ink">{children}</h2>{sub&&<p className="text-[12px] text-muted font-bold mt-0.5">{sub}</p>}</div>; }
+
+function ParentHome({setTab}){
+  return (<div>
+    <div className="px-5 pt-2 pb-4 flex items-center gap-3"><Avatar name="さくら" color="#C8B3ED" size={48} ring/><div><div className="font-extrabold text-ink text-lg">さくら の ホーム</div><div className="text-[12px] text-muted font-bold">あおば幼稚園・年長</div></div></div>
+    <div className="px-5 space-y-3">
+      <button onClick={()=>setTab('report')} className="w-full text-left rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9]">
+        <div className="h-28 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-4"><div className="text-white"><div className="text-[11px] font-bold opacity-90">NEW・2026年6月</div><div className="font-extrabold text-lg">今月の成長レポートが届きました</div></div></div>
+      </button>
+      <div className="grid grid-cols-2 gap-3">
+        {[['出欠を申請','calendar','#FDC089','attend'],['れんらく帳','book','#C8B3ED','notice'],['成長アルバム','heart','#FFD0D8','growth'],['写真・動画','photo','#ADDABB','media'],['ライブ配信','video','#AFD0F0','live'],['お知らせ','bell','#F4C6A6','notices'],['資料BOX','folder','#C8B3ED','resources'],['物販を見る','shop','#FDC089','shop']].map((c,i)=>(
+          <button key={i} onClick={()=>setTab(c[3])} className="bg-white rounded-2xl border border-[#F3E6D9] p-4 flex flex-col items-start gap-2 shadow-card">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-ink/70" style={{background:c[2]+'55'}}><Ic name={c[1]} className="w-5 h-5"/></div>
+            <span className="font-bold text-[13px] text-ink">{c[0]}</span>
+          </button>
+        ))}
+      </div>
+      <button onClick={()=>setTab('notices')} className="w-full text-left"><Card className="p-4"><div className="flex items-center gap-2 mb-2"><Badge tone="orange">お知らせ</Badge><span className="text-[11px] text-muted font-bold">07:30</span><span className="ml-auto text-[11px] text-brand-600 font-bold">すべて見る →</span></div><p className="text-[13px] text-ink font-bold">【あおば組】6月の保育参観のお知らせ</p></Card></button>
+      <div className="flex gap-2 pt-1">
+        <button onClick={()=>setTab('survey')} className="flex-1 flex items-center justify-center gap-1.5 bg-white rounded-xl border border-[#F3E6D9] py-2.5 text-[12px] font-bold text-ink shadow-card"><Ic name="star" className="w-4 h-4 text-brand-400"/>アンケート</button>
+        <button onClick={()=>setTab('help')} className="flex-1 flex items-center justify-center gap-1.5 bg-white rounded-xl border border-[#F3E6D9] py-2.5 text-[12px] font-bold text-ink shadow-card"><Ic name="grid" className="w-4 h-4 text-brand-400"/>使い方</button>
+      </div>
+    </div>
+  </div>);
+}
+function ParentReport({setTab}){
+  return (<div>
+    <div className="h-44 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-5 mb-3"><div className="text-white"><div className="text-[12px] font-bold opacity-90">2026年6月</div><div className="text-2xl font-extrabold">さくらの ひとつき</div></div></div>
+    <div className="px-5 space-y-4">
+      <div className="flex gap-2"><AIChip/><Badge tone="green">写真6・動画1</Badge></div>
+      <p className="text-[14px] text-ink leading-relaxed">今月のさくらちゃんは、だんごむしの観察に夢中でした。「あしは何本？」と自分から問いを立て、図鑑で調べてお友だちに教えてあげる姿が印象的でした。</p>
+      <div className="rounded-2xl overflow-hidden relative h-40 bg-cat-purple/40 flex items-center justify-center"><Ic name="play" className="w-12 h-12 text-white"/></div>
+      <div className="grid grid-cols-3 gap-2">{['#FDC089','#C8B3ED','#ADDABB','#FFD0D8','#AFD0F0','#F4C6A6'].map((c,i)=><div key={i} className="aspect-square rounded-xl" style={{background:c}}/>)}</div>
+      <Card className="p-4"><div className="text-[12px] font-bold text-brand-600 mb-1">担任より</div><p className="text-[13px] text-ink">ご家庭でも「なんでだろうね？」と一緒に考えてみてください😊</p></Card>
+      <div className="flex gap-2"><Btn kind="ghost" icon="file" className="flex-1">PDF保存</Btn><Btn kind="primary" icon="heart" className="flex-1">ありがとうを送る</Btn></div>
+      <button onClick={()=>setTab('growth')} className="w-full text-center text-[13px] font-bold text-brand-600 py-2">これまでの成長アルバムを見る →</button>
+    </div>
+  </div>);
+}
+function ParentNotice(){
+  return (<div><PTitle sub="先生とのやりとり">れんらく帳</PTitle>
+    <div className="px-5 space-y-3">
+      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生</div>今日は戸外でだんごむしを観察していました🐛</div></div>
+      <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし</div>ずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
+      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-2"><Ic name="camera" className="w-5 h-5 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">メッセージ…</span><button className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
+    </div></div>);
+}
+function ParentPhoto(){
+  return (<div><PTitle sub="クラスの思い出">写真・動画</PTitle>
+    <div className="px-5 grid grid-cols-2 gap-2">{CAT.concat(CAT).map((c,i)=>(<div key={i} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}>{i%4===0&&<div className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-8 h-8 text-white"/></div>}</div>))}</div></div>);
+}
+function ParentAttend(){
+  return (<div><PTitle sub="欠席・遅刻・お迎え時間など">出欠の申請</PTitle>
+    <div className="px-5 space-y-3">
+      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-2">申請の種類</div>
+        <div className="grid grid-cols-3 gap-2">{['欠席','遅刻','早退','朝フレンド','午後フレンド','連絡'].map((t,i)=><button key={i} className={cx('py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+      </Card>
+      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">日付</div><div className="font-bold text-ink">2026年6月3日（水）</div></Card>
+      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">理由</div><div className="text-[13px] text-ink">発熱のためお休みします</div></Card>
+      <Btn kind="primary" icon="check" className="w-full py-3">この内容で申請する</Btn>
+      <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[12px] text-muted font-bold">兄弟がいる場合はまとめて申請できます。オフラインでも送信予約されます。</div>
+    </div></div>);
+}
+function PSubHead({children, setTab}){
+  return <div className="px-5 pt-2 pb-3 flex items-center gap-2"><button onClick={()=>setTab('home')} className="text-brand-500"><Ic name="chevron" className="w-5 h-5 rotate-180"/></button><h2 className="text-xl font-extrabold text-ink">{children}</h2></div>;
+}
+function ParentShop({setTab}){
+  const goods = [['通園帽子','¥2,200','#FDC089'],['体操服セット','¥4,800','#AFD0F0'],['上履き','¥1,600','#ADDABB'],['お道具箱','¥3,200','#C8B3ED'],['名札','¥600','#FFD0D8'],['絵本バッグ','¥2,900','#F4C6A6']];
+  return (<div>
+    <PSubHead setTab={setTab}>物販ショップ</PSubHead>
+    <div className="px-5 grid grid-cols-2 gap-3">
+      {goods.map((g,i)=>(
+        <div key={i} className="bg-white rounded-2xl border border-[#F3E6D9] overflow-hidden shadow-card">
+          <div className="h-24 flex items-center justify-center" style={{background:g[2]+'55'}}><Ic name="shop" className="w-8 h-8 text-ink/30"/></div>
+          <div className="p-3"><div className="font-bold text-[13px] text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600 text-[13px]">{g[1]}</span><button className="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div></div>
+        </div>
+      ))}
+    </div>
+    <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3">カート（2点・¥7,000）へ進む</Btn></div>
+  </div>);
+}
+function ParentNotices({setTab}){
+  const items = [
+    ['保育参観のお知らせ','あおば組','07:30','未読','orange'],
+    ['6月の献立変更について','全体','昨日','既読','gray'],
+    ['プール開きと持ち物','年長','2日前','既読','gray'],
+    ['写真販売を開始しました','全体','3日前','未読','pink'],
+    ['夏祭りボランティア募集','全体','5日前','既読','gray'],
+  ];
+  return (<div>
+    <PSubHead setTab={setTab}>お知らせ</PSubHead>
+    <div className="px-5 space-y-2">
+      {items.map((n,i)=>(
+        <Card key={i} className="p-4">
+          <div className="flex items-center gap-2 mb-1"><Badge tone={n[4]}>{n[1]}</Badge>{n[3]==='未読'&&<span className="w-2 h-2 rounded-full bg-brand-500"/>}<span className="ml-auto text-[11px] text-muted font-bold">{n[2]}</span></div>
+          <div className={cx('text-[14px]', n[3]==='未読'?'font-extrabold text-ink':'font-bold text-gray-600')}>{n[0]}</div>
+        </Card>
+      ))}
+    </div>
+  </div>);
+}
+function ParentGrowth({setTab}){
+  const months = [['2026年6月','だんごむしの観察に夢中','#FDC089','最新'],['2026年5月','こいのぼり製作・どろんこ遊び','#ADDABB',''],['2026年4月','進級・新しいお友だち','#C8B3ED',''],['2026年3月','ひなまつり・お別れ遠足','#FFD0D8','']];
+  return (<div>
+    <PSubHead setTab={setTab}>成長アルバム</PSubHead>
+    <div className="px-5 space-y-3">
+      {months.map((m,i)=>(
+        <button key={i} onClick={()=>setTab('report')} className="w-full text-left rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9]">
+          <div className="h-24 flex items-end p-4" style={{background:`linear-gradient(135deg, ${m[2]}, ${m[2]}99)`}}>
+            <div className="text-ink/80"><div className="text-[11px] font-bold mb-0.5">{m[0]}{m[3]&&<span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/70 text-brand-600">{m[3]}</span>}</div><div className="font-extrabold">{m[1]}</div></div>
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>);
+}
+function ParentMedia({setTab}){
+  return (<div>
+    <PSubHead setTab={setTab}>写真・動画の購入</PSubHead>
+    <div className="px-5 mb-3 flex gap-2">{['すべて','保育参観','遠足','日常'].map((t,i)=><button key={i} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border',i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+    <div className="px-5 grid grid-cols-3 gap-2">{CAT.concat(CAT).map((c,i)=>(<div key={i} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}><span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/80 flex items-center justify-center text-brand-600"><Ic name="plus" className="w-3 h-3"/></span><span className="absolute bottom-1 left-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span></div>))}</div>
+    <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3">カート（4点・¥600）で購入</Btn></div>
+  </div>);
+}
+function ParentLive({setTab}){
+  return (<div>
+    <PSubHead setTab={setTab}>ライブ配信</PSubHead>
+    <div className="px-5 space-y-3">
+      <Card className="p-0 overflow-hidden"><div className="h-40 bg-ink flex items-center justify-center relative"><Ic name="play" className="w-12 h-12 text-white"/><span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">● LIVE</span></div><div className="p-4"><div className="font-bold text-ink">保育参観（あおば組）</div><div className="text-[12px] text-muted font-bold">6月3日 10:00〜 ・ 視聴中 142名</div></div></Card>
+      <div className="text-[13px] font-bold text-muted">配信予定</div>
+      {[['運動会','10月12日 9:00','#FDC089'],['発表会','12月7日 10:00','#C8B3ED']].map((r,i)=>(<Card key={i} className="p-3 flex items-center gap-3"><div className="w-12 h-12 rounded-xl flex items-center justify-center text-ink/60" style={{background:r[2]+'66'}}><Ic name="video" className="w-6 h-6"/></div><div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[1]}</div></div><Btn kind="ghost" icon="bell">通知ON</Btn></Card>))}
+    </div>
+  </div>);
+}
+function ParentSurvey({setTab}){
+  return (<div>
+    <PSubHead setTab={setTab}>アンケート・ご意見</PSubHead>
+    <div className="px-5 space-y-3">
+      <Card className="p-4"><div className="flex items-center gap-2 mb-2"><Badge tone="orange">回答受付中</Badge><span className="text-[11px] text-muted font-bold">〜6/10</span></div><div className="font-bold text-ink mb-3">保育参観についてのアンケート</div>
+        <div className="text-[12px] text-muted font-bold mb-1">満足度</div><div className="flex gap-1 mb-3">{[1,2,3,4,5].map(s=><span key={s} className={cx(s<=4?'text-brand-400':'text-gray-300')}><Ic name="star" className="w-7 h-7"/></span>)}</div>
+        <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-muted font-bold h-20">ご意見・ご感想をご記入ください…</div>
+        <Btn kind="primary" icon="send" className="w-full mt-3">回答を送信</Btn>
+      </Card>
+      <Card className="p-4"><div className="text-[12px] font-bold text-brand-600 mb-1">園からのお願い</div><p className="text-[13px] text-ink">いただいたご意見はAIが整理し、園運営の改善に活用します。匿名での送信も可能です。</p></Card>
+    </div>
+  </div>);
+}
+function ParentResources({setTab}){
+  const files=[['入園のしおり2026','PDF','#C8B3ED'],['年間行事予定','PDF','#FDC089'],['給食だより6月','PDF','#ADDABB'],['保健だより6月','PDF','#AFD0F0']];
+  return (<div>
+    <PSubHead setTab={setTab}>資料・お便りBOX</PSubHead>
+    <div className="px-5 grid grid-cols-2 gap-3">{files.map((f,i)=>(<button key={i} className="bg-white rounded-2xl border border-[#F3E6D9] p-4 flex flex-col items-start gap-2 shadow-card text-left"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-ink/70" style={{background:f[2]+'66'}}><Ic name="folder" className="w-5 h-5"/></div><span className="font-bold text-[13px] text-ink">{f[0]}</span><Badge tone="blue">{f[1]}</Badge></button>))}</div>
+  </div>);
+}
+function ParentHelp({setTab}){
+  return (<div>
+    <PSubHead setTab={setTab}>使い方・サポート</PSubHead>
+    <div className="px-5 space-y-3">
+      {[['出欠の申請方法','mic'],['写真の購入方法','photo'],['成長レポートの見かた','heart'],['通知設定の変更','bell']].map((g,i)=>(<Card key={i} className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={g[1]} className="w-5 h-5"/></div><span className="flex-1 font-bold text-[14px] text-ink">{g[0]}</span><span className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></span></Card>))}
+      <Btn kind="primary" icon="ai" className="w-full py-3">AIサポートに質問する</Btn>
+    </div>
+  </div>);
+}
+const PARENT_SCREENS = { home:ParentHome, report:ParentReport, notice:ParentNotice, photo:ParentPhoto, attend:ParentAttend, shop:ParentShop, notices:ParentNotices, growth:ParentGrowth, media:ParentMedia, live:ParentLive, survey:ParentSurvey, resources:ParentResources, help:ParentHelp };
+
+function ParentApp({go}){
+  const [tab,setTab] = useState('home');
+  const Screen = PARENT_SCREENS[tab];
+  return (
+    <div className="h-full overflow-y-auto" style={{background:'#efe7df'}}>
+      <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center text-white"><Ic name="leaf" className="w-5 h-5"/></div><span className="font-extrabold text-ink">for Kids ・ 保護者アプリ（PWA）</span></div>
+        <div className="flex gap-2"><Btn kind="ghost" icon="teacher" onClick={()=>go('teacher')}>保育者画面へ</Btn><Btn kind="ghost" icon="logout" onClick={()=>go('__login')}>ログアウト</Btn></div>
+      </div>
+      <PhoneFrame tab={tab} setTab={setTab}><Screen setTab={setTab}/></PhoneFrame>
+    </div>
+  );
+}
+
+/* ============================== LOGIN ============================== */
+function Login({go}){
+  return (
+    <div className="h-full flex items-center justify-center" style={{background:'#FFF7F1'}}>
+      <div className="text-center w-full max-w-md px-6">
+        <div className="w-20 h-20 rounded-3xl bg-brand-500 mx-auto flex items-center justify-center text-white shadow-soft mb-5"><Ic name="leaf" className="w-11 h-11"/></div>
+        <div className="text-[15px] font-bold text-ink">幼稚園まるごとサービス</div>
+        <div className="text-5xl font-extrabold text-brand-500 mt-1">for Kids</div>
+        <div className="text-[14px] font-bold text-warm mt-3">感じて、考える。</div>
+        <Card className="mt-8 p-6 text-left">
+          <div className="text-[12px] font-bold text-muted mb-1">ログインする立場を選んでください</div>
+          <div className="text-[11px] font-bold text-warm mb-3">3つのポータルは完全に分離されています</div>
+          <button onClick={()=>go('teacher')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:bg-brand-50 transition mb-3">
+            <div className="w-11 h-11 rounded-xl bg-cat-orange/50 flex items-center justify-center text-ink/70"><Ic name="teacher" className="w-6 h-6"/></div>
+            <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">園として</span><Badge tone="orange">保育者・主任・園長</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">記録・要録・保護者連携・台帳・園運営（役割で出し分け）</div></div>
+            <Ic name="chevron" className="w-5 h-5 text-brand-400"/>
+          </button>
+          <button onClick={()=>go('__parent')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:bg-brand-50 transition mb-3">
+            <div className="w-11 h-11 rounded-xl bg-cat-purple/50 flex items-center justify-center text-ink/70"><Ic name="users" className="w-6 h-6"/></div>
+            <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">保護者として</span><Badge tone="purple">PWA</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">成長レポート・れんらく帳・出欠・写真</div></div>
+            <Ic name="chevron" className="w-5 h-5 text-brand-400"/>
+          </button>
+          <div className="border-t border-dashed border-[#E8D5C4] my-3"/>
+          <button onClick={()=>go('__operator')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 transition">
+            <div className="w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center text-white"><Ic name="globe" className="w-6 h-6"/></div>
+            <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">運営（マスター）として</span><Badge tone="gray">販売元</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">テナント／園・施設／課金／契約・法務／サポート／監査</div></div>
+            <Ic name="chevron" className="w-5 h-5 text-slate-400"/>
+          </button>
+        </Card>
+        <div className="text-[11px] text-warm font-bold mt-6">あおばグループ ・ 興縁株式会社 ｜ プロトタイプ v0.5（三層ポータル分離・運営多ページ化）</div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================== OPERATOR（外販・運営／マスター・ポータル） ============================== */
+/* こしょこしょ admin 相当：園内ユーザーから完全分離した「販売元（興縁／あおば）」専用ポータル。
+   1画面に詰め込まず、機能ごとに独立画面へ多ページ化。 */
+const OP_NAV = [
+  { group:'概況', items:[
+    {id:'ophome', label:'運営ダッシュボード', icon:'chart'},
+  ]},
+  { group:'顧客・契約', items:[
+    {id:'optenants', label:'テナント管理', icon:'building'},
+    {id:'opfacilities', label:'園・施設管理', icon:'home'},
+    {id:'oplegal', label:'契約・法務文書', icon:'file'},
+  ]},
+  { group:'課金', items:[
+    {id:'opplans', label:'プラン・fincode課金', icon:'money'},
+  ]},
+  { group:'導入', items:[
+    {id:'oponboard', label:'オンボーディング・移行', icon:'ai'},
+  ]},
+  { group:'サポート運用', items:[
+    {id:'opsupport', label:'問い合わせサポート', icon:'headset'},
+    {id:'ophelp', label:'ヘルプCMS', icon:'book'},
+    {id:'opversion', label:'アプリ版配信', icon:'send'},
+  ]},
+  { group:'システム', items:[
+    {id:'opaudit', label:'システム監査ログ', icon:'shield'},
+  ]},
+];
+const OP_TITLES={}; OP_NAV.forEach(g=>g.items.forEach(i=>OP_TITLES[i.id]=i.label));
+const TENANTS=[
+  ['あおば学園','あおばグループ','プレミアム',3,268,'稼働中','green'],
+  ['みどり幼稚園','個人園','スタンダード',1,92,'稼働中','green'],
+  ['さくら学園','学校法人さくら','スタンダード',2,154,'導入中','amber'],
+  ['ひかり保育園','個人園','ライト',1,48,'稼働中','green'],
+  ['そら幼稚園','個人園','スタンダード',1,76,'商談中','gray'],
+  ['なごみ学園','学校法人なごみ','プレミアム',4,312,'移行中','blue'],
+];
+
+function OpHome({go}){
+  return (<div>
+    <PageHead title="運営ダッシュボード" sub="for Kids を販売・運用する事業者（興縁／あおば）向けの管理レイヤー"/>
+    <div className="grid grid-cols-4 gap-4 mb-5">
+      {[['契約テナント','24','green'],['月次収益(MRR)','¥1.82M','orange'],['稼働率','99.95%','green'],['サポート未対応','3件','red']].map((s,i)=>(
+        <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':'text-red-500')}>{s[1]}</div></Card>
+      ))}
+    </div>
+    <div className="grid grid-cols-3 gap-5">
+      <Card className="col-span-2 p-5"><CardHead icon="building" title="契約テナント（直近）" action={<button onClick={()=>go('optenants')} className="text-[12px] font-bold text-brand-600">すべて見る →</button>}/>
+        <div className="px-5 pb-5 space-y-2">{TENANTS.slice(0,4).map((t,i)=>(
+          <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]"><div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="building" className="w-5 h-5"/></div><div className="flex-1"><div className="font-bold text-ink">{t[0]}</div><div className="text-[12px] text-muted font-bold">{t[2]}・{t[4]}名</div></div><Badge tone={t[6]}>{t[5]}</Badge></div>
+        ))}</div>
+      </Card>
+      <Card className="p-5"><h3 className="font-bold text-ink mb-3">いま注目</h3>
+        <div className="space-y-2 text-[13px]">
+          <div className="flex items-center gap-2"><Badge tone="amber">導入中</Badge><span className="font-bold text-ink">さくら学園</span></div>
+          <div className="flex items-center gap-2"><Badge tone="blue">移行中</Badge><span className="font-bold text-ink">なごみ学園（おうちえん→）</span></div>
+          <div className="flex items-center gap-2"><Badge tone="red">解約リスク</Badge><span className="font-bold text-ink">そら幼稚園（商談停滞）</span></div>
+        </div>
+        <Btn kind="soft" icon="ai" className="w-full mt-4">月次の事業レポートを生成</Btn>
+      </Card>
+    </div>
+  </div>);
+}
+function OpTenants(){
+  return (<div>
+    <PageHead title="契約テナント" sub="販売先の法人・園を一元管理。プラン・課金・利用状況・テナント分離。"
+      action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus">テナントを追加</Btn></div>}/>
+    <Card className="overflow-hidden"><table className="w-full text-[13px]">
+      <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['テナント','種別','プラン','園数','利用人数','状態',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+      <tbody>{TENANTS.map((t,i)=>(
+        <tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40">
+          <td className="px-5 py-3 font-bold text-ink">{t[0]}</td>
+          <td className="px-5 py-3 text-gray-600 font-bold">{t[1]}</td>
+          <td className="px-5 py-3"><Badge tone={t[2]==='プレミアム'?'orange':t[2]==='スタンダード'?'blue':'gray'}>{t[2]}</Badge></td>
+          <td className="px-5 py-3 font-bold text-gray-600">{t[3]}園</td>
+          <td className="px-5 py-3 font-bold text-gray-600">{t[4]}名</td>
+          <td className="px-5 py-3"><Badge tone={t[6]}>{t[5]}</Badge></td>
+          <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+        </tr>
+      ))}</tbody>
+    </table></Card>
+  </div>);
+}
+function OpPlans(){
+  const plans=[['ライト','¥9,800','/月・園','小規模園向け',['記録・要録','保護者アプリ','名簿']],['スタンダード','¥19,800','/月・園','標準機能一式',['ライトの全機能','精算・物販','シフト・バス','AI要約']],['プレミアム','¥34,800','/月・園','グループ・多機能',['スタンダード全機能','組織可視化','キャリア評価','優先サポート']]];
+  return (<div>
+    <PageHead title="プラン・課金" sub="プラン定義と請求。fincodeでテナントごとに請求先を分離（こしょこしょ同様）。"
+      action={<Btn kind="primary" icon="check">プランを編集</Btn>}/>
+    <div className="grid grid-cols-3 gap-5 mb-5">{plans.map((p,i)=>(
+      <Card key={i} className={cx('p-5', i===1&&'ring-2 ring-brand-300')}>
+        {i===1&&<Badge tone="orange">人気</Badge>}
+        <div className="font-extrabold text-ink text-lg mt-1">{p[0]}</div>
+        <div className="flex items-end gap-1 mt-1"><span className="text-2xl font-extrabold text-brand-500">{p[1]}</span><span className="text-[12px] text-muted font-bold mb-1">{p[2]}</span></div>
+        <p className="text-[12px] text-muted font-bold mt-1 mb-3">{p[3]}</p>
+        <div className="space-y-1.5">{p[4].map((f,k)=>(<div key={k} className="flex items-center gap-2 text-[13px] text-ink"><span className="text-green-500"><Ic name="check" className="w-4 h-4"/></span>{f}</div>))}</div>
+      </Card>
+    ))}</div>
+    <div className="grid grid-cols-3 gap-4">
+      <Card className="p-4"><Stat label="今月の請求総額" value="¥1.82M" tone="orange"/></Card>
+      <Card className="p-4"><Stat label="入金済" value="21/24" tone="green"/></Card>
+      <Card className="p-4"><Stat label="fincodeサブショップ" value="24" tone="ink"/></Card>
+    </div>
+  </div>);
+}
+function OpOnboard(){
+  const steps=['申込・契約','テナント発行','データ移行','管理者研修','本番開始'];
+  const migs=[['なごみ学園','おうちえん','園児・保護者・写真','68%','blue'],['さくら学園','コミュなび','名簿・請求','35%','amber'],['みどり幼稚園','バスキャッチ','バス・名簿','完了','green']];
+  return (<div>
+    <PageHead title="オンボーディング・移行" sub="他システムからの移行を含む導入フロー。移行容易性が最重要KPI。"/>
+    <Card className="p-5 mb-5"><CardHead icon="ai" title="導入ステップ（さくら学園）"/>
+      <div className="px-5 pb-4 flex items-center gap-2">{steps.map((s,i)=>(
+        <React.Fragment key={i}>
+          <div className="flex flex-col items-center"><div className={cx('w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold', i<2?'bg-green-500 text-white':i===2?'bg-brand-500 text-white':'bg-cream text-muted border border-[#E8D5C4]')}>{i<2?'✓':i+1}</div><span className="text-[11px] font-bold text-ink mt-1 w-16 text-center">{s}</span></div>
+          {i<steps.length-1&&<div className={cx('flex-1 h-1 rounded-full', i<2?'bg-green-300':'bg-cream')}/>}
+        </React.Fragment>
+      ))}</div>
+    </Card>
+    <Card><CardHead icon="ai" title="データ移行の進捗（AI変換）"/>
+      <div className="px-5 pb-5 space-y-3">{migs.map((m,i)=>(
+        <div key={i} className="flex items-center gap-3"><div className="w-32 shrink-0"><div className="font-bold text-ink text-[14px]">{m[0]}</div><div className="text-[11px] text-muted font-bold">{m[1]}より</div></div>
+          <div className="flex-1"><div className="text-[12px] text-muted font-bold mb-1">{m[2]}</div><div className="h-2 rounded-full bg-cream overflow-hidden"><div className="h-full bg-brand-400" style={{width:m[3]==='完了'?'100%':m[3]}}/></div></div>
+          <Badge tone={m[4]}>{m[3]}</Badge>
+        </div>
+      ))}</div>
+    </Card>
+  </div>);
+}
+function OpFacilities({go}){
+  const facs=[
+    ['あおば幼稚園','あおば学園','幼稚園','180名','142名','プレミアム','稼働中','green'],
+    ['ふたば幼稚園','あおば学園','幼稚園','120名','86名','プレミアム','稼働中','green'],
+    ['つぼみ保育園','あおば学園','認定こども園','80名','64名','プレミアム','稼働中','green'],
+    ['みどり幼稚園','みどり幼稚園','幼稚園','100名','92名','スタンダード','稼働中','green'],
+    ['さくら第一','さくら学園','幼稚園','110名','98名','スタンダード','導入中','amber'],
+    ['さくら第二','さくら学園','保育園','70名','56名','スタンダード','導入中','amber'],
+    ['なごみ中央','なごみ学園','認定こども園','160名','148名','プレミアム','移行中','blue'],
+  ];
+  return (<div>
+    <PageHead title="園・施設管理" sub="テナント配下の園・施設を横断管理。施設ごとにプラン・定員・在籍・稼働状態を把握。"
+      action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus">施設を追加</Btn></div>}/>
+    <div className="grid grid-cols-4 gap-4 mb-5">
+      {[['登録施設','38','ink'],['稼働中','31','green'],['導入・移行中','5','amber'],['総在籍児童','3,420名','orange']].map((s,i)=>(
+        <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
+      ))}
+    </div>
+    <Card className="overflow-hidden"><CardHead icon="home" title="施設一覧" action={<button onClick={()=>go&&go('optenants')} className="text-[12px] font-bold text-brand-600">テナント単位で見る →</button>}/>
+      <table className="w-full text-[13px]">
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['施設名','所属テナント','種別','定員','在籍','プラン','状態',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+        <tbody>{facs.map((f,i)=>(
+          <tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40">
+            <td className="px-5 py-3"><div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="home" className="w-4 h-4"/></div><span className="font-bold text-ink">{f[0]}</span></div></td>
+            <td className="px-5 py-3 text-gray-600 font-bold">{f[1]}</td>
+            <td className="px-5 py-3"><Badge tone={f[2]==='幼稚園'?'orange':f[2]==='保育園'?'blue':'purple'}>{f[2]}</Badge></td>
+            <td className="px-5 py-3 font-bold text-gray-600">{f[3]}</td>
+            <td className="px-5 py-3 font-bold text-gray-600">{f[4]}</td>
+            <td className="px-5 py-3"><Badge tone={f[5]==='プレミアム'?'orange':'blue'}>{f[5]}</Badge></td>
+            <td className="px-5 py-3"><Badge tone={f[7]}>{f[6]}</Badge></td>
+            <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </Card>
+  </div>);
+}
+function OpLegal(){
+  const docs=[['利用規約','v3.2','2026/04/01','公開中','green'],['プライバシーポリシー','v2.8','2026/04/01','公開中','green'],['データ処理契約（DPA）','v1.4','2026/02/15','公開中','green'],['特定商取引法に基づく表記','v1.1','2025/10/01','公開中','green'],['情報セキュリティ方針','v2.0','2026/05/20','改訂レビュー中','amber']];
+  const contracts=[['あおば学園','基本契約＋DPA','締結済','2027/03/31','green'],['みどり幼稚園','基本契約','締結済','2027/01/31','green'],['さくら学園','基本契約','押印待ち','—','amber'],['なごみ学園','基本契約＋DPA','締結済','2028/03/31','green'],['そら幼稚園','申込書','商談中','—','gray']];
+  return (<div>
+    <PageHead title="契約・法務文書" sub="規約・ポリシー・DPA の版管理と、テナント別の契約締結ステータスを一元管理。"
+      action={<div className="flex gap-2"><Btn kind="soft" icon="ai">改訂ドラフトをAI生成</Btn><Btn kind="primary" icon="plus">文書を追加</Btn></div>}/>
+    <div className="grid grid-cols-2 gap-5">
+      <Card className="overflow-hidden"><CardHead icon="file" title="共通法務文書（版管理）"/>
+        <table className="w-full text-[13px]"><tbody>{docs.map((d,i)=>(
+          <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
+            <td className="px-5 py-3 font-bold text-ink">{d[0]}</td>
+            <td className="px-5 py-3"><Badge tone="blue">{d[1]}</Badge></td>
+            <td className="px-5 py-3 text-gray-500 font-bold text-[12px]">{d[2]}</td>
+            <td className="px-5 py-3 text-right"><Badge tone={d[4]}>{d[3]}</Badge></td>
+          </tr>
+        ))}</tbody></table>
+      </Card>
+      <Card className="overflow-hidden"><CardHead icon="lock" title="テナント別 契約ステータス"/>
+        <table className="w-full text-[13px]">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['テナント','契約種別','状態','契約期限'].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
+          <tbody>{contracts.map((c,i)=>(
+            <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
+              <td className="px-5 py-3 font-bold text-ink">{c[0]}</td>
+              <td className="px-5 py-3 text-gray-600 font-bold text-[12px]">{c[1]}</td>
+              <td className="px-5 py-3"><Badge tone={c[4]}>{c[2]}</Badge></td>
+              <td className="px-5 py-3 text-gray-500 font-bold text-[12px]">{c[3]}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+    </div>
+    <Card className="p-4 mt-5 bg-[#FBFAFF] border-[#EEE7FB]"><div className="flex items-start gap-2"><span className="text-purple-600 mt-0.5"><Ic name="shield" className="w-5 h-5"/></span><p className="text-[13px] text-ink font-bold">個人情報を扱う教育SaaSのため、DPA（データ処理契約）と情報セキュリティ方針はテナント締結の必須条件。締結前テナントは本番データ移行をブロックします。</p></div></Card>
+  </div>);
+}
+function OpSupport(){
+  const tickets=[['ログインできない先生がいる','あおば学園','緊急','対応中','amber'],['要録の様式追加の要望','さくら学園','要望','新規','red'],['請求書PDFの宛名変更','みどり幼稚園','通常','解決','green'],['アプリが重い時間帯がある','なごみ学園','障害調査','調査中','blue'],['保護者の写真DLができない','あおば学園','通常','解決','green']];
+  return (<div>
+    <PageHead title="問い合わせサポート" sub="テナントからの問い合わせ・障害報告の一次対応とSLA管理。"
+      action={<Btn kind="primary" icon="plus">チケットを起票</Btn>}/>
+    <div className="grid grid-cols-4 gap-4 mb-5">
+      {[['未対応','3件','red'],['対応中','5件','amber'],['今月解決','42件','green'],['平均初動','38分','ink']].map((s,i)=>(
+        <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='red'?'text-red-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
+      ))}
+    </div>
+    <Card className="overflow-hidden"><CardHead icon="headset" title="問い合わせチケット" action={<span className="text-[12px] text-muted font-bold">SLA：緊急2h / 通常1営業日</span>}/>
+      <table className="w-full text-[13px]">
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['内容','テナント','種別','状態',''].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
+        <tbody>{tickets.map((t,i)=>(
+          <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
+            <td className="px-5 py-3 font-bold text-ink">{t[0]}</td>
+            <td className="px-5 py-3 text-gray-600 font-bold">{t[1]}</td>
+            <td className="px-5 py-3"><Badge tone="gray">{t[2]}</Badge></td>
+            <td className="px-5 py-3"><Badge tone={t[4]}>{t[3]}</Badge></td>
+            <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </Card>
+  </div>);
+}
+function OpHelpCMS(){
+  const cats=[['はじめに',6],['記録・要録',12],['保護者連携',9],['精算・課金',7],['管理・設定',8]];
+  const arts=[['for Kids のはじめかた','はじめに','公開','green','1,240'],['音声から要録ドラフトを作る','記録・要録','公開','green','980'],['保護者アプリの招待方法','保護者連携','公開','green','1,560'],['月次精算の確定手順','精算・課金','下書き','amber','—'],['他システムからの移行ガイド','管理・設定','レビュー中','blue','—']];
+  return (<div>
+    <PageHead title="ヘルプCMS" sub="園・保護者向けヘルプ記事を一元編集。アプリ内ヘルプ／使い方画面へ配信。"
+      action={<div className="flex gap-2"><Btn kind="soft" icon="ai">記事をAI生成</Btn><Btn kind="primary" icon="plus">記事を作成</Btn></div>}/>
+    <div className="grid grid-cols-3 gap-5">
+      <Card className="p-5"><h3 className="font-bold text-ink mb-3">カテゴリ</h3>
+        <div className="space-y-1.5">{cats.map((c,i)=>(
+          <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl border border-[#F3E6D9] text-[13px]"><span className="font-bold text-ink">{c[0]}</span><Badge tone="gray">{c[1]}記事</Badge></div>
+        ))}</div>
+        <Btn kind="ghost" icon="plus" className="w-full mt-3">カテゴリ追加</Btn>
+      </Card>
+      <Card className="col-span-2 overflow-hidden"><CardHead icon="book" title="記事一覧" action={<span className="text-[12px] text-muted font-bold">全42記事</span>}/>
+        <table className="w-full text-[13px]">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['タイトル','カテゴリ','状態','月間閲覧'].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
+          <tbody>{arts.map((a,i)=>(
+            <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
+              <td className="px-5 py-3 font-bold text-ink">{a[0]}</td>
+              <td className="px-5 py-3 text-gray-600 font-bold text-[12px]">{a[1]}</td>
+              <td className="px-5 py-3"><Badge tone={a[3]}>{a[2]}</Badge></td>
+              <td className="px-5 py-3 font-bold text-gray-500">{a[4]}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+    </div>
+  </div>);
+}
+function OpVersion(){
+  const rings=[['社内検証','興縁チーム','v1.5.0-rc2','green'],['先行配信','あおば学園','v1.5.0-rc1','blue'],['一般配信','全テナント','v1.4.2','green']];
+  const notes=[['v1.5.0','要録AIの精度改善・5領域提案の根拠表示','予定'],['v1.4.2','保護者アプリのオフライン打刻の安定化','配信中'],['v1.4.1','写真一括ダウンロードの不具合修正','配信済']];
+  return (<div>
+    <PageHead title="アプリ版配信" sub="PWA／アプリのバージョンを段階配信（リング）。リリースノートとロールアウトを管理。"
+      action={<Btn kind="primary" icon="send">次版を配信</Btn>}/>
+    <div className="grid grid-cols-3 gap-4 mb-5">{rings.map((r,i)=>(
+      <Card key={i} className="p-5">
+        <div className="flex items-center justify-between mb-2"><span className="text-[12px] text-muted font-bold">{r[0]}</span><Badge tone={r[3]}>稼働</Badge></div>
+        <div className="text-xl font-extrabold text-ink">{r[2]}</div>
+        <div className="text-[12px] text-muted font-bold mt-1">{r[1]}</div>
+      </Card>
+    ))}</div>
+    <Card className="overflow-hidden"><CardHead icon="send" title="リリースノート" action={<span className="text-[12px] text-muted font-bold">段階配信：社内 → 先行 → 一般</span>}/>
+      <table className="w-full text-[13px]">
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['バージョン','内容','状態',''].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
+        <tbody>{notes.map((n,i)=>(
+          <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
+            <td className="px-5 py-3"><Badge tone="blue">{n[0]}</Badge></td>
+            <td className="px-5 py-3 font-bold text-ink">{n[1]}</td>
+            <td className="px-5 py-3"><Badge tone={n[2]==='配信中'?'green':n[2]==='予定'?'amber':'gray'}>{n[2]}</Badge></td>
+            <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </Card>
+    <Card className="p-4 mt-5 bg-[#FBFAFF] border-[#EEE7FB]"><div className="flex items-start gap-2"><span className="text-purple-600 mt-0.5"><Ic name="shield" className="w-5 h-5"/></span><p className="text-[13px] text-ink font-bold">本番配信は要承認操作。一般配信リングへの昇格は運営責任者の承認後に実行されます（こしょこしょ同様の段階配信）。</p></div></Card>
+  </div>);
+}
+function OpAudit(){
+  const logs=[
+    ['2026-06-04 08:42','興縁・運営チーム','プラン変更','さくら学園 → スタンダード','成功','green'],
+    ['2026-06-04 08:15','興縁・運営チーム','テナント発行','なごみ学園','成功','green'],
+    ['2026-06-03 19:30','塚田 のぞみ（園長）','要録 一括承認','あおば幼稚園・12件','成功','green'],
+    ['2026-06-03 14:02','興縁・運営チーム','アプリ版配信','v1.4.2 一般配信','成功','green'],
+    ['2026-06-03 09:48','不明','ログイン失敗（5回）','— ／ IP 203.0.113.* ','警告','amber'],
+    ['2026-06-02 22:10','興縁・運営チーム','法務文書 改訂','情報セキュリティ方針 v2.0','成功','green'],
+  ];
+  return (<div>
+    <PageHead title="システム監査ログ" sub="運営・園・保護者をまたぐ重要操作の証跡。改ざん不可・エクスポート対応。"
+      action={<div className="flex gap-2"><Btn kind="ghost" icon="search">絞り込み</Btn><Btn kind="ghost" icon="file">CSVエクスポート</Btn></div>}/>
+    <div className="grid grid-cols-4 gap-4 mb-5">
+      {[['本日の操作','1,284件','ink'],['要承認操作','6件','orange'],['警告イベント','2件','amber'],['保持期間','13か月','ink']].map((s,i)=>(
+        <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='orange'?'text-brand-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
+      ))}
+    </div>
+    <Card className="overflow-hidden"><CardHead icon="shield" title="操作ログ"/>
+      <div className="overflow-x-auto"><table className="w-full text-[13px]">
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['日時','操作者','操作','対象','結果'].map((h,i)=><th key={i} className="px-5 py-2.5 whitespace-nowrap">{h}</th>)}</tr></thead>
+        <tbody>{logs.map((l,i)=>(
+          <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
+            <td className="px-5 py-3 text-gray-500 font-bold text-[12px] whitespace-nowrap">{l[0]}</td>
+            <td className="px-5 py-3 font-bold text-ink whitespace-nowrap">{l[1]}</td>
+            <td className="px-5 py-3 text-gray-700 font-bold">{l[2]}</td>
+            <td className="px-5 py-3 text-gray-500 font-bold text-[12px]">{l[3]}</td>
+            <td className="px-5 py-3"><Badge tone={l[5]}>{l[4]}</Badge></td>
+          </tr>
+        ))}</tbody>
+      </table></div>
+    </Card>
+  </div>);
+}
+const OP_SCREENS={ ophome:OpHome, optenants:OpTenants, opfacilities:OpFacilities, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
+
+function OperatorApp({go}){
+  const [screen,setScreen]=useState('ophome');
+  const Screen=OP_SCREENS[screen]||OpHome;
+  const opgo=(t)=>{ if(OP_SCREENS[t]) setScreen(t); };
+  return (
+    <div className="flex h-full">
+      <aside className="w-64 shrink-0 bg-slate-900 h-full flex flex-col">
+        <div className="flex items-center gap-3 px-4 py-4">
+          <div className="w-10 h-10 rounded-2xl bg-brand-500 flex items-center justify-center text-white"><Ic name="globe" className="w-6 h-6"/></div>
+          <div><div className="text-[11px] text-slate-400 font-bold leading-none">運営コンソール</div><div className="font-extrabold text-white text-lg leading-tight">for Kids 外販管理</div></div>
+        </div>
+        <div className="px-4 pb-3"><div className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2"><Avatar name="興縁" color="#E07B4A" size={26}/><div className="text-[12px] leading-tight"><div className="font-bold text-white">興縁 運営チーム</div><div className="text-slate-400 font-bold text-[11px]">販売元アカウント</div></div></div></div>
+        <nav className="flex-1 overflow-y-auto noscroll px-3 py-2">
+          {OP_NAV.map(g=>(
+            <div key={g.group} className="mb-3">
+              <div className="px-2 text-[11px] font-bold text-slate-500 mb-1">{g.group}</div>
+              {g.items.map(it=>(
+                <button key={it.id} onClick={()=>setScreen(it.id)} className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition', screen===it.id?'bg-brand-500 text-white':'text-slate-300 hover:bg-slate-800')}>
+                  <Ic name={it.icon} className="w-[18px] h-[18px]"/><span className="flex-1 text-left">{it.label}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="px-3 py-3 border-t border-slate-800">
+          <button onClick={()=>go('teacher')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold text-slate-300 hover:bg-slate-800"><Ic name="teacher" className="w-[18px] h-[18px]"/>園の画面を見る</button>
+          <button onClick={()=>go('__login')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold text-slate-400 hover:bg-slate-800"><Ic name="logout" className="w-[18px] h-[18px]"/>ログアウト</button>
+          <div className="px-3 pt-1 text-[10px] text-slate-500 font-bold">運営・マスターポータル v0.5</div>
+        </div>
+      </aside>
+      <main className="flex-1 overflow-y-auto" style={{background:'#FFF7F1'}}>
+        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo}/></div>
+      </main>
+    </div>
+  );
+}
+
+/* ============================== ROOT ============================== */
+function App(){
+  const [mode,setMode] = useState('login'); // login | staff | parent | operator
+  const [screen,setScreen] = useState('teacher');
+  const go = (target)=>{
+    if(target==='__login'){ setMode('login'); return; }
+    if(target==='__parent'){ setMode('parent'); return; }
+    if(target==='__operator'){ setMode('operator'); return; }
+    if(STAFF_SCREENS[target]){ setScreen(target); setMode('staff'); return; }
+  };
+  return (
+    <div className="h-full">
+      {mode==='login' && <Login go={go}/>}
+      {mode==='staff' && <StaffApp screen={screen} go={go}/>}
+      {mode==='parent' && <ParentApp go={go}/>}
+      {mode==='operator' && <OperatorApp go={go}/>}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
