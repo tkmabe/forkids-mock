@@ -1572,7 +1572,10 @@ function Login({go}){
             <Ic name="chevron" className="w-5 h-5 text-slate-400"/>
           </button>
         </Card>
-        <div className="text-[11px] text-warm font-bold mt-6">あおばグループ ・ 興縁株式会社 ｜ プロトタイプ v0.5（三層ポータル分離・運営多ページ化）</div>
+        <button onClick={()=>go('__public')} className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-brand-600 hover:text-brand-700">
+          <Ic name="globe" className="w-4 h-4"/>for Kids 公式サイト ／ お問い合わせ（デモ）<Ic name="chevron" className="w-4 h-4"/>
+        </button>
+        <div className="text-[11px] text-warm font-bold mt-5">あおばグループ ・ 興縁株式会社 ｜ プロトタイプ v0.5（三層ポータル分離・運営多ページ化）</div>
       </div>
     </div>
   );
@@ -2024,6 +2027,74 @@ function LeadDetail({lead, go, back}){
     </div>
   </div>);
 }
+const LEAD_SOURCES=['紹介','問い合わせ','イベント','その他'];
+function OpNewLead({go, addLead}){
+  const [f,setF] = useState({ org:'', kind:'個人園', contact:'', email:'', tel:'', source:'紹介', plan:'スタンダード', parks:'1', status:'商談中', next:'', owner:'阿部', memo:'' });
+  const set = (k,v)=> setF(s=>({...s, [k]:v}));
+  const save = ()=>{
+    const today = new Date().toISOString().slice(0,10);
+    const parks = parseInt(f.parks,10);
+    addLead && addLead({
+      id: Date.now(), org:(f.org||'新規リード').trim(), kind:f.kind, contact:f.contact||'—', email:f.email||'—', tel:f.tel||'—',
+      source:f.source, status:f.status, plan:f.plan, parks:isNaN(parks)?1:parks, next:f.next||'—', owner:f.owner||'—',
+      acts:[[today, 'メモ', f.memo||'新規リードを登録しました。', 'edit']]
+    });
+    go && go('opleads');
+  };
+  const label = (t)=> <div className="text-[12px] text-muted font-bold mb-1">{t}</div>;
+  const inputCls = "w-full bg-cream rounded-xl px-4 py-2.5 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300";
+  return (<div>
+    <div className="flex items-center gap-2 mb-3">
+      <button onClick={()=>go&&go('opleads')} className="text-brand-500"><Ic name="chevron" className="w-5 h-5 rotate-180"/></button>
+      <span className="text-[12px] font-bold text-muted">商談・リード管理 に戻る</span>
+    </div>
+    <PageHead title="リードを追加" sub="見込み客（園・法人）を商談パイプラインに登録します。"/>
+    <div className="grid grid-cols-3 gap-5">
+      <div className="col-span-2 space-y-5">
+        <Card className="p-5"><CardHead icon="building" title="園・法人の情報"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('法人／園名')}<input className={inputCls} placeholder="こすもす幼稚園" value={f.org} onChange={e=>set('org',e.target.value)}/></div>
+            <div>{label('種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{TENANT_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
+          </div>
+        </Card>
+        <Card className="p-5"><CardHead icon="users" title="ご担当者"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('担当者氏名')}<input className={inputCls} placeholder="園田 はるこ" value={f.contact} onChange={e=>set('contact',e.target.value)}/></div>
+            <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="contact@example.ed.jp" value={f.email} onChange={e=>set('email',e.target.value)}/></div>
+            <div>{label('電話番号')}<input className={inputCls} placeholder="0297-00-0000" value={f.tel} onChange={e=>set('tel',e.target.value)}/></div>
+            <div>{label('流入経路')}<select className={inputCls} value={f.source} onChange={e=>set('source',e.target.value)}>{LEAD_SOURCES.map(s=><option key={s}>{s}</option>)}</select></div>
+          </div>
+        </Card>
+        <Card className="p-5"><CardHead icon="chart" title="商談情報"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('想定プラン')}<select className={inputCls} value={f.plan} onChange={e=>set('plan',e.target.value)}>{PLAN_OPTIONS.map(p=><option key={p}>{p}</option>)}</select></div>
+            <div>{label('想定園数／規模')}<input type="number" className={inputCls} placeholder="1" value={f.parks} onChange={e=>set('parks',e.target.value)}/></div>
+            <div>{label('商談ステータス')}<select className={inputCls} value={f.status} onChange={e=>set('status',e.target.value)}>{LEAD_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+            <div>{label('次アクション日')}<input type="date" className={inputCls} value={f.next} onChange={e=>set('next',e.target.value)}/></div>
+            <div>{label('担当営業')}<input className={inputCls} placeholder="阿部" value={f.owner} onChange={e=>set('owner',e.target.value)}/></div>
+          </div>
+        </Card>
+        <Card className="p-5"><CardHead icon="edit" title="メモ"/>
+          <div className="px-5 pb-5"><textarea className={cx(inputCls,'h-24 leading-relaxed')} placeholder="初回コンタクトの経緯・関心事など" value={f.memo} onChange={e=>set('memo',e.target.value)}/></div>
+        </Card>
+      </div>
+      <div className="space-y-5">
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">登録プレビュー</h3>
+          <div className="space-y-2 text-[13px]">
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">法人／園名</span><span className="font-bold text-ink">{f.org||'—'}</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">担当者</span><span className="font-bold text-ink">{f.contact||'—'}</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">流入経路</span><Badge tone="gray">{f.source}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">商談状態</span><Badge tone={LEAD_TONE[f.status]}>{f.status}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">想定プラン</span><Badge tone={f.plan==='プレミアム'?'orange':f.plan==='スタンダード'?'blue':'gray'}>{f.plan}</Badge></div>
+          </div>
+        </Card>
+        <Btn kind="primary" icon="check" className="w-full py-3" onClick={save}>保存して一覧に追加</Btn>
+        <Btn kind="ghost" icon="logout" className="w-full" onClick={()=>go&&go('opleads')}>キャンセル</Btn>
+        <p className="text-[12px] text-muted font-bold text-center px-2">※ プロトタイプのため入力内容はダミーとしてリード一覧に追加されます。</p>
+      </div>
+    </div>
+  </div>);
+}
 function OpLeads({go, leads}){
   const LD = leads||OP_LEADS;
   const [sel,setSel] = useState(null);
@@ -2032,7 +2103,7 @@ function OpLeads({go, leads}){
   if(lead) return <LeadDetail lead={lead} go={go} back={()=>setSel(null)}/>;
   return (<div>
     <PageHead title="商談・リード管理" sub="見込み客（園・法人）の商談を管理。商談中→提案済→契約間近→受注（テナント化）まで。"
-      action={<div className="flex gap-2"><Tabs tabs={['一覧','パイプライン']} active={view} onChange={setView}/><Btn kind="primary" icon="plus">リードを追加</Btn></div>}/>
+      action={<div className="flex gap-2"><Tabs tabs={['一覧','パイプライン']} active={view} onChange={setView}/><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewlead')}>リードを追加</Btn></div>}/>
     <div className="grid grid-cols-4 gap-4 mb-5">
       {LEAD_STATUSES.map((s,i)=>(
         <Card key={i} className="p-4"><div className="flex items-center gap-2 mb-1"><Badge tone={LEAD_TONE[s]}>{s}</Badge></div><div className="text-2xl font-extrabold text-ink">{LD.filter(l=>l.status===s).length}<span className="text-[12px] text-muted font-bold ml-1">件</span></div></Card>
@@ -2399,11 +2470,12 @@ function OpAudit(){
     </Card>
   </div>);
 }
-const OP_SCREENS={ ophome:OpHome, opleads:OpLeads, opapply:OpApply, opfacilitysetup:OpFacilitySetup, optenants:OpTenants, opnewtenant:OpNewTenant, opfacilities:OpFacilities, opnewfacility:OpNewFacility, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
+const OP_SCREENS={ ophome:OpHome, opleads:OpLeads, opnewlead:OpNewLead, opapply:OpApply, opfacilitysetup:OpFacilitySetup, optenants:OpTenants, opnewtenant:OpNewTenant, opfacilities:OpFacilities, opnewfacility:OpNewFacility, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
 OP_TITLES.opnewtenant='新規テナント登録';
 OP_TITLES.opnewfacility='新規施設登録';
+OP_TITLES.opnewlead='リードを追加';
 
-function OperatorApp({go}){
+function OperatorApp({go, leads, addLead}){
   const [screen,setScreen]=useState('ophome');
   const [tenants,setTenants]=useState(TENANTS);
   const addTenant=(row)=> setTenants(s=>[...s, row]);
@@ -2411,10 +2483,10 @@ function OperatorApp({go}){
   const rejectTenant=(idx)=> setTenants(s=>s.filter((t,i)=> i!==idx));
   const [facilities,setFacilities]=useState(OP_FACILITIES);
   const addFacility=(row)=> setFacilities(s=>[...s, row]);
-  const [leads]=useState(OP_LEADS);
+  const LD = leads||OP_LEADS;
   const Screen=OP_SCREENS[screen]||OpHome;
   const opgo=(t)=>{ if(OP_SCREENS[t]) setScreen(t); };
-  const NAV_PARENT = { opnewtenant:'optenants', opnewfacility:'opfacilities', opapply:'optenants' };
+  const NAV_PARENT = { opnewtenant:'optenants', opnewfacility:'opfacilities', opapply:'optenants', opnewlead:'opleads' };
   const navActive = NAV_PARENT[screen] || screen;
   return (
     <div className="flex h-full">
@@ -2443,20 +2515,98 @@ function OperatorApp({go}){
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto" style={{background:'#FFF7F1'}}>
-        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} facilities={facilities} addFacility={addFacility} leads={leads}/></div>
+        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} facilities={facilities} addFacility={addFacility} leads={LD} addLead={addLead}/></div>
       </main>
     </div>
   );
 }
 
 /* ============================== ROOT ============================== */
+/* ============================== PUBLIC（公式サイト想定・公開問い合わせフォーム） ============================== */
+function PublicContact({go, addLead}){
+  const SCALES=[['1園',1],['2〜3園',2],['4園以上（法人）',4],['未定',1]];
+  const FEATURES=['記録・要録AI','保護者連携','写真・動画販売','登降園・精算','バスなび','キャリア評価'];
+  const [f,setF] = useState({ org:'', contact:'', email:'', tel:'', scale:'1園', interests:[], message:'', agree:false, notrobot:false });
+  const [sent,setSent] = useState(false);
+  const set = (k,v)=> setF(s=>({...s, [k]:v}));
+  const toggle = (x)=> setF(s=>({...s, interests: s.interests.includes(x)? s.interests.filter(i=>i!==x):[...s.interests,x]}));
+  const submit = ()=>{
+    if(!f.notrobot){ window.alert('「私はロボットではありません」にチェックしてください（実運用ではCAPTCHAを設置します）。'); return; }
+    if(!f.agree){ window.alert('プライバシーポリシーへの同意が必要です。'); return; }
+    const today = new Date().toISOString().slice(0,10);
+    const parks = (SCALES.find(s=>s[0]===f.scale)||['',1])[1];
+    addLead && addLead({
+      id: Date.now(), org:(f.org||'お問い合わせ（園名未記入）').trim(), kind:'個人園', contact:f.contact||'—', email:f.email||'—', tel:f.tel||'—',
+      source:'問い合わせ(Web)', status:'商談中', plan:'スタンダード', parks, next:'—', owner:'未割当',
+      acts:[[today, 'Web', '公式サイトの問い合わせフォームから送信。関心：'+(f.interests.join('・')||'—')+'／内容：'+(f.message||'—'), 'globe']]
+    });
+    setSent(true);
+  };
+  const label = (t)=> <div className="text-[12px] text-muted font-bold mb-1">{t}</div>;
+  const inputCls = "w-full bg-cream rounded-xl px-4 py-2.5 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300";
+  return (
+    <div className="h-full overflow-y-auto" style={{background:'#FFF7F1'}}>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0E2D5] bg-white/70 sticky top-0 backdrop-blur z-10">
+        <div className="flex items-center gap-2"><div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center text-white"><Ic name="leaf" className="w-5 h-5"/></div><div><div className="text-[10px] text-muted font-bold leading-none">幼稚園まるごと</div><div className="font-extrabold text-ink leading-tight">for Kids <span className="text-[11px] text-warm font-bold">公式サイト（デモ）</span></div></div></div>
+        <Btn kind="ghost" icon="logout" onClick={()=>go&&go('__login')}>ログインへ</Btn>
+      </div>
+      <div className="max-w-3xl mx-auto px-6 py-8">
+        <div className="text-center mb-6">
+          <Badge tone="orange">資料請求・お問い合わせ</Badge>
+          <h1 className="text-3xl font-extrabold text-ink mt-3">for Kids について<br/>お気軽にお問い合わせください</h1>
+          <p className="text-[13px] text-muted font-bold mt-2">「感じて、考える」を支える幼稚園まるごとSaaS。デモ・お見積り・移行のご相談を承ります。</p>
+        </div>
+        {!sent ? (
+          <Card className="p-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>{label('園名・法人名')}<input className={inputCls} placeholder="あおば幼稚園 / 学校法人 川村学園" value={f.org} onChange={e=>set('org',e.target.value)}/></div>
+              <div>{label('ご担当者名')}<input className={inputCls} placeholder="園田 はるこ" value={f.contact} onChange={e=>set('contact',e.target.value)}/></div>
+              <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="contact@example.ed.jp" value={f.email} onChange={e=>set('email',e.target.value)}/></div>
+              <div>{label('電話番号（任意）')}<input className={inputCls} placeholder="0297-00-0000" value={f.tel} onChange={e=>set('tel',e.target.value)}/></div>
+              <div>{label('想定規模')}<select className={inputCls} value={f.scale} onChange={e=>set('scale',e.target.value)}>{SCALES.map(s=><option key={s[0]}>{s[0]}</option>)}</select></div>
+            </div>
+            <div className="mt-4">{label('興味のある機能（複数選択可）')}
+              <div className="flex flex-wrap gap-2">{FEATURES.map(x=>(
+                <button key={x} onClick={()=>toggle(x)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border transition', f.interests.includes(x)?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+              ))}</div>
+            </div>
+            <div className="mt-4">{label('お問い合わせ内容')}<textarea className={cx(inputCls,'h-28 leading-relaxed')} placeholder="ご質問・ご相談内容をご記入ください" value={f.message} onChange={e=>set('message',e.target.value)}/></div>
+            <div className="mt-4 space-y-2">
+              <label className="flex items-center gap-2 text-[13px] font-bold text-ink bg-cream rounded-xl px-3 py-2.5 border border-[#F3E6D9] cursor-pointer"><input type="checkbox" checked={f.notrobot} onChange={e=>set('notrobot',e.target.checked)}/><Ic name="shield" className="w-4 h-4 text-brand-500"/>私はロボットではありません<span className="text-[11px] text-muted font-bold ml-auto">（実運用ではCAPTCHAを設置）</span></label>
+              <label className="flex items-start gap-2 text-[12px] font-bold text-ink bg-cream rounded-xl px-3 py-2.5 border border-[#F3E6D9] cursor-pointer"><input type="checkbox" className="mt-0.5" checked={f.agree} onChange={e=>set('agree',e.target.checked)}/><span>プライバシーポリシーに同意します。<br/><span className="text-muted">入力いただく個人情報はお問い合わせ対応の目的でのみ利用します（取得は必要最小限）。</span></span></label>
+            </div>
+            <Btn kind="primary" icon="send" className="w-full py-3 mt-5" onClick={submit}>この内容で送信する</Btn>
+            <p className="text-[11px] text-muted font-bold text-center mt-3">※ モック：実送信はしません。送信すると運営ポータルの「商談・リード管理」に、流入経路＝問い合わせ(Web)・状態＝商談中 の新規リードとして起票されます。</p>
+          </Card>
+        ) : (
+          <Card className="p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#E8F5E9] text-green-600 mx-auto flex items-center justify-center mb-3"><Ic name="check" className="w-8 h-8"/></div>
+            <h2 className="text-xl font-extrabold text-ink">お問い合わせを受け付けました</h2>
+            <p className="text-[13px] text-muted font-bold mt-2">担当より2営業日以内にご連絡します。ありがとうございました。</p>
+            <div className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-brand-600 bg-brand-50 rounded-lg px-3 py-2"><Ic name="chart" className="w-4 h-4"/>（デモ）運営ポータルの「商談・リード管理」に新規リードが追加されました</div>
+            <div className="flex gap-2 justify-center mt-5">
+              <Btn kind="ghost" icon="logout" onClick={()=>go&&go('__login')}>ログインへ戻る</Btn>
+              <Btn kind="primary" icon="globe" onClick={()=>go&&go('__operator')}>運営ポータルで確認（デモ）</Btn>
+            </div>
+          </Card>
+        )}
+        <div className="text-center text-[11px] text-warm font-bold mt-6">あおばグループ ・ 興縁株式会社 ｜ for Kids 公式サイト（プロトタイプ）</div>
+      </div>
+    </div>
+  );
+}
+
 function App(){
-  const [mode,setMode] = useState('login'); // login | staff | parent | operator
+  const [mode,setMode] = useState('login'); // login | staff | parent | operator | public
   const [screen,setScreen] = useState('teacher');
+  // リード状態は App レベルで保持＝公開問い合わせフォーム(PublicContact)と運営ポータル(OperatorApp)で共有
+  const [leads,setLeads] = useState(OP_LEADS);
+  const addLead = (lead)=> setLeads(s=>[...s, lead]);
   const go = (target)=>{
     if(target==='__login'){ setMode('login'); return; }
     if(target==='__parent'){ setMode('parent'); return; }
     if(target==='__operator'){ setMode('operator'); return; }
+    if(target==='__public'){ setMode('public'); return; }
     if(STAFF_SCREENS[target]){ setScreen(target); setMode('staff'); return; }
   };
   return (
@@ -2464,7 +2614,8 @@ function App(){
       {mode==='login' && <Login go={go}/>}
       {mode==='staff' && <StaffApp screen={screen} go={go}/>}
       {mode==='parent' && <ParentApp go={go}/>}
-      {mode==='operator' && <OperatorApp go={go}/>}
+      {mode==='operator' && <OperatorApp go={go} leads={leads} addLead={addLead}/>}
+      {mode==='public' && <PublicContact go={go} addLead={addLead}/>}
     </div>
   );
 }
