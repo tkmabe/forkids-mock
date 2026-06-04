@@ -2486,7 +2486,7 @@ function OperatorApp({go, leads, addLead}){
   const LD = leads||OP_LEADS;
   const Screen=OP_SCREENS[screen]||OpHome;
   const opgo=(t)=>{ if(OP_SCREENS[t]) setScreen(t); };
-  const NAV_PARENT = { opnewtenant:'optenants', opnewfacility:'opfacilities', opapply:'optenants', opnewlead:'opleads' };
+  const NAV_PARENT = { opnewtenant:'optenants', opnewfacility:'opfacilities', opnewlead:'opleads' };
   const navActive = NAV_PARENT[screen] || screen;
   return (
     <div className="flex h-full">
