@@ -1662,12 +1662,12 @@ function OpHome({go, tenants, leads}){
   const funnel = LEAD_STATUSES.map(s=>({s, n:LD.filter(l=>l.status===s).length}));
   return (<div>
     <PageHead title="運営ダッシュボード" sub="for Kids を販売・運用する事業者（興縁／あおば）向けの管理レイヤー"/>
-    <div className="grid grid-cols-4 gap-4 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
       {[['契約テナント',String(TEN.length),'green'],['月次収益(MRR)','¥1.82M','orange'],['稼働率','99.95%','green'],['サポート未対応','3件','red']].map((s,i)=>(
         <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':'text-red-500')}>{s[1]}</div></Card>
       ))}
     </div>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <Card className="col-span-2 p-5"><CardHead icon="building" title="契約テナント（直近）" action={<button onClick={()=>go('optenants')} className="text-[12px] font-bold text-brand-600">すべて見る →</button>}/>
         <div className="px-5 pb-5 space-y-2">{TEN.slice(-4).reverse().map((t,i)=>(
           <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]"><div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="building" className="w-5 h-5"/></div><div className="flex-1"><div className="font-bold text-ink">{t[0]}</div><div className="text-[12px] text-muted font-bold">{t[2]}・{t[4]}名</div></div><Badge tone={t[6]}>{t[5]}</Badge></div>
@@ -1683,7 +1683,7 @@ function OpHome({go, tenants, leads}){
       </Card>
     </div>
     <Card className="p-5 mt-5"><CardHead icon="chart" title="商談パイプライン（ファネル）" action={<button onClick={()=>go('opleads')} className="text-[12px] font-bold text-brand-600">リード管理へ →</button>}/>
-      <div className="px-5 pb-5 grid grid-cols-4 gap-3">
+      <div className="px-5 pb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
         {funnel.map((f,i)=>(
           <button key={i} onClick={()=>go('opleads')} className="text-left rounded-xl border border-[#F3E6D9] p-4 hover:bg-cream/40 transition">
             <div className="flex items-center gap-2 mb-1"><Badge tone={LEAD_TONE[f.s]}>{f.s}</Badge></div>
@@ -1741,7 +1741,7 @@ function OpTenants({go, tenants, approveTenant, rejectTenant, justApproved, clea
         ) : null)}
       </div>
     </Card>}
-    <Card className="overflow-hidden"><table className="w-full text-[13px]">
+    <Card className="overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[720px]">
       <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['テナント','種別','プラン','園数','利用人数','状態',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
       <tbody>{TEN.map((t,i)=> (t[5]==='却下' && !showArchived) ? null : (
         <tr key={i} className={cx('border-b border-[#F7EFE7] hover:bg-cream/40', t[5]==='却下'&&'opacity-60')}>
@@ -1754,7 +1754,7 @@ function OpTenants({go, tenants, approveTenant, rejectTenant, justApproved, clea
           <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
         </tr>
       ))}</tbody>
-    </table></Card>
+    </table></div></Card>
     {archivedCount>0 && <button onClick={()=>setShowArchived(v=>!v)} className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-muted hover:text-ink">
       <Ic name="file" className="w-4 h-4"/>{showArchived?'却下（アーカイブ）を隠す':'却下（アーカイブ）'+archivedCount+'件を表示'}
     </button>}
@@ -1778,11 +1778,11 @@ function OpNewTenant({go, addTenant}){
       <span className="text-[12px] font-bold text-muted">契約テナント に戻る</span>
     </div>
     <PageHead title="新規テナント登録" sub="販売先の法人・園を登録し、園長アカウントを発行します（こしょこしょ admin 相当）。"/>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div className="col-span-2 space-y-5">
         <Card className="p-5">
           <CardHead icon="building" title="基本情報"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('園名')}<input className={inputCls} placeholder="あおば幼稚園" value={f.en} onChange={e=>set('en',e.target.value)}/></div>
             <div>{label('法人名')}<input className={inputCls} placeholder="学校法人 川村学園" value={f.corp} onChange={e=>set('corp',e.target.value)}/></div>
             <div>{label('種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{TENANT_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
@@ -1791,7 +1791,7 @@ function OpNewTenant({go, addTenant}){
         </Card>
         <Card className="p-5">
           <CardHead icon="money" title="契約内容"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('契約プラン')}<select className={inputCls} value={f.plan} onChange={e=>set('plan',e.target.value)}>{PLAN_OPTIONS.map(p=><option key={p}>{p}</option>)}</select></div>
             <div>{label('契約状態')}<select className={inputCls} value={f.status} onChange={e=>set('status',e.target.value)}>{TENANT_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
             <div>{label('利用開始日')}<input type="date" className={inputCls} value={f.start} onChange={e=>set('start',e.target.value)}/></div>
@@ -1803,7 +1803,7 @@ function OpNewTenant({go, addTenant}){
         </Card>
         <Card className="p-5">
           <CardHead icon="teacher" title="管理者（園長）アカウント発行"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('氏名')}<input className={inputCls} placeholder="塚田 のぞみ" value={f.adminName} onChange={e=>set('adminName',e.target.value)}/></div>
             <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="owner@example.ed.jp" value={f.adminEmail} onChange={e=>set('adminEmail',e.target.value)}/></div>
             <div className="col-span-2 flex items-center gap-2 text-[12px] font-bold text-muted bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl px-3 py-2"><Ic name="send" className="w-4 h-4 text-purple-600"/>保存時に園長へ招待メール（初回ログインURL）を送信します。</div>
@@ -1856,10 +1856,10 @@ function OpApply({go, addTenant}){
       <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shrink-0"><Ic name="lock" className="w-5 h-5"/></div>
       <div className="text-[12px] font-bold leading-relaxed">これは<strong>招待リンク方式</strong>を想定した公開申込フォームです（なりすまし防止のためトークン付きリンク＋メール確認を推奨）。<br/><strong>申込は契約ではありません。</strong>送信内容は運営がレビューし、承認をもって本テナント化・契約手続きに進みます。</div>
     </div>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div className="col-span-2 space-y-5">
         <Card className="p-5"><CardHead icon="building" title="園・法人の情報"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('園名')}<input className={inputCls} placeholder="あおば幼稚園" value={f.en} onChange={e=>set('en',e.target.value)}/></div>
             <div>{label('法人名')}<input className={inputCls} placeholder="学校法人 川村学園" value={f.corp} onChange={e=>set('corp',e.target.value)}/></div>
             <div>{label('種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{TENANT_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
@@ -1867,14 +1867,14 @@ function OpApply({go, addTenant}){
           </div>
         </Card>
         <Card className="p-5"><CardHead icon="users" title="ご担当者（お問い合わせ先）"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('担当者氏名')}<input className={inputCls} placeholder="園田 はるこ" value={f.contact} onChange={e=>set('contact',e.target.value)}/></div>
             <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="contact@example.ed.jp" value={f.email} onChange={e=>set('email',e.target.value)}/></div>
             <div>{label('電話番号')}<input className={inputCls} placeholder="0297-00-0000" value={f.tel} onChange={e=>set('tel',e.target.value)}/></div>
           </div>
         </Card>
         <Card className="p-5"><CardHead icon="money" title="ご希望のプラン・規模"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('希望プラン')}<select className={inputCls} value={f.plan} onChange={e=>set('plan',e.target.value)}>{PLAN_OPTIONS.map(p=><option key={p}>{p}</option>)}</select></div>
             <div>{label('対象の園数')}<input type="number" className={inputCls} placeholder="1" value={f.parks} onChange={e=>set('parks',e.target.value)}/></div>
             <div>{label('想定利用人数（園児数）')}<input type="number" className={inputCls} placeholder="120" value={f.cap} onChange={e=>set('cap',e.target.value)}/></div>
@@ -1929,10 +1929,10 @@ function OpFacilitySetup({go, addFacility, tenants}){
       <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shrink-0"><Ic name="lock" className="w-5 h-5"/></div>
       <div className="text-[12px] font-bold leading-relaxed"><strong>所属テナントは招待リンクで固定</strong>されます（他テナントへの誤紐付け防止）。園長アカウントは<strong>本人がパスワードを設定</strong>する招待方式（運営はパスワードを保持しません）。園児・保護者の初期データ移行は本フォームでは扱わず、オンボーディングのデータ移行で安全に取り込みます。</div>
     </div>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div className="col-span-2 space-y-5">
         <Card className="p-5"><CardHead icon="home" title="基本情報"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('所属テナント（招待で固定）')}<select className={inputCls} value={f.tenant} onChange={e=>set('tenant',e.target.value)}>{TEN.map(t=><option key={t[0]}>{t[0]}</option>)}</select><div className="text-[11px] text-muted font-bold mt-1">プランは所属テナント契約（{inheritedPlan}）を継承します。</div></div>
             <div>{label('施設名（園名）')}<input className={inputCls} placeholder="あおば幼稚園" value={f.name} onChange={e=>set('name',e.target.value)}/></div>
             <div>{label('施設種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{FACILITY_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
@@ -1940,7 +1940,7 @@ function OpFacilitySetup({go, addFacility, tenants}){
           </div>
         </Card>
         <Card className="p-5"><CardHead icon="users" title="規模・クラス構成"/>
-          <div className="px-5 pb-5 grid grid-cols-3 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>{label('定員')}<input type="number" className={inputCls} placeholder="180" value={f.cap} onChange={e=>set('cap',e.target.value)}/></div>
             <div>{label('クラス数')}<input type="number" className={inputCls} placeholder="8" value={f.classes} onChange={e=>set('classes',e.target.value)}/></div>
             <div>{label('現在籍数')}<input type="number" className={inputCls} placeholder="142" value={f.enrolled} onChange={e=>set('enrolled',e.target.value)}/></div>
@@ -1949,7 +1949,7 @@ function OpFacilitySetup({go, addFacility, tenants}){
           </div>
         </Card>
         <Card className="p-5"><CardHead icon="teacher" title="施設管理者（園長）"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('氏名')}<input className={inputCls} placeholder="塚田 のぞみ" value={f.adminName} onChange={e=>set('adminName',e.target.value)}/></div>
             <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="owner@example.ed.jp" value={f.adminEmail} onChange={e=>set('adminEmail',e.target.value)}/></div>
             <div>{label('移行元システム')}<select className={inputCls} value={f.from} onChange={e=>set('from',e.target.value)}>{['なし（新規）','コミュなび','おうちえん','こしょこしょ','バスキャッチ','その他'].map(m=><option key={m}>{m}</option>)}</select></div>
@@ -2004,7 +2004,7 @@ function LeadDetail({lead, go, back}){
     </div>
     <PageHead title={lead.org} sub={lead.kind+'・'+lead.contact+'（'+lead.email+'）'}
       action={<div className="flex gap-2 items-center"><Tabs tabs={['活動履歴','書類・送付']} active={tab} onChange={setTab}/><Badge tone={LEAD_TONE[lead.status]}>{lead.status}</Badge></div>}/>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       {tab==='活動履歴' && <Card className="col-span-2 p-5"><CardHead icon="chart" title="活動履歴"/>
         <div className="px-5 pb-5">
           {lead.acts.map((a,i)=>(
@@ -2024,7 +2024,7 @@ function LeadDetail({lead, go, back}){
       </Card>}
       {tab==='書類・送付' && <div className="col-span-2 space-y-5">
         <Card className="p-5"><CardHead icon="send" title="書類・フォームを送付" action={<span className="text-[12px] text-muted font-bold">宛先：{lead.email}</span>}/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-3">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {templates.map((t,i)=>(
               <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]">
                 <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={t[2]} className="w-5 h-5"/></div>
@@ -2087,16 +2087,16 @@ function OpNewLead({go, addLead}){
       <span className="text-[12px] font-bold text-muted">商談・リード管理 に戻る</span>
     </div>
     <PageHead title="リードを追加" sub="見込み客（園・法人）を商談パイプラインに登録します。"/>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div className="col-span-2 space-y-5">
         <Card className="p-5"><CardHead icon="building" title="園・法人の情報"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('法人／園名')}<input className={inputCls} placeholder="こすもす幼稚園" value={f.org} onChange={e=>set('org',e.target.value)}/></div>
             <div>{label('種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{TENANT_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
           </div>
         </Card>
         <Card className="p-5"><CardHead icon="users" title="ご担当者"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('担当者氏名')}<input className={inputCls} placeholder="園田 はるこ" value={f.contact} onChange={e=>set('contact',e.target.value)}/></div>
             <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="contact@example.ed.jp" value={f.email} onChange={e=>set('email',e.target.value)}/></div>
             <div>{label('電話番号')}<input className={inputCls} placeholder="0297-00-0000" value={f.tel} onChange={e=>set('tel',e.target.value)}/></div>
@@ -2104,7 +2104,7 @@ function OpNewLead({go, addLead}){
           </div>
         </Card>
         <Card className="p-5"><CardHead icon="chart" title="商談情報"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('想定プラン')}<select className={inputCls} value={f.plan} onChange={e=>set('plan',e.target.value)}>{PLAN_OPTIONS.map(p=><option key={p}>{p}</option>)}</select></div>
             <div>{label('想定園数／規模')}<input type="number" className={inputCls} placeholder="1" value={f.parks} onChange={e=>set('parks',e.target.value)}/></div>
             <div>{label('商談ステータス')}<select className={inputCls} value={f.status} onChange={e=>set('status',e.target.value)}>{LEAD_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
@@ -2142,13 +2142,13 @@ function OpLeads({go, leads}){
   return (<div>
     <PageHead title="商談・リード管理" sub="見込み客（園・法人）の商談を4段階で管理：商談中（初回接触）→提案済（見積提示）→契約間近（前向き）→受注はテナント化へ卒業／失注は再アプローチ母集団として保持。"
       action={<div className="flex gap-2"><Tabs tabs={['一覧','パイプライン']} active={view} onChange={setView}/><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewlead')}>リードを追加</Btn></div>}/>
-    <div className="grid grid-cols-4 gap-4 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
       {LEAD_STATUSES.map((s,i)=>(
         <Card key={i} className="p-4"><div className="flex items-center gap-2 mb-1"><Badge tone={LEAD_TONE[s]}>{s}</Badge></div><div className="text-2xl font-extrabold text-ink">{LD.filter(l=>l.status===s).length}<span className="text-[12px] text-muted font-bold ml-1">件</span></div></Card>
       ))}
     </div>
     {view==='一覧' && <Card className="overflow-hidden"><CardHead icon="chart" title="リード一覧" action={<span className="text-[12px] text-muted font-bold">行をクリックで活動履歴へ</span>}/>
-      <table className="w-full text-[13px]">
+      <div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[760px]">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['法人/園名','担当者','メール','流入','商談状態','想定プラン','園数','次アクション'].map((h,i)=><th key={i} className="px-5 py-3 whitespace-nowrap">{h}</th>)}</tr></thead>
         <tbody>{LD.map((l)=>(
           <tr key={l.id} onClick={()=>setSel(l.id)} className="border-b border-[#F7EFE7] hover:bg-cream/40 cursor-pointer">
@@ -2162,9 +2162,9 @@ function OpLeads({go, leads}){
             <td className="px-5 py-3 text-gray-500 font-bold text-[12px] whitespace-nowrap">{l.next}</td>
           </tr>
         ))}</tbody>
-      </table>
+      </table></div>
     </Card>}
-    {view==='パイプライン' && <div className="grid grid-cols-4 gap-4">
+    {view==='パイプライン' && <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {LEAD_STATUSES.map((s)=>(
         <div key={s} className="bg-cream/50 rounded-2xl border border-[#F3E6D9] p-3">
           <div className="flex items-center justify-between mb-2 px-1"><Badge tone={LEAD_TONE[s]}>{s}</Badge><span className="text-[12px] font-bold text-muted">{LD.filter(l=>l.status===s).length}</span></div>
@@ -2190,7 +2190,7 @@ function OpPlans(){
   return (<div>
     <PageHead title="プラン・課金" sub="プラン定義と請求。fincodeでテナントごとに請求先を分離（こしょこしょ同様）。"
       action={<Btn kind="primary" icon="check">プランを編集</Btn>}/>
-    <div className="grid grid-cols-3 gap-5 mb-5">{plans.map((p,i)=>(
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">{plans.map((p,i)=>(
       <Card key={i} className={cx('p-5', i===1&&'ring-2 ring-brand-300')}>
         {i===1&&<Badge tone="orange">人気</Badge>}
         <div className="font-extrabold text-ink text-lg mt-1">{p[0]}</div>
@@ -2199,7 +2199,7 @@ function OpPlans(){
         <div className="space-y-1.5">{p[4].map((f,k)=>(<div key={k} className="flex items-center gap-2 text-[13px] text-ink"><span className="text-green-500"><Ic name="check" className="w-4 h-4"/></span>{f}</div>))}</div>
       </Card>
     ))}</div>
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <Card className="p-4"><Stat label="今月の請求総額" value="¥1.82M" tone="orange"/></Card>
       <Card className="p-4"><Stat label="入金済" value="21/24" tone="green"/></Card>
       <Card className="p-4"><Stat label="fincodeサブショップ" value="24" tone="ink"/></Card>
@@ -2246,13 +2246,13 @@ function OpFacilities({go, facilities}){
   return (<div>
     <PageHead title="園・施設管理" sub="全38施設をテナント横断で一元管理。施設ごとの種別・プラン・定員・在籍・稼働状態（準備中／導入中／移行中／稼働中）を一覧で把握し、導入・移行の進捗を追えます。"
       action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewfacility')}>施設を追加</Btn></div>}/>
-    <div className="grid grid-cols-4 gap-4 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
       {[['登録施設','38','ink'],['稼働中','31','green'],['導入・移行中','5','amber'],['総在籍児童','3,420名','orange']].map((s,i)=>(
         <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
       ))}
     </div>
     <Card className="overflow-hidden"><CardHead icon="home" title="施設一覧" action={<button onClick={()=>go&&go('optenants')} className="text-[12px] font-bold text-brand-600">テナント単位で見る →</button>}/>
-      <table className="w-full text-[13px]">
+      <div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[820px]">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['施設名','所属テナント','種別','定員','在籍','プラン','状態',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
         <tbody>{facs.map((f,i)=>(
           <tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40">
@@ -2266,7 +2266,7 @@ function OpFacilities({go, facilities}){
             <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
-      </table>
+      </table></div>
     </Card>
   </div>);
 }
@@ -2293,11 +2293,11 @@ function OpNewFacility({go, addFacility, tenants}){
       <span className="text-[12px] font-bold text-muted">園・施設管理 に戻る</span>
     </div>
     <PageHead title="新規施設登録" sub="施設＝テナント配下で実際に運用する園。ここで定員／在籍／プラン／稼働を個別管理します。"/>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div className="col-span-2 space-y-5">
         <Card className="p-5">
           <CardHead icon="home" title="基本情報"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('施設名（園名）')}<input className={inputCls} placeholder="あおば幼稚園" value={f.name} onChange={e=>set('name',e.target.value)}/></div>
             <div>{label('所属テナント（契約法人）')}<select className={inputCls} value={f.tenant} onChange={e=>set('tenant',e.target.value)}>{TEN.map(t=><option key={t[0]}>{t[0]}</option>)}</select><div className="text-[11px] text-muted font-bold mt-1">どの契約法人の配下かを指定します。</div></div>
             <div>{label('施設種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{FACILITY_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
@@ -2306,7 +2306,7 @@ function OpNewFacility({go, addFacility, tenants}){
         </Card>
         <Card className="p-5">
           <CardHead icon="users" title="規模"/>
-          <div className="px-5 pb-5 grid grid-cols-3 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>{label('定員')}<input type="number" className={inputCls} placeholder="180" value={f.cap} onChange={e=>set('cap',e.target.value)}/></div>
             <div>{label('クラス数')}<input type="number" className={inputCls} placeholder="8" value={f.classes} onChange={e=>set('classes',e.target.value)}/></div>
             <div>{label('現在籍数')}<input type="number" className={inputCls} placeholder="142" value={f.enrolled} onChange={e=>set('enrolled',e.target.value)}/></div>
@@ -2315,7 +2315,7 @@ function OpNewFacility({go, addFacility, tenants}){
         </Card>
         <Card className="p-5">
           <CardHead icon="money" title="契約・プラン"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('プランの適用')}<select className={inputCls} value={f.planMode} onChange={e=>set('planMode',e.target.value)}><option value="継承">所属テナント契約を継承</option><option value="施設別">施設別に設定</option></select></div>
             <div>{label('適用プラン')}{f.planMode==='継承'
               ? <div className={cx(inputCls,'flex items-center justify-between text-muted')}><span>{inheritedPlan}</span><Badge tone="gray">継承</Badge></div>
@@ -2326,7 +2326,7 @@ function OpNewFacility({go, addFacility, tenants}){
         </Card>
         <Card className="p-5">
           <CardHead icon="teacher" title="施設管理者（園長）アカウント発行"/>
-          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>{label('氏名')}<input className={inputCls} placeholder="塚田 のぞみ" value={f.adminName} onChange={e=>set('adminName',e.target.value)}/></div>
             <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="owner@example.ed.jp" value={f.adminEmail} onChange={e=>set('adminEmail',e.target.value)}/></div>
             <div className="col-span-2 flex items-center gap-2 text-[12px] font-bold text-muted bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl px-3 py-2"><Ic name="send" className="w-4 h-4 text-purple-600"/>保存時に園長へ招待メール（初回ログインURL）を送信します。</div>
@@ -2363,19 +2363,19 @@ function OpLegal(){
   return (<div>
     <PageHead title="契約・法務文書" sub="規約・ポリシー・DPA の版管理と、テナント別の契約締結ステータスを一元管理。"
       action={<div className="flex gap-2"><Btn kind="soft" icon="ai">改訂ドラフトをAI生成</Btn><Btn kind="primary" icon="plus">文書を追加</Btn></div>}/>
-    <div className="grid grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <Card className="overflow-hidden"><CardHead icon="file" title="共通法務文書（版管理）"/>
-        <table className="w-full text-[13px]"><tbody>{docs.map((d,i)=>(
+        <div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[460px]"><tbody>{docs.map((d,i)=>(
           <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
             <td className="px-5 py-3 font-bold text-ink">{d[0]}</td>
             <td className="px-5 py-3"><Badge tone="blue">{d[1]}</Badge></td>
             <td className="px-5 py-3 text-gray-500 font-bold text-[12px]">{d[2]}</td>
             <td className="px-5 py-3 text-right"><Badge tone={d[4]}>{d[3]}</Badge></td>
           </tr>
-        ))}</tbody></table>
+        ))}</tbody></table></div>
       </Card>
       <Card className="overflow-hidden"><CardHead icon="lock" title="テナント別 契約ステータス"/>
-        <table className="w-full text-[13px]">
+        <div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[460px]">
           <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['テナント','契約種別','状態','契約期限'].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
           <tbody>{contracts.map((c,i)=>(
             <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
@@ -2385,7 +2385,7 @@ function OpLegal(){
               <td className="px-5 py-3 text-gray-500 font-bold text-[12px]">{c[3]}</td>
             </tr>
           ))}</tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
     <Card className="p-4 mt-5 bg-[#FBFAFF] border-[#EEE7FB]"><div className="flex items-start gap-2"><span className="text-purple-600 mt-0.5"><Ic name="shield" className="w-5 h-5"/></span><p className="text-[13px] text-ink font-bold">個人情報を扱う教育SaaSのため、DPA（データ処理契約）と情報セキュリティ方針はテナント締結の必須条件。締結前テナントは本番データ移行をブロックします。</p></div></Card>
@@ -2396,13 +2396,13 @@ function OpSupport(){
   return (<div>
     <PageHead title="問い合わせサポート" sub="テナントからの問い合わせ・障害報告の一次対応とSLA管理。"
       action={<Btn kind="primary" icon="plus">チケットを起票</Btn>}/>
-    <div className="grid grid-cols-4 gap-4 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
       {[['未対応','3件','red'],['対応中','5件','amber'],['今月解決','42件','green'],['平均初動','38分','ink']].map((s,i)=>(
         <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='red'?'text-red-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
       ))}
     </div>
     <Card className="overflow-hidden"><CardHead icon="headset" title="問い合わせチケット" action={<span className="text-[12px] text-muted font-bold">SLA：緊急2h / 通常1営業日</span>}/>
-      <table className="w-full text-[13px]">
+      <div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[680px]">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['内容','テナント','種別','状態',''].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
         <tbody>{tickets.map((t,i)=>(
           <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
@@ -2413,7 +2413,7 @@ function OpSupport(){
             <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
-      </table>
+      </table></div>
     </Card>
   </div>);
 }
@@ -2423,7 +2423,7 @@ function OpHelpCMS(){
   return (<div>
     <PageHead title="ヘルプCMS" sub="園・保護者向けヘルプ記事を一元編集。アプリ内ヘルプ／使い方画面へ配信。"
       action={<div className="flex gap-2"><Btn kind="soft" icon="ai">記事をAI生成</Btn><Btn kind="primary" icon="plus">記事を作成</Btn></div>}/>
-    <div className="grid grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <Card className="p-5"><h3 className="font-bold text-ink mb-3">カテゴリ</h3>
         <div className="space-y-1.5">{cats.map((c,i)=>(
           <div key={i} className="flex items-center justify-between px-3 py-2 rounded-xl border border-[#F3E6D9] text-[13px]"><span className="font-bold text-ink">{c[0]}</span><Badge tone="gray">{c[1]}記事</Badge></div>
@@ -2431,7 +2431,7 @@ function OpHelpCMS(){
         <Btn kind="ghost" icon="plus" className="w-full mt-3">カテゴリ追加</Btn>
       </Card>
       <Card className="col-span-2 overflow-hidden"><CardHead icon="book" title="記事一覧" action={<span className="text-[12px] text-muted font-bold">全42記事</span>}/>
-        <table className="w-full text-[13px]">
+        <div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[560px]">
           <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['タイトル','カテゴリ','状態','月間閲覧'].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
           <tbody>{arts.map((a,i)=>(
             <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
@@ -2441,7 +2441,7 @@ function OpHelpCMS(){
               <td className="px-5 py-3 font-bold text-gray-500">{a[4]}</td>
             </tr>
           ))}</tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   </div>);
@@ -2452,7 +2452,7 @@ function OpVersion(){
   return (<div>
     <PageHead title="アプリ版配信" sub="PWA／アプリのバージョンを段階配信（リング）。リリースノートとロールアウトを管理。"
       action={<Btn kind="primary" icon="send">次版を配信</Btn>}/>
-    <div className="grid grid-cols-3 gap-4 mb-5">{rings.map((r,i)=>(
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">{rings.map((r,i)=>(
       <Card key={i} className="p-5">
         <div className="flex items-center justify-between mb-2"><span className="text-[12px] text-muted font-bold">{r[0]}</span><Badge tone={r[3]}>稼働</Badge></div>
         <div className="text-xl font-extrabold text-ink">{r[2]}</div>
@@ -2460,7 +2460,7 @@ function OpVersion(){
       </Card>
     ))}</div>
     <Card className="overflow-hidden"><CardHead icon="send" title="リリースノート" action={<span className="text-[12px] text-muted font-bold">段階配信：社内 → 先行 → 一般</span>}/>
-      <table className="w-full text-[13px]">
+      <div className="overflow-x-auto"><table className="w-full text-[13px] min-w-[560px]">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['バージョン','内容','状態',''].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
         <tbody>{notes.map((n,i)=>(
           <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
@@ -2470,7 +2470,7 @@ function OpVersion(){
             <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
-      </table>
+      </table></div>
     </Card>
     <Card className="p-4 mt-5 bg-[#FBFAFF] border-[#EEE7FB]"><div className="flex items-start gap-2"><span className="text-purple-600 mt-0.5"><Ic name="shield" className="w-5 h-5"/></span><p className="text-[13px] text-ink font-bold">本番配信は要承認操作。一般配信リングへの昇格は運営責任者の承認後に実行されます（こしょこしょ同様の段階配信）。</p></div></Card>
   </div>);
@@ -2487,7 +2487,7 @@ function OpAudit(){
   return (<div>
     <PageHead title="システム監査ログ" sub="運営・園・保護者をまたぐ重要操作の証跡。改ざん不可・エクスポート対応。"
       action={<div className="flex gap-2"><Btn kind="ghost" icon="search">絞り込み</Btn><Btn kind="ghost" icon="file">CSVエクスポート</Btn></div>}/>
-    <div className="grid grid-cols-4 gap-4 mb-5">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
       {[['本日の操作','1,284件','ink'],['要承認操作','6件','orange'],['警告イベント','2件','amber'],['保持期間','13か月','ink']].map((s,i)=>(
         <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='orange'?'text-brand-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
       ))}
