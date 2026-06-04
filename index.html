@@ -1588,6 +1588,7 @@ const OP_NAV = [
   { group:'営業・導入', items:[
     {id:'opleads', label:'商談・リード管理', icon:'chart'},
     {id:'opapply', label:'テナント申込フォーム', icon:'edit'},
+    {id:'opfacilitysetup', label:'園・施設 初期登録', icon:'home'},
   ]},
   { group:'顧客・契約', items:[
     {id:'optenants', label:'テナント管理', icon:'building'},
@@ -1864,6 +1865,82 @@ function OpApply({go, addTenant}){
     </div>
   </div>);
 }
+function OpFacilitySetup({go, addFacility, tenants}){
+  const TEN = tenants||TENANTS;
+  const [f,setF] = useState({ tenant:(TEN[0]&&TEN[0][0])||'', name:'', kind:'幼稚園', addr:'', cap:'', classes:'', enrolled:'', classNames:'年少・年中・年長', staff:'', adminName:'', adminEmail:'', from:'なし（新規）', note:'', agree:false });
+  const set = (k,v)=> setF(s=>({...s, [k]:v}));
+  const tenantRow = TEN.find(t=>t[0]===f.tenant);
+  const inheritedPlan = (tenantRow && tenantRow[2]) || 'スタンダード';
+  const submit = ()=>{
+    if(!f.agree){ window.alert('初期セットアップ内容の確認に同意してください。'); return; }
+    if(!window.confirm('この内容で園・施設の初期登録を送信します。運営の確認後に導入作業へ進みます。よろしいですか？')) return;
+    const name = (f.name||'新規施設').trim();
+    const cap = parseInt(f.cap,10); const enr = parseInt(f.enrolled,10);
+    addFacility && addFacility([ name, f.tenant||'—', f.kind, (isNaN(cap)?0:cap)+'名', (isNaN(enr)?0:enr)+'名', inheritedPlan, '準備中', 'gray' ]);
+    window.alert('園・施設の初期登録を受け付けました。（モック：園・施設管理に「準備中」ドラフトとして追加されます）');
+    go && go('opfacilities');
+  };
+  const label = (t)=> <div className="text-[12px] text-muted font-bold mb-1">{t}</div>;
+  const inputCls = "w-full bg-cream rounded-xl px-4 py-2.5 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300";
+  return (<div>
+    <PageHead title="園・施設 初期登録フォーム" sub="テナント承認後、配下の各園を園側がセットアップするフォームのプレビュー。送信＝園・施設管理に「準備中」で届きます。"/>
+    <div className="rounded-2xl bg-slate-900 text-white p-4 mb-5 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shrink-0"><Ic name="lock" className="w-5 h-5"/></div>
+      <div className="text-[12px] font-bold leading-relaxed"><strong>所属テナントは招待リンクで固定</strong>されます（他テナントへの誤紐付け防止）。園長アカウントは<strong>本人がパスワードを設定</strong>する招待方式（運営はパスワードを保持しません）。園児・保護者の初期データ移行は本フォームでは扱わず、オンボーディングのデータ移行で安全に取り込みます。</div>
+    </div>
+    <div className="grid grid-cols-3 gap-5">
+      <div className="col-span-2 space-y-5">
+        <Card className="p-5"><CardHead icon="home" title="基本情報"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('所属テナント（招待で固定）')}<select className={inputCls} value={f.tenant} onChange={e=>set('tenant',e.target.value)}>{TEN.map(t=><option key={t[0]}>{t[0]}</option>)}</select><div className="text-[11px] text-muted font-bold mt-1">プランは所属テナント契約（{inheritedPlan}）を継承します。</div></div>
+            <div>{label('施設名（園名）')}<input className={inputCls} placeholder="あおば幼稚園" value={f.name} onChange={e=>set('name',e.target.value)}/></div>
+            <div>{label('施設種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{FACILITY_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
+            <div>{label('所在地')}<input className={inputCls} placeholder="茨城県守谷市…" value={f.addr} onChange={e=>set('addr',e.target.value)}/></div>
+          </div>
+        </Card>
+        <Card className="p-5"><CardHead icon="users" title="規模・クラス構成"/>
+          <div className="px-5 pb-5 grid grid-cols-3 gap-4">
+            <div>{label('定員')}<input type="number" className={inputCls} placeholder="180" value={f.cap} onChange={e=>set('cap',e.target.value)}/></div>
+            <div>{label('クラス数')}<input type="number" className={inputCls} placeholder="8" value={f.classes} onChange={e=>set('classes',e.target.value)}/></div>
+            <div>{label('現在籍数')}<input type="number" className={inputCls} placeholder="142" value={f.enrolled} onChange={e=>set('enrolled',e.target.value)}/></div>
+            <div className="col-span-2">{label('クラス構成')}<input className={inputCls} value={f.classNames} onChange={e=>set('classNames',e.target.value)}/></div>
+            <div>{label('職員の初期招待（人数）')}<input type="number" className={inputCls} placeholder="12" value={f.staff} onChange={e=>set('staff',e.target.value)}/></div>
+          </div>
+        </Card>
+        <Card className="p-5"><CardHead icon="teacher" title="施設管理者（園長）"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('氏名')}<input className={inputCls} placeholder="塚田 のぞみ" value={f.adminName} onChange={e=>set('adminName',e.target.value)}/></div>
+            <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="owner@example.ed.jp" value={f.adminEmail} onChange={e=>set('adminEmail',e.target.value)}/></div>
+            <div>{label('移行元システム')}<select className={inputCls} value={f.from} onChange={e=>set('from',e.target.value)}>{['なし（新規）','コミュなび','おうちえん','こしょこしょ','バスキャッチ','その他'].map(m=><option key={m}>{m}</option>)}</select></div>
+            <div className="col-span-2 flex items-center gap-2 text-[12px] font-bold text-muted bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl px-3 py-2"><Ic name="send" className="w-4 h-4 text-purple-600"/>保存時に園長へ招待メール（初回ログインURL）を送信します。</div>
+          </div>
+        </Card>
+        <Card className="p-5"><CardHead icon="edit" title="備考"/>
+          <div className="px-5 pb-5"><textarea className={cx(inputCls,'h-24 leading-relaxed')} placeholder="本園/分園の別・特記事項など" value={f.note} onChange={e=>set('note',e.target.value)}/></div>
+        </Card>
+      </div>
+      <div className="space-y-5">
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">登録プレビュー</h3>
+          <div className="space-y-2 text-[13px]">
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">所属テナント</span><span className="font-bold text-ink">{f.tenant||'—'}</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">施設名</span><span className="font-bold text-ink">{f.name||'—'}</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">種別</span><Badge tone={f.kind==='幼稚園'?'orange':f.kind==='保育園'?'blue':'purple'}>{f.kind}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">プラン（継承）</span><Badge tone={inheritedPlan==='プレミアム'?'orange':inheritedPlan==='スタンダード'?'blue':'gray'}>{inheritedPlan}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">定員 / 在籍</span><span className="font-bold text-ink">{f.cap||'—'} / {f.enrolled||'—'}名</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">状態</span><Badge tone="gray">準備中</Badge></div>
+          </div>
+        </Card>
+        <label className="flex items-start gap-2 text-[12px] font-bold text-ink bg-cream rounded-xl px-3 py-3 border border-[#F3E6D9] cursor-pointer">
+          <input type="checkbox" className="mt-0.5" checked={f.agree} onChange={e=>set('agree',e.target.checked)}/>
+          <span>初期セットアップ内容を確認しました。園児・保護者の個人データはこの後の移行手順で取り込みます。</span>
+        </label>
+        <Btn kind="primary" icon="check" className="w-full py-3" onClick={submit}>初期登録を送信</Btn>
+        <Btn kind="ghost" icon="logout" className="w-full" onClick={()=>go&&go('opfacilities')}>園・施設管理へ戻る</Btn>
+        <p className="text-[12px] text-muted font-bold text-center px-2">※ モック：送信で園・施設管理に「準備中」ドラフトが追加されます。</p>
+      </div>
+    </div>
+  </div>);
+}
 function LeadDetail({lead, go, back}){
   return (<div>
     <div className="flex items-center gap-2 mb-3">
@@ -1910,17 +1987,18 @@ function LeadDetail({lead, go, back}){
 function OpLeads({go, leads}){
   const LD = leads||OP_LEADS;
   const [sel,setSel] = useState(null);
+  const [view,setView] = useState('一覧');
   const lead = LD.find(l=>l.id===sel);
   if(lead) return <LeadDetail lead={lead} go={go} back={()=>setSel(null)}/>;
   return (<div>
     <PageHead title="商談・リード管理" sub="見込み客（園・法人）の商談を管理。商談中→提案済→契約間近→受注（テナント化）まで。"
-      action={<Btn kind="primary" icon="plus">リードを追加</Btn>}/>
+      action={<div className="flex gap-2"><Tabs tabs={['一覧','パイプライン']} active={view} onChange={setView}/><Btn kind="primary" icon="plus">リードを追加</Btn></div>}/>
     <div className="grid grid-cols-4 gap-4 mb-5">
       {LEAD_STATUSES.map((s,i)=>(
         <Card key={i} className="p-4"><div className="flex items-center gap-2 mb-1"><Badge tone={LEAD_TONE[s]}>{s}</Badge></div><div className="text-2xl font-extrabold text-ink">{LD.filter(l=>l.status===s).length}<span className="text-[12px] text-muted font-bold ml-1">件</span></div></Card>
       ))}
     </div>
-    <Card className="overflow-hidden"><CardHead icon="chart" title="リード一覧" action={<span className="text-[12px] text-muted font-bold">行をクリックで活動履歴へ</span>}/>
+    {view==='一覧' && <Card className="overflow-hidden"><CardHead icon="chart" title="リード一覧" action={<span className="text-[12px] text-muted font-bold">行をクリックで活動履歴へ</span>}/>
       <table className="w-full text-[13px]">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['法人/園名','担当者','メール','流入','商談状態','想定プラン','園数','次アクション'].map((h,i)=><th key={i} className="px-5 py-3 whitespace-nowrap">{h}</th>)}</tr></thead>
         <tbody>{LD.map((l)=>(
@@ -1936,7 +2014,26 @@ function OpLeads({go, leads}){
           </tr>
         ))}</tbody>
       </table>
-    </Card>
+    </Card>}
+    {view==='パイプライン' && <div className="grid grid-cols-4 gap-4">
+      {LEAD_STATUSES.map((s)=>(
+        <div key={s} className="bg-cream/50 rounded-2xl border border-[#F3E6D9] p-3">
+          <div className="flex items-center justify-between mb-2 px-1"><Badge tone={LEAD_TONE[s]}>{s}</Badge><span className="text-[12px] font-bold text-muted">{LD.filter(l=>l.status===s).length}</span></div>
+          <div className="space-y-2">
+            {LD.filter(l=>l.status===s).map(l=>(
+              <button key={l.id} onClick={()=>setSel(l.id)} className="w-full text-left bg-white rounded-xl border border-[#F3E6D9] p-3 shadow-card hover:border-brand-300 transition">
+                <div className="font-bold text-ink text-[13px]">{l.org}</div>
+                <div className="text-[11px] text-muted font-bold mt-0.5">{l.contact}・{l.source}</div>
+                <div className="flex items-center justify-between mt-2"><Badge tone={l.plan==='プレミアム'?'orange':l.plan==='スタンダード'?'blue':'gray'}>{l.plan}</Badge><span className="text-[11px] text-muted font-bold">{l.parks}園</span></div>
+                <div className="text-[11px] text-muted font-bold mt-1">次: {l.next}</div>
+              </button>
+            ))}
+            {LD.filter(l=>l.status===s).length===0 && <div className="text-[12px] text-muted font-bold text-center py-4">なし</div>}
+          </div>
+        </div>
+      ))}
+    </div>}
+    <Card className="p-4 mt-5 bg-[#FBFAFF] border-[#EEE7FB]"><p className="text-[12px] text-ink font-bold leading-relaxed"><Ic name="ai" className="w-4 h-4 text-purple-600 inline mr-1"/>パイプライン全体：商談（商談中→提案済→契約間近）→ 申込フォーム送付 → 申込受領 → 承認で本テナント化 → 園・施設 初期登録 → 稼働。一度入力した情報は次工程へ引き継がれます（二重入力ゼロが設計目標）。</p></Card>
   </div>);
 }
 function OpPlans(){
@@ -2262,7 +2359,7 @@ function OpAudit(){
     </Card>
   </div>);
 }
-const OP_SCREENS={ ophome:OpHome, opleads:OpLeads, opapply:OpApply, optenants:OpTenants, opnewtenant:OpNewTenant, opfacilities:OpFacilities, opnewfacility:OpNewFacility, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
+const OP_SCREENS={ ophome:OpHome, opleads:OpLeads, opapply:OpApply, opfacilitysetup:OpFacilitySetup, optenants:OpTenants, opnewtenant:OpNewTenant, opfacilities:OpFacilities, opnewfacility:OpNewFacility, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
 OP_TITLES.opnewtenant='新規テナント登録';
 OP_TITLES.opnewfacility='新規施設登録';
 
