@@ -2102,7 +2102,7 @@ function OpLeads({go, leads}){
   const lead = LD.find(l=>l.id===sel);
   if(lead) return <LeadDetail lead={lead} go={go} back={()=>setSel(null)}/>;
   return (<div>
-    <PageHead title="商談・リード管理" sub="見込み客（園・法人）の商談を管理。商談中→提案済→契約間近→受注（テナント化）まで。"
+    <PageHead title="商談・リード管理" sub="見込み客（園・法人）の商談を4段階で管理：商談中（初回接触）→提案済（見積提示）→契約間近（前向き）→受注はテナント化へ卒業／失注は再アプローチ母集団として保持。"
       action={<div className="flex gap-2"><Tabs tabs={['一覧','パイプライン']} active={view} onChange={setView}/><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewlead')}>リードを追加</Btn></div>}/>
     <div className="grid grid-cols-4 gap-4 mb-5">
       {LEAD_STATUSES.map((s,i)=>(
@@ -2206,7 +2206,7 @@ const FAC_STATUS_TONE={'準備中':'gray','導入中':'amber','移行中':'blue'
 function OpFacilities({go, facilities}){
   const facs = facilities||OP_FACILITIES;
   return (<div>
-    <PageHead title="園・施設管理" sub="テナント配下の園・施設を横断管理。施設ごとにプラン・定員・在籍・稼働状態を把握。"
+    <PageHead title="園・施設管理" sub="全38施設をテナント横断で一元管理。施設ごとの種別・プラン・定員・在籍・稼働状態（準備中／導入中／移行中／稼働中）を一覧で把握し、導入・移行の進捗を追えます。"
       action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewfacility')}>施設を追加</Btn></div>}/>
     <div className="grid grid-cols-4 gap-4 mb-5">
       {[['登録施設','38','ink'],['稼働中','31','green'],['導入・移行中','5','amber'],['総在籍児童','3,420名','orange']].map((s,i)=>(
