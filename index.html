@@ -1614,18 +1614,23 @@ const TENANTS=[
   ['そら幼稚園','個人園','スタンダード',1,76,'商談中','gray'],
   ['なごみ学園','学校法人なごみ','プレミアム',4,312,'移行中','blue'],
 ];
+const PLAN_OPTIONS=['ライト','スタンダード','プレミアム'];
+const TENANT_KINDS=['学校法人','個人園','その他法人'];
+const TENANT_STATUSES=['トライアル','契約中','導入中','稼働中','商談中'];
+const STATUS_TONE={'トライアル':'blue','契約中':'green','稼働中':'green','導入中':'amber','移行中':'blue','商談中':'gray'};
 
-function OpHome({go}){
+function OpHome({go, tenants}){
+  const TEN = tenants||TENANTS;
   return (<div>
     <PageHead title="運営ダッシュボード" sub="for Kids を販売・運用する事業者（興縁／あおば）向けの管理レイヤー"/>
     <div className="grid grid-cols-4 gap-4 mb-5">
-      {[['契約テナント','24','green'],['月次収益(MRR)','¥1.82M','orange'],['稼働率','99.95%','green'],['サポート未対応','3件','red']].map((s,i)=>(
+      {[['契約テナント',String(TEN.length),'green'],['月次収益(MRR)','¥1.82M','orange'],['稼働率','99.95%','green'],['サポート未対応','3件','red']].map((s,i)=>(
         <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':'text-red-500')}>{s[1]}</div></Card>
       ))}
     </div>
     <div className="grid grid-cols-3 gap-5">
       <Card className="col-span-2 p-5"><CardHead icon="building" title="契約テナント（直近）" action={<button onClick={()=>go('optenants')} className="text-[12px] font-bold text-brand-600">すべて見る →</button>}/>
-        <div className="px-5 pb-5 space-y-2">{TENANTS.slice(0,4).map((t,i)=>(
+        <div className="px-5 pb-5 space-y-2">{TEN.slice(-4).reverse().map((t,i)=>(
           <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]"><div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="building" className="w-5 h-5"/></div><div className="flex-1"><div className="font-bold text-ink">{t[0]}</div><div className="text-[12px] text-muted font-bold">{t[2]}・{t[4]}名</div></div><Badge tone={t[6]}>{t[5]}</Badge></div>
         ))}</div>
       </Card>
@@ -1640,13 +1645,14 @@ function OpHome({go}){
     </div>
   </div>);
 }
-function OpTenants(){
+function OpTenants({go, tenants}){
+  const TEN = tenants||TENANTS;
   return (<div>
     <PageHead title="契約テナント" sub="販売先の法人・園を一元管理。プラン・課金・利用状況・テナント分離。"
-      action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus">テナントを追加</Btn></div>}/>
+      action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewtenant')}>テナントを追加</Btn></div>}/>
     <Card className="overflow-hidden"><table className="w-full text-[13px]">
       <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['テナント','種別','プラン','園数','利用人数','状態',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-      <tbody>{TENANTS.map((t,i)=>(
+      <tbody>{TEN.map((t,i)=>(
         <tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40">
           <td className="px-5 py-3 font-bold text-ink">{t[0]}</td>
           <td className="px-5 py-3 text-gray-600 font-bold">{t[1]}</td>
@@ -1658,6 +1664,79 @@ function OpTenants(){
         </tr>
       ))}</tbody>
     </table></Card>
+  </div>);
+}
+function OpNewTenant({go, addTenant}){
+  const [f,setF] = useState({ en:'', corp:'', kind:'学校法人', addr:'', plan:'スタンダード', status:'トライアル', start:'2026-04-01', cap:'', classes:'', adminName:'', adminEmail:'', note:'' });
+  const set = (k,v)=> setF(s=>({...s, [k]:v}));
+  const save = ()=>{
+    const name = (f.corp||f.en||'新規テナント').trim();
+    const cap = parseInt(f.cap,10);
+    const row = [ name, f.kind, f.plan, 1, isNaN(cap)?0:cap, f.status, STATUS_TONE[f.status]||'gray' ];
+    addTenant && addTenant(row);
+    go && go('optenants');
+  };
+  const label = (t)=> <div className="text-[12px] text-muted font-bold mb-1">{t}</div>;
+  const inputCls = "w-full bg-cream rounded-xl px-4 py-2.5 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300";
+  return (<div>
+    <div className="flex items-center gap-2 mb-3">
+      <button onClick={()=>go&&go('optenants')} className="text-brand-500"><Ic name="chevron" className="w-5 h-5 rotate-180"/></button>
+      <span className="text-[12px] font-bold text-muted">契約テナント に戻る</span>
+    </div>
+    <PageHead title="新規テナント登録" sub="販売先の法人・園を登録し、園長アカウントを発行します（こしょこしょ admin 相当）。"/>
+    <div className="grid grid-cols-3 gap-5">
+      <div className="col-span-2 space-y-5">
+        <Card className="p-5">
+          <CardHead icon="building" title="基本情報"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('園名')}<input className={inputCls} placeholder="あおば幼稚園" value={f.en} onChange={e=>set('en',e.target.value)}/></div>
+            <div>{label('法人名')}<input className={inputCls} placeholder="学校法人 川村学園" value={f.corp} onChange={e=>set('corp',e.target.value)}/></div>
+            <div>{label('種別')}<select className={inputCls} value={f.kind} onChange={e=>set('kind',e.target.value)}>{TENANT_KINDS.map(k=><option key={k}>{k}</option>)}</select></div>
+            <div>{label('所在地')}<input className={inputCls} placeholder="茨城県守谷市…" value={f.addr} onChange={e=>set('addr',e.target.value)}/></div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="money" title="契約内容"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('契約プラン')}<select className={inputCls} value={f.plan} onChange={e=>set('plan',e.target.value)}>{PLAN_OPTIONS.map(p=><option key={p}>{p}</option>)}</select></div>
+            <div>{label('契約状態')}<select className={inputCls} value={f.status} onChange={e=>set('status',e.target.value)}>{TENANT_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+            <div>{label('利用開始日')}<input type="date" className={inputCls} value={f.start} onChange={e=>set('start',e.target.value)}/></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>{label('定員')}<input type="number" className={inputCls} placeholder="120" value={f.cap} onChange={e=>set('cap',e.target.value)}/></div>
+              <div>{label('クラス数')}<input type="number" className={inputCls} placeholder="6" value={f.classes} onChange={e=>set('classes',e.target.value)}/></div>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="teacher" title="管理者（園長）アカウント発行"/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-4">
+            <div>{label('氏名')}<input className={inputCls} placeholder="塚田 のぞみ" value={f.adminName} onChange={e=>set('adminName',e.target.value)}/></div>
+            <div>{label('メールアドレス')}<input type="email" className={inputCls} placeholder="owner@example.ed.jp" value={f.adminEmail} onChange={e=>set('adminEmail',e.target.value)}/></div>
+            <div className="col-span-2 flex items-center gap-2 text-[12px] font-bold text-muted bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl px-3 py-2"><Ic name="send" className="w-4 h-4 text-purple-600"/>保存時に園長へ招待メール（初回ログインURL）を送信します。</div>
+          </div>
+        </Card>
+        <Card className="p-5">
+          <CardHead icon="edit" title="備考"/>
+          <div className="px-5 pb-5"><textarea className={cx(inputCls,'h-24 leading-relaxed')} placeholder="移行元システム・特記事項など" value={f.note} onChange={e=>set('note',e.target.value)}/></div>
+        </Card>
+      </div>
+      <div className="space-y-5">
+        <Card className="p-5">
+          <h3 className="font-bold text-ink mb-3">登録プレビュー</h3>
+          <div className="space-y-2 text-[13px]">
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">テナント名</span><span className="font-bold text-ink">{(f.corp||f.en)||'—'}</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">種別</span><Badge tone="gray">{f.kind}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">プラン</span><Badge tone={f.plan==='プレミアム'?'orange':f.plan==='スタンダード'?'blue':'gray'}>{f.plan}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">状態</span><Badge tone={STATUS_TONE[f.status]||'gray'}>{f.status}</Badge></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">定員</span><span className="font-bold text-ink">{f.cap||'—'}名</span></div>
+            <div className="flex items-center justify-between"><span className="text-muted font-bold">園長</span><span className="font-bold text-ink">{f.adminName||'—'}</span></div>
+          </div>
+        </Card>
+        <Btn kind="primary" icon="check" className="w-full py-3" onClick={save}>保存して一覧に追加</Btn>
+        <Btn kind="ghost" icon="logout" className="w-full" onClick={()=>go&&go('optenants')}>キャンセル</Btn>
+        <p className="text-[12px] text-muted font-bold text-center px-2">※ プロトタイプのため入力内容はダミーとして一覧に追加されます。</p>
+      </div>
+    </div>
   </div>);
 }
 function OpPlans(){
@@ -1892,12 +1971,15 @@ function OpAudit(){
     </Card>
   </div>);
 }
-const OP_SCREENS={ ophome:OpHome, optenants:OpTenants, opfacilities:OpFacilities, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
+const OP_SCREENS={ ophome:OpHome, optenants:OpTenants, opnewtenant:OpNewTenant, opfacilities:OpFacilities, oplegal:OpLegal, opplans:OpPlans, oponboard:OpOnboard, opsupport:OpSupport, ophelp:OpHelpCMS, opversion:OpVersion, opaudit:OpAudit };
 
 function OperatorApp({go}){
   const [screen,setScreen]=useState('ophome');
+  const [tenants,setTenants]=useState(TENANTS);
+  const addTenant=(row)=> setTenants(s=>[...s, row]);
   const Screen=OP_SCREENS[screen]||OpHome;
   const opgo=(t)=>{ if(OP_SCREENS[t]) setScreen(t); };
+  const navActive = screen==='opnewtenant' ? 'optenants' : screen;
   return (
     <div className="flex h-full">
       <aside className="w-64 shrink-0 bg-slate-900 h-full flex flex-col">
@@ -1911,7 +1993,7 @@ function OperatorApp({go}){
             <div key={g.group} className="mb-3">
               <div className="px-2 text-[11px] font-bold text-slate-500 mb-1">{g.group}</div>
               {g.items.map(it=>(
-                <button key={it.id} onClick={()=>setScreen(it.id)} className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition', screen===it.id?'bg-brand-500 text-white':'text-slate-300 hover:bg-slate-800')}>
+                <button key={it.id} onClick={()=>setScreen(it.id)} className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition', navActive===it.id?'bg-brand-500 text-white':'text-slate-300 hover:bg-slate-800')}>
                   <Ic name={it.icon} className="w-[18px] h-[18px]"/><span className="flex-1 text-left">{it.label}</span>
                 </button>
               ))}
@@ -1925,7 +2007,7 @@ function OperatorApp({go}){
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto" style={{background:'#FFF7F1'}}>
-        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo}/></div>
+        <div className="px-8 py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant}/></div>
       </main>
     </div>
   );
