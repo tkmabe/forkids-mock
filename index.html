@@ -1942,15 +1942,29 @@ function OpFacilitySetup({go, addFacility, tenants}){
   </div>);
 }
 function LeadDetail({lead, go, back}){
+  const [tab,setTab] = useState('活動履歴');
+  const sendDoc = (name)=>{ window.confirm('「'+name+'」を '+lead.email+' 宛に送付します。\n※ 社外へのメール送信は要承認操作です（モックのため実送信はしません）。よろしいですか？'); };
+  const templates = [
+    ['会社案内・サービス資料','PDF','file'],
+    ['見積書（'+lead.plan+'）','OpPlans から生成','money'],
+    ['テナント申込フォーム招待リンク','トークン付きURL','edit'],
+    ['契約書ドラフト','OpLegal の版を引用','lock'],
+  ];
+  const sent = [
+    ['会社案内・サービス資料','2026-05-22','開封','green'],
+    ['見積書（'+lead.plan+'）','2026-06-03','開封','green'],
+    ['テナント申込フォーム招待リンク','2026-06-03','記入完了','blue'],
+    ['契約書ドラフト','2026-06-03','送信済','amber'],
+  ];
   return (<div>
     <div className="flex items-center gap-2 mb-3">
       <button onClick={back} className="text-brand-500"><Ic name="chevron" className="w-5 h-5 rotate-180"/></button>
       <span className="text-[12px] font-bold text-muted">商談・リード一覧 に戻る</span>
     </div>
     <PageHead title={lead.org} sub={lead.kind+'・'+lead.contact+'（'+lead.email+'）'}
-      action={<div className="flex gap-2"><Btn kind="ghost" icon="send" onClick={()=>go&&go('opapply')}>申込フォームを送る</Btn><Badge tone={LEAD_TONE[lead.status]}>{lead.status}</Badge></div>}/>
+      action={<div className="flex gap-2 items-center"><Tabs tabs={['活動履歴','書類・送付']} active={tab} onChange={setTab}/><Badge tone={LEAD_TONE[lead.status]}>{lead.status}</Badge></div>}/>
     <div className="grid grid-cols-3 gap-5">
-      <Card className="col-span-2 p-5"><CardHead icon="chart" title="活動履歴"/>
+      {tab==='活動履歴' && <Card className="col-span-2 p-5"><CardHead icon="chart" title="活動履歴"/>
         <div className="px-5 pb-5">
           {lead.acts.map((a,i)=>(
             <div key={i} className="flex gap-3">
@@ -1966,7 +1980,33 @@ function LeadDetail({lead, go, back}){
           ))}
           <div className="flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9] mt-1"><Ic name="edit" className="w-4 h-4 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">活動メモを追記…</span><button className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div>
         </div>
-      </Card>
+      </Card>}
+      {tab==='書類・送付' && <div className="col-span-2 space-y-5">
+        <Card className="p-5"><CardHead icon="send" title="書類・フォームを送付" action={<span className="text-[12px] text-muted font-bold">宛先：{lead.email}</span>}/>
+          <div className="px-5 pb-5 grid grid-cols-2 gap-3">
+            {templates.map((t,i)=>(
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]">
+                <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={t[2]} className="w-5 h-5"/></div>
+                <div className="flex-1"><div className="font-bold text-ink text-[13px]">{t[0]}</div><div className="text-[11px] text-muted font-bold">{t[1]}</div></div>
+                <Btn kind="soft" icon="send" onClick={()=>sendDoc(t[0])}>送付</Btn>
+              </div>
+            ))}
+          </div>
+          <div className="px-5 pb-5"><div className="flex items-start gap-2 text-[12px] font-bold text-ink bg-slate-900 text-white rounded-xl px-3 py-2.5"><Ic name="lock" className="w-4 h-4 shrink-0 mt-0.5"/><span className="text-white">社外へのメール送信は<strong>要承認操作</strong>。既定は運営が内容を確認して送る半手動。自動一斉送信は別途あべ氏承認が必要（モックのため実送信なし）。</span></div></div>
+        </Card>
+        <Card className="overflow-hidden"><CardHead icon="chart" title="送付状況"/>
+          <table className="w-full text-[13px]">
+            <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['書類','送信日','状態'].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
+            <tbody>{sent.map((r,i)=>(
+              <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
+                <td className="px-5 py-3 font-bold text-ink">{r[0]}</td>
+                <td className="px-5 py-3 text-gray-500 font-bold text-[12px]">{r[1]}</td>
+                <td className="px-5 py-3"><Badge tone={r[3]}>{r[2]}</Badge></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </Card>
+      </div>}
       <div className="space-y-5">
         <Card className="p-5"><h3 className="font-bold text-ink mb-3">商談サマリ</h3>
           <div className="space-y-2 text-[13px]">
