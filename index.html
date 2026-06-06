@@ -95,6 +95,8 @@ function Ic({name, className='w-5 h-5', stroke=1.7}){
 
 /* ============================== PRIMITIVES ============================== */
 const cx = (...a)=>a.filter(Boolean).join(' ');
+// モック操作可能化：遷移先が無いボタンでも「無反応」にせず、画面下に軽量トーストを出す。
+const mockTap = (msg)=>{ try{ window.dispatchEvent(new CustomEvent('forkids-mocktap',{detail: msg||'この操作はモックのデモ表示です'})); }catch(e){} };
 
 function Card({children, className=''}){
   return <div className={cx('bg-white rounded-2xl border border-[#F3E6D9] shadow-card', className)}>{children}</div>;
@@ -130,7 +132,10 @@ function Btn({children, kind='primary', icon, onClick, className=''}){
     ghost:'bg-white hover:bg-brand-50 text-gray-500 border border-[#E8D5C4]',
     dark:'bg-ink hover:bg-slate-800 text-white',
   }[kind];
-  return <button onClick={onClick} className={cx('inline-flex items-center justify-center gap-1.5 rounded-xl font-bold text-[13px] px-4 py-2 transition active:scale-[0.98]', k, className)}>
+  // onClick 未指定のボタンは無反応にせず、ラベルを添えてモック・トーストを出す。
+  const txt = typeof children==='string' ? children : null;
+  const handle = onClick || (()=> mockTap(txt ? '「'+txt+'」はこのモックではデモ表示です' : 'この操作はモックのデモ表示です'));
+  return <button onClick={handle} className={cx('inline-flex items-center justify-center gap-1.5 rounded-xl font-bold text-[13px] px-4 py-2 transition active:scale-[0.98]', k, className)}>
     {icon && <Ic name={icon} className="w-4 h-4"/>}{children}
   </button>;
 }
@@ -329,7 +334,7 @@ function TeacherHome({go}){
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-3"><Ic name="edit" className="w-4 h-4 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">今日の気づきを一行で…</span><button className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div>
+            <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-3"><Ic name="edit" className="w-4 h-4 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">今日の気づきを一行で…</span><button onClick={()=>mockTap('気づきを追記しました（モック）')} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div>
           </Card>
           <Card className="p-5">
             <CardHead icon="star" title="取り組み方の評価（変化量でなく "過程" を見る）"/>
@@ -452,7 +457,7 @@ function RecordInput({go}){
             <div className="flex items-center gap-3 mb-4">
               <Avatar name={child.n} color={child.color} size={56} ring/>
               <div><div className="font-extrabold text-ink text-lg">{child.n} ちゃん</div><div className="text-[12px] text-muted font-bold">あおば組（年長）</div></div>
-              <button className="ml-auto text-[12px] font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-lg">別の子に切替</button>
+              <button onClick={()=>mockTap('別の子に切替（モック）')} className="ml-auto text-[12px] font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-lg">別の子に切替</button>
             </div>
             {/* 入力モード選択 */}
             <div className="flex flex-wrap gap-2 mb-4">
@@ -555,7 +560,7 @@ function OutputPreview(){
           <div key={i} className="flex gap-3 py-3 border-t border-[#F3E6D9]">
             <div className="w-20 shrink-0"><Badge tone="purple">{r[0]}</Badge></div>
             <p className="text-[14px] text-ink leading-relaxed flex-1">{r[1]}</p>
-            <button className="text-brand-500 shrink-0"><Ic name="edit" className="w-4 h-4"/></button>
+            <button onClick={()=>mockTap('要録を編集（モック）')} className="text-brand-500 shrink-0"><Ic name="edit" className="w-4 h-4"/></button>
           </div>
         ))}
         <div className="flex gap-2 mt-4"><Btn kind="primary" icon="check">承認に回す</Btn><Btn kind="ghost" icon="file">PDF / Excel 出力</Btn></div>
@@ -609,7 +614,7 @@ function Roster(){
       <Card className="p-3 mb-4">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 bg-cream rounded-xl px-3 py-2 flex-1 border border-[#F3E6D9]"><Ic name="search" className="w-4 h-4 text-muted"/><span className="text-[13px] text-muted font-bold">名前・ふりがな・保護者で検索</span></div>
-          {['全クラス','年長','年中','年少','1号認定','2号認定'].map((f,i)=><button key={i} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{f}</button>)}
+          {['全クラス','年長','年中','年少','1号認定','2号認定'].map((f,i)=><button key={i} onClick={()=>mockTap('（モック）絞り込み：'+f)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{f}</button>)}
         </div>
       </Card>
       <Card className="overflow-hidden">
@@ -625,7 +630,7 @@ function Roster(){
                 <td className="px-5 py-3"><Badge tone="blue">{r.cert}認定</Badge></td>
                 <td className="px-5 py-3 font-bold text-gray-600">{r.guardian}家</td>
                 <td className="px-5 py-3">{r.id%2===0? <Badge tone="red">アレルギー</Badge> : <Badge tone="green">兄弟あり</Badge>}</td>
-                <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+                <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('園児の詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
               </tr>
             ))}
           </tbody>
@@ -642,7 +647,7 @@ function Broadcast(){
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="col-span-2 p-5 space-y-4">
           <div><div className="text-[12px] text-muted font-bold mb-1">宛先</div>
-            <div className="flex flex-wrap gap-2">{['あおば組','年長 全体','アレルギー対象家庭'].map((t,i)=><Badge key={i} tone={i===0?'orange':'gray'}>{t} ×</Badge>)}<button className="text-[12px] font-bold text-brand-600">+ 追加</button></div>
+            <div className="flex flex-wrap gap-2">{['あおば組','年長 全体','アレルギー対象家庭'].map((t,i)=><Badge key={i} tone={i===0?'orange':'gray'}>{t} ×</Badge>)}<button onClick={()=>mockTap('宛先を追加（モック）')} className="text-[12px] font-bold text-brand-600">+ 追加</button></div>
           </div>
           <div><div className="text-[12px] text-muted font-bold mb-1">件名</div><div className="bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] font-bold">【あおば組】6月の保育参観のお知らせ</div></div>
           <div><div className="text-[12px] text-muted font-bold mb-1">本文</div><div className="bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] leading-relaxed h-28">保護者のみなさまへ。6月の保育参観を下記の通り実施します。持ち物は…</div></div>
@@ -882,7 +887,7 @@ function YoroukuList(){
               <td className="px-5 py-3 font-bold text-gray-600">年長</td>
               <td className="px-5 py-3">{i%3===2? <Badge tone="gray">未生成</Badge> : <AIChip/>}</td>
               <td className="px-5 py-3">{[<Badge tone="green">園長承認済</Badge>,<Badge tone="amber">主任承認待ち</Badge>,<Badge tone="gray">下書き</Badge>][i%3]}</td>
-              <td className="px-5 py-3"><div className="flex gap-1"><button className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button><button className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button></div></td>
+              <td className="px-5 py-3"><div className="flex gap-1"><button onClick={()=>mockTap('明細を表示（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button><button onClick={()=>mockTap('編集（モック）')} className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button></div></td>
             </tr>
           ))}</tbody>
         </table>
@@ -1306,7 +1311,7 @@ function FileBox(){
         action={<Btn kind="primary" icon="plus">資料をアップロード</Btn>}/>
       <Card className="overflow-hidden"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['ファイル','種別','サイズ','公開対象','DL'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-        <tbody>{files.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
+        <tbody>{files.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button onClick={()=>mockTap('資料を開く（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
       </table></Card>
     </div>
   );
@@ -1594,7 +1599,7 @@ function ParentNotice(){
     <div className="px-5 space-y-3">
       <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生</div>今日は戸外でだんごむしを観察していました🐛</div></div>
       <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし</div>ずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
-      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-2"><Ic name="camera" className="w-5 h-5 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">メッセージ…</span><button className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
+      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-2"><Ic name="camera" className="w-5 h-5 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">メッセージ…</span><button onClick={()=>mockTap('メッセージを送信しました（モック）')} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
     </div></div>);
 }
 function ParentPhoto(){
@@ -1605,7 +1610,7 @@ function ParentAttend(){
   return (<div><PTitle sub="欠席・遅刻・お迎え時間など">出欠の申請</PTitle>
     <div className="px-5 space-y-3">
       <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-2">申請の種類</div>
-        <div className="grid grid-cols-3 gap-2">{['欠席','遅刻','早退','朝フレンド','午後フレンド','連絡'].map((t,i)=><button key={i} className={cx('py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+        <div className="grid grid-cols-3 gap-2">{['欠席','遅刻','早退','朝フレンド','午後フレンド','連絡'].map((t,i)=><button key={i} onClick={()=>mockTap('（モック）'+t+'を選択')} className={cx('py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
       </Card>
       <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">日付</div><div className="font-bold text-ink">2026年6月3日（水）</div></Card>
       <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">理由</div><div className="text-[13px] text-ink">発熱のためお休みします</div></Card>
@@ -1624,7 +1629,7 @@ function ParentShop({setTab}){
       {goods.map((g,i)=>(
         <div key={i} className="bg-white rounded-2xl border border-[#F3E6D9] overflow-hidden shadow-card">
           <div className="h-24 flex items-center justify-center" style={{background:g[2]+'55'}}><Ic name="shop" className="w-8 h-8 text-ink/30"/></div>
-          <div className="p-3"><div className="font-bold text-[13px] text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600 text-[13px]">{g[1]}</span><button className="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div></div>
+          <div className="p-3"><div className="font-bold text-[13px] text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600 text-[13px]">{g[1]}</span><button onClick={()=>mockTap('カートに追加しました（モック）')} className="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div></div>
         </div>
       ))}
     </div>
@@ -1669,7 +1674,7 @@ function ParentGrowth({setTab}){
 function ParentMedia({setTab}){
   return (<div>
     <PSubHead setTab={setTab}>写真・動画の購入</PSubHead>
-    <div className="px-5 mb-3 flex gap-2">{['すべて','保育参観','遠足','日常'].map((t,i)=><button key={i} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border',i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+    <div className="px-5 mb-3 flex gap-2">{['すべて','保育参観','遠足','日常'].map((t,i)=><button key={i} onClick={()=>mockTap('（モック）絞り込み：'+t)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border',i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
     <div className="px-5 grid grid-cols-3 gap-2">{CAT.concat(CAT).map((c,i)=>(<div key={i} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}><span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/80 flex items-center justify-center text-brand-600"><Ic name="plus" className="w-3 h-3"/></span><span className="absolute bottom-1 left-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span></div>))}</div>
     <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3">カート（4点・¥600）で購入</Btn></div>
   </div>);
@@ -1701,7 +1706,7 @@ function ParentResources({setTab}){
   const files=[['入園のしおり2026','PDF','#C8B3ED'],['年間行事予定','PDF','#FDC089'],['給食だより6月','PDF','#ADDABB'],['保健だより6月','PDF','#AFD0F0']];
   return (<div>
     <PSubHead setTab={setTab}>資料・お便りBOX</PSubHead>
-    <div className="px-5 grid grid-cols-2 gap-3">{files.map((f,i)=>(<button key={i} className="bg-white rounded-2xl border border-[#F3E6D9] p-4 flex flex-col items-start gap-2 shadow-card text-left"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-ink/70" style={{background:f[2]+'66'}}><Ic name="folder" className="w-5 h-5"/></div><span className="font-bold text-[13px] text-ink">{f[0]}</span><Badge tone="blue">{f[1]}</Badge></button>))}</div>
+    <div className="px-5 grid grid-cols-2 gap-3">{files.map((f,i)=>(<button key={i} onClick={()=>mockTap(f[0]+' を開く（モック）')} className="bg-white rounded-2xl border border-[#F3E6D9] p-4 flex flex-col items-start gap-2 shadow-card text-left"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-ink/70" style={{background:f[2]+'66'}}><Ic name="folder" className="w-5 h-5"/></div><span className="font-bold text-[13px] text-ink">{f[0]}</span><Badge tone="blue">{f[1]}</Badge></button>))}</div>
   </div>);
 }
 function ParentHelp({setTab}){
@@ -1935,7 +1940,7 @@ function OpTenants({go, tenants, approveTenant, rejectTenant, justApproved, clea
           <td className="px-5 py-3 font-bold text-gray-600">{t[3]}園</td>
           <td className="px-5 py-3 font-bold text-gray-600">{t[4]}名</td>
           <td className="px-5 py-3"><Badge tone={t[6]}>{t[5]}</Badge></td>
-          <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+          <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
         </tr>
       ))}</tbody>
     </table></div></Card>
@@ -2203,7 +2208,7 @@ function LeadDetail({lead, go, back}){
               </div>
             </div>
           ))}
-          <div className="flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9] mt-1"><Ic name="edit" className="w-4 h-4 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">活動メモを追記…</span><button className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div>
+          <div className="flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9] mt-1"><Ic name="edit" className="w-4 h-4 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">活動メモを追記…</span><button onClick={()=>mockTap('活動メモを追記しました（モック）')} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div>
         </div>
       </Card>}
       {tab==='書類・送付' && <div className="col-span-2 space-y-5">
@@ -2447,7 +2452,7 @@ function OpFacilities({go, facilities}){
             <td className="px-5 py-3 font-bold text-gray-600">{f[4]}</td>
             <td className="px-5 py-3"><Badge tone={f[5]==='プレミアム'?'orange':'blue'}>{f[5]}</Badge></td>
             <td className="px-5 py-3"><Badge tone={f[7]}>{f[6]}</Badge></td>
-            <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+            <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
       </table></div>
@@ -2594,7 +2599,7 @@ function OpSupport(){
             <td className="px-5 py-3 text-gray-600 font-bold">{t[1]}</td>
             <td className="px-5 py-3"><Badge tone="gray">{t[2]}</Badge></td>
             <td className="px-5 py-3"><Badge tone={t[4]}>{t[3]}</Badge></td>
-            <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+            <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
       </table></div>
@@ -2651,7 +2656,7 @@ function OpVersion(){
             <td className="px-5 py-3"><Badge tone="blue">{n[0]}</Badge></td>
             <td className="px-5 py-3 font-bold text-ink">{n[1]}</td>
             <td className="px-5 py-3"><Badge tone={n[2]==='配信中'?'green':n[2]==='予定'?'amber':'gray'}>{n[2]}</Badge></td>
-            <td className="px-5 py-3 text-right"><button className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+            <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
       </table></div>
@@ -2832,6 +2837,22 @@ function PublicContact({go, addLead}){
   );
 }
 
+/* 画面下の軽量トースト：mockTap() / onClick未指定Btn からの forkids-mocktap を表示（無反応ゼロ化）。 */
+function MockToast(){
+  const [msg,setMsg] = React.useState(null);
+  React.useEffect(()=>{
+    const h = (e)=> setMsg(e.detail || 'この操作はモックのデモ表示です');
+    window.addEventListener('forkids-mocktap', h);
+    return ()=> window.removeEventListener('forkids-mocktap', h);
+  },[]);
+  React.useEffect(()=>{ if(msg===null) return; const t=setTimeout(()=>setMsg(null),1800); return ()=>clearTimeout(t); },[msg]);
+  if(msg===null) return null;
+  return (
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] max-w-[90vw] flex items-center gap-2 bg-ink text-white text-[13px] font-bold px-4 py-2.5 rounded-xl shadow-phone">
+      <Ic name="ai" className="w-4 h-4 text-cat-purple shrink-0"/><span className="truncate">{msg}</span>
+    </div>
+  );
+}
 function App(){
   const [mode,setMode] = useState('login'); // login | staff | parent | operator | public
   const [screen,setScreen] = useState('teacher');
@@ -2852,6 +2873,7 @@ function App(){
       {mode==='parent' && <ParentApp go={go}/>}
       {mode==='operator' && <OperatorApp go={go} leads={leads} addLead={addLead}/>}
       {mode==='public' && <PublicContact go={go} addLead={addLead}/>}
+      <MockToast/>
     </div>
   );
 }
