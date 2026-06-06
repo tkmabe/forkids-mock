@@ -735,23 +735,31 @@ function AttendanceApprove(){
     {n:'そうた', type:'早退', reason:'15:00お迎え', tone:'purple', t:'昨日'},
     {n:'ことね', type:'午後フレンド', reason:'17:00まで', tone:'green', t:'昨日'},
   ];
+  // 確認操作を状態化：個別「確認」/「まとめて確認」で確認済になり、残件数が減る。
+  const [done,setDone] = useState({});
+  const confirm = (i)=> setDone(d=>({...d,[i]:true}));
+  const confirmAll = ()=> setDone(items.reduce((a,_,i)=>{a[i]=true;return a;},{}));
+  const remain = items.filter((_,i)=>!done[i]).length;
   return (
     <div>
-      <PageHead title="出欠申請の確認" sub="2026年6月2日（火）" action={<Btn kind="primary" icon="check">まとめて確認</Btn>}/>
+      <PageHead title="出欠申請の確認" sub="2026年6月2日（火）・ 保護者アプリからの欠席/遅刻/預かり申請をここで確認"
+        action={<Btn kind="primary" icon="check" onClick={confirmAll}>まとめて確認</Btn>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         {[['欠席','2','red'],['遅刻','1','amber'],['早退','1','purple'],['預かり','2','green']].map((s,i)=>(
           <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='red'?'red':'ink'}/></Card>
         ))}
       </div>
       <Card>
-        <CardHead icon="bell" title="本日の申請（5件）"/>
+        <CardHead icon="bell" title={'本日の申請（残り '+remain+' 件）'} action={remain===0&&<Badge tone="green"><Ic name="check" className="w-3 h-3"/>すべて確認済</Badge>}/>
         <div className="px-5 pb-5 space-y-2">
           {items.map((it,i)=>(
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40">
+            <div key={i} className={cx('flex items-center gap-3 p-3 rounded-xl border transition', done[i]?'border-[#E8F5E9] bg-[#E8F5E9]/40 opacity-70':'border-[#F3E6D9] hover:bg-cream/40')}>
               <Avatar name={it.n} color={CAT[i]} size={40}/>
               <div className="flex-1"><div className="font-bold text-ink text-[14px]">{it.n} <span className="ml-1"><Badge tone={it.tone}>{it.type}</Badge></span></div><div className="text-[12px] text-muted font-bold">{it.reason}</div></div>
               <div className="text-[12px] text-muted font-bold">{it.t}</div>
-              <Btn kind="soft" icon="check">確認</Btn>
+              {done[i]
+                ? <span className="inline-flex items-center gap-1 text-[13px] font-bold text-green-600"><Ic name="check" className="w-4 h-4"/>確認済</span>
+                : <Btn kind="soft" icon="check" onClick={()=>confirm(i)}>確認</Btn>}
             </div>
           ))}
         </div>
@@ -876,26 +884,66 @@ function Shop(){
 }
 
 function Renraku(){
+  // 児童ごとのスレッド（架空）。クリックで切替＝「双方向のやり取りが児童単位で続く」ことを体感させる。
+  const THREADS = {
+    0:{date:'6月2日', unread:true, msgs:[
+      {who:'先生', txt:'今日は鉄棒の前回りに何度も挑戦していました。「できた！」と嬉しそうでした✨', photo:'#FDC089'},
+      {who:'保護者', txt:'家でも「鉄棒できたよ」と教えてくれました。見てあげたいです！'}]},
+    1:{date:'6月2日', unread:false, msgs:[
+      {who:'先生', txt:'今日は戸外でだんごむしを観察していました。お家でも自然の話をしてみてください🐛', photo:'#ADDABB'},
+      {who:'保護者', txt:'帰ってからずっとだんごむしの話をしていました！ありがとうございます😊'},
+      {who:'先生', txt:'図鑑で足の数も数えていましたよ。探究心がすてきです。'}]},
+    2:{date:'6月1日', unread:true, msgs:[
+      {who:'保護者', txt:'昨日は少し咳が出ていました。様子を見ていただけますか。'},
+      {who:'先生', txt:'承知しました。水分をこまめにとれるよう声かけします。'}]},
+    3:{date:'5月30日', unread:false, msgs:[
+      {who:'先生', txt:'お店やさんごっこで「いらっしゃいませ！」と元気に呼び込みをしていました🛒'}]},
+    4:{date:'5月30日', unread:true, msgs:[
+      {who:'保護者', txt:'プール開きの持ち物を教えてください。'},
+      {who:'先生', txt:'資料BOXにしおりを掲載しました。水着・タオル・帽子をお願いします。'}]},
+    5:{date:'5月29日', unread:false, msgs:[
+      {who:'先生', txt:'あじさいの製作で、色の組み合わせをじっくり考えていました🎨'}]},
+  };
+  const tmpl = ['本日も元気に過ごしました。','戸外あそびを楽しみました。','お変わりありませんか？','ご家庭での様子も教えてください。'];
+  const list = KIDS.slice(0,6);
+  const [sel,setSel] = useState(1);
+  const k = list[sel]; const th = THREADS[sel] || {date:'—', msgs:[]};
   return (
     <div>
-      <PageHead title="れんらく帳" sub="先生と保護者の双方向。写真・既読・PDF出力対応。"/>
+      <PageHead title="れんらく帳" sub="先生と保護者の双方向。写真添付・既読・定型文・PDF出力に対応。"
+        action={<Btn kind="ghost" icon="file">スレッドをPDF出力</Btn>}/>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="p-2">
-          <div className="px-3 py-2 text-[12px] text-muted font-bold">あおば組（12名）</div>
-          {KIDS.slice(0,6).map((k,i)=>(
-            <div key={k.id} className={cx('flex items-center gap-2 p-2 rounded-xl cursor-pointer', i===1?'bg-brand-50':'hover:bg-cream/60')}>
-              <Avatar name={k.n} color={k.color} size={36}/><div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{i%2?'返信あり':'未読'}</div></div>
-              {i%2===0 && <span className="w-2 h-2 rounded-full bg-brand-500"/>}
-            </div>
-          ))}
+          <div className="px-3 py-2 flex items-center justify-between"><span className="text-[12px] text-muted font-bold">あおば組（12名）</span><Badge tone="orange">未読 3</Badge></div>
+          {list.map((kid,i)=>{
+            const t = THREADS[i]||{}; const last = t.msgs && t.msgs[t.msgs.length-1];
+            return (
+              <button key={kid.id} onClick={()=>setSel(i)} className={cx('w-full text-left flex items-center gap-2 p-2 rounded-xl transition', i===sel?'bg-brand-50 ring-1 ring-brand-200':'hover:bg-cream/60')}>
+                <Avatar name={kid.n} color={kid.color} size={36}/>
+                <div className="flex-1 min-w-0"><div className="font-bold text-[13px] text-ink">{kid.n}</div><div className="text-[11px] text-muted font-bold truncate">{last?last.txt:'やり取りなし'}</div></div>
+                {t.unread && <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0"/>}
+              </button>
+            );
+          })}
         </Card>
         <Card className="col-span-2 p-5">
-          <div className="flex items-center gap-2 mb-4"><Avatar name="さくら" color="#C8B3ED" size={40}/><div className="font-extrabold text-ink">さくら ・ 6月2日</div></div>
+          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#F3E6D9]"><Avatar name={k.n} color={k.color} size={40}/><div><div className="font-extrabold text-ink">{k.n} ・ {th.date}</div><div className="text-[11px] text-muted font-bold">あおば組 ・ {th.msgs.length}件のやり取り</div></div><span className="ml-auto"><Badge tone="green"><Ic name="check" className="w-3 h-3"/>既読</Badge></span></div>
           <div className="space-y-3">
-            <div className="flex gap-2"><Badge tone="orange">先生</Badge><div className="flex-1 bg-cream rounded-2xl rounded-tl-sm p-3 text-[14px] text-ink border border-[#F3E6D9]">今日は戸外でだんごむしを観察していました。お家でも自然の話をしてみてください🐛</div></div>
-            <div className="flex gap-2 flex-row-reverse"><Badge tone="green">保護者</Badge><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[14px] text-ink">帰ってからずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
+            {th.msgs.map((m,i)=>{
+              const mine = m.who==='先生';
+              return (
+                <div key={i} className={cx('flex gap-2', !mine&&'flex-row-reverse')}>
+                  <Badge tone={mine?'orange':'green'}>{m.who}</Badge>
+                  <div className={cx('flex-1 rounded-2xl p-3 text-[14px] text-ink', mine?'bg-cream rounded-tl-sm border border-[#F3E6D9]':'bg-[#E8F5E9] rounded-tr-sm')}>
+                    {m.txt}
+                    {m.photo && <div className="mt-2 h-20 w-28 rounded-xl flex items-center justify-center" style={{background:m.photo+'88'}}><Ic name="camera" className="w-6 h-6 text-white/80"/></div>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="mt-4 flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><Ic name="camera" className="w-5 h-5 text-muted ml-1"/><span className="flex-1 text-[13px] text-muted font-bold">メッセージを入力…</span><Btn kind="primary" icon="send">送信</Btn></div>
+          <div className="mt-4 flex flex-wrap gap-1.5">{tmpl.map((t,i)=><button key={i} onClick={()=>mockTap('定型文を挿入：'+t)} className="px-2.5 py-1 rounded-full bg-cream border border-[#F3E6D9] text-[11px] font-bold text-gray-600 hover:bg-brand-50">{t}</button>)}</div>
+          <div className="mt-2 flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>mockTap('写真を添付（モック）')} className="text-muted ml-1"><Ic name="camera" className="w-5 h-5"/></button><span className="flex-1 text-[13px] text-muted font-bold">{k.n}さんの保護者へメッセージ…</span><Btn kind="primary" icon="send">送信</Btn></div>
         </Card>
       </div>
     </div>
@@ -904,45 +952,81 @@ function Renraku(){
 
 function DailyCheck(){
   const cols = ['午睡','排便','検温','食事','水分','服薬'];
+  const classes = ['あおば組','ふたば組','つぼみ組'];
+  const [klass,setKlass] = useState('あおば組');
+  const rows = KIDS.filter(k=>k.klass===klass).slice(0,8);
+  const fever = rows.filter((k,ri)=> (5+ri%4)>=8).length; // 36.8℃以上を「やや高め」として可視化
   return (
     <div>
-      <PageHead title="まいにちチェック" sub="午睡・排便・検温・食事・水分・服薬を一括記録。前回コピーも。"
-        action={<Btn kind="soft" icon="check">前回をコピー</Btn>}/>
+      <PageHead title="まいにちチェック" sub="午睡・排便・検温・食事・水分・服薬を一括記録。前回コピーで時短。"
+        action={<div className="flex gap-2"><Btn kind="soft" icon="check">前回をコピー</Btn><Btn kind="primary" icon="check">この内容で保存</Btn></div>}/>
+      <Card className="p-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Tabs tabs={classes} active={klass} onChange={setKlass}/>
+          <span className="ml-auto inline-flex items-center gap-1 text-[12px] font-bold text-muted"><Ic name="calendar" className="w-4 h-4"/>2026年6月2日（火）</span>
+        </div>
+      </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <Card className="p-4"><Stat label="記録対象" value={rows.length+'名'}/></Card>
+        <Card className="p-4"><Stat label="入力済" value={Math.max(0,rows.length-1)+'名'} tone="green"/></Card>
+        <Card className="p-4"><Stat label="検温やや高め" value={fever+'名'} tone={fever?'red':'ink'}/></Card>
+        <Card className="p-4"><Stat label="服薬あり" value="2名" tone="orange"/></Card>
+      </div>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px] text-center block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
-          <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40"><th className="px-4 py-3 text-left">園児</th>{cols.map(c=><th key={c} className="px-3 py-3">{c}</th>)}</tr></thead>
-          <tbody>{KIDS.slice(0,8).map((k,ri)=>(
-            <tr key={k.id} className="border-b border-[#F7EFE7]">
-              <td className="px-4 py-3 text-left"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td>
-              <td className="px-3 py-3">{ri%3?'😴':'—'}</td>
-              <td className="px-3 py-3">{ri%2?'○':'—'}</td>
-              <td className="px-3 py-3 font-bold text-ink">36.{5+ri%4}℃</td>
-              <td className="px-3 py-3">{['完食','半分','少し'][ri%3]}</td>
-              <td className="px-3 py-3">{ri%2?'○':'△'}</td>
-              <td className="px-3 py-3">{ri%4===0? <Badge tone="amber">あり</Badge> : '—'}</td>
-            </tr>
-          ))}</tbody>
+          <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40"><th className="px-4 py-3 text-left">園児</th>{cols.map(c=><th key={c} className="px-3 py-3">{c}</th>)}<th className="px-3 py-3">連絡</th></tr></thead>
+          <tbody>{rows.map((k,ri)=>{
+            const temp = 36.0 + (5+ri%4)/10;
+            const hot = temp>=36.8;
+            return (
+              <tr key={k.id} className={cx('border-b border-[#F7EFE7]', hot&&'bg-red-50/40')}>
+                <td className="px-4 py-3 text-left"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td>
+                <td className="px-3 py-3">{ri%3?'😴 60分':'—'}</td>
+                <td className="px-3 py-3">{ri%2?'○':'—'}</td>
+                <td className={cx('px-3 py-3 font-bold', hot?'text-red-500':'text-ink')}>{temp.toFixed(1)}℃</td>
+                <td className="px-3 py-3">{['完食','半分','少し'][ri%3]}</td>
+                <td className="px-3 py-3">{ri%2?'○':'△'}</td>
+                <td className="px-3 py-3">{ri%4===0? <Badge tone="amber">あり</Badge> : '—'}</td>
+                <td className="px-3 py-3"><button onClick={()=>mockTap(k.n+'さんの連絡メモを記入（モック）')} className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button></td>
+              </tr>
+            );
+          })}</tbody>
         </table>
       </Card>
+      <div className="mt-3 text-[12px] text-muted font-bold px-1">※ 検温36.8℃以上の行は自動で赤く強調。お迎え要否の判断や保護者連絡（れんらく帳）にそのまま連動します。</div>
     </div>
   );
 }
 
 function YoroukuList(){
+  // 状態フィルタで「承認の進み具合」を可視化。要録=要保育所児童保育要録の電子化フロー。
+  const all = KIDS.slice(0,7).map((k,i)=>({...k, draft:i%3!==2, status:['承認済','承認待ち','下書き'][i%3]}));
+  const filters = ['すべて','下書き','承認待ち','承認済','未生成'];
+  const [f,setF] = useState('すべて');
+  const rows = all.filter(r=> f==='すべて' ? true : f==='未生成' ? !r.draft : r.status===f);
+  const done = all.filter(r=>r.status==='承認済').length;
+  const pct = Math.round(done/all.length*100);
   return (
     <div>
-      <PageHead title="要録一覧" sub="AI下書き → 編集 → 承認 → 小学校引継ぎ。履歴も保持。"
-        action={<Btn kind="primary" icon="file">一括PDF出力</Btn>}/>
+      <PageHead title="要録一覧" sub="AI下書き → 編集 → 担任・主任・園長の承認 → 小学校引継ぎ。履歴も保持。"
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">未生成をAI下書き</Btn><Btn kind="primary" icon="file">一括PDF出力</Btn></div>}/>
+      <Card className="p-5 mb-4">
+        <div className="flex items-center justify-between mb-2"><span className="text-[13px] font-bold text-ink">年長クラスの要録 承認進捗</span><span className="text-[13px] font-extrabold text-brand-600">{done}/{all.length}名 ・ {pct}%</span></div>
+        <div className="h-2.5 rounded-full bg-cream overflow-hidden"><div className="h-full bg-brand-400 rounded-full transition-all" style={{width:pct+'%'}}/></div>
+      </Card>
+      <Card className="p-3 mb-4"><div className="flex flex-wrap gap-2">{filters.map(x=><button key={x} onClick={()=>setF(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', f===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
           <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','クラス','AI下書き','承認状況','出力'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-          <tbody>{KIDS.slice(0,7).map((k,i)=>(
-            <tr key={k.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
-              <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={30}/><span className="font-bold text-ink">{k.n}</span></div></td>
-              <td className="px-5 py-3 font-bold text-gray-600">年長</td>
-              <td className="px-5 py-3">{i%3===2? <Badge tone="gray">未生成</Badge> : <AIChip/>}</td>
-              <td className="px-5 py-3">{[<Badge tone="green">園長承認済</Badge>,<Badge tone="amber">主任承認待ち</Badge>,<Badge tone="gray">下書き</Badge>][i%3]}</td>
-              <td className="px-5 py-3"><div className="flex gap-1"><button onClick={()=>mockTap('明細を表示（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button><button onClick={()=>mockTap('編集（モック）')} className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button></div></td>
+          <tbody>{rows.length===0
+            ? <tr><td colSpan={5} className="px-5 py-8 text-center text-muted font-bold">該当する要録はありません</td></tr>
+            : rows.map((r)=>(
+            <tr key={r.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
+              <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={r.n} color={r.color} size={30}/><span className="font-bold text-ink">{r.n}</span></div></td>
+              <td className="px-5 py-3 font-bold text-gray-600">{r.klass}</td>
+              <td className="px-5 py-3">{r.draft? <AIChip/> : <Badge tone="gray">未生成</Badge>}</td>
+              <td className="px-5 py-3">{r.status==='承認済'? <Badge tone="green">園長承認済</Badge> : r.status==='承認待ち'? <Badge tone="amber">主任承認待ち</Badge> : <Badge tone="gray">下書き</Badge>}</td>
+              <td className="px-5 py-3"><div className="flex gap-1"><button onClick={()=>mockTap(r.n+'さんの要録明細（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button><button onClick={()=>mockTap(r.n+'さんの要録を編集（モック）')} className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button></div></td>
             </tr>
           ))}</tbody>
         </table>
@@ -1029,6 +1113,22 @@ function CalendarScreen(){
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
           {[['次の行事','プール開き','6月20日','blue'],['準備中','夏祭り','あと52日','orange'],['卒園まで','あおば組','あと292日','purple']].map((c,i)=>(
             <Card key={i} className="p-4 bg-cream/40"><div className="text-[12px] text-muted font-bold">{c[0]}</div><div className="font-extrabold text-ink mt-1">{c[1]}</div><div className="mt-1"><Badge tone={c[3]}>{c[2]}</Badge></div></Card>
+          ))}
+        </div>
+      </Card>
+      <Card className="mt-5"><CardHead icon="calendar" title="行事予定（6月〜7月）" action={<Btn kind="ghost" icon="send">保護者へ一斉共有</Btn>}/>
+        <div className="px-5 pb-5 space-y-2">
+          {[['6/3（火）','保育参観','あおば組・ふたば組','行事','orange'],
+            ['6/10（火）','内科健診','全園児','保健','blue'],
+            ['6/20（金）','プール開き','年中・年長','行事','green'],
+            ['6/27（金）','誕生会（6月生まれ）','全園児','お祝い','purple'],
+            ['7/18（金）','夏祭り','全園・保護者','行事','orange']].map((e,i)=>(
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40">
+              <div className="w-16 shrink-0 text-[12px] font-extrabold text-brand-600">{e[0]}</div>
+              <div className="flex-1"><div className="font-bold text-ink text-[14px]">{e[1]}</div><div className="text-[12px] text-muted font-bold">{e[2]}</div></div>
+              <Badge tone={e[4]}>{e[3]}</Badge>
+              <button onClick={()=>mockTap(e[1]+' のしおり・持ち物を表示（モック）')} className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></button>
+            </div>
           ))}
         </div>
       </Card>
@@ -1215,20 +1315,31 @@ function SettingsScreen(){
 }
 
 function Docs(){
-  const acts=[['だんごむし観察','戸外あそび',['環境','言葉'],'#ADDABB'],['お店やさんごっこ','表現あそび',['人間関係','表現'],'#FDC089'],['どろんこ遊び','感触あそび',['健康','環境'],'#AFD0F0'],['絵本の読み聞かせ','言語活動',['言葉'],'#C8B3ED']];
+  const acts=[
+    {t:'だんごむし観察', kind:'戸外あそび', doms:['環境','言葉'], c:'#ADDABB', note:'図鑑で足の数を調べ、「なぜ？」と問いを立てて友だちと伝え合う姿が見られた。'},
+    {t:'お店やさんごっこ', kind:'表現あそび', doms:['人間関係','表現'], c:'#FDC089', note:'役割を相談して決め、「いらっしゃいませ」と工夫してやり取りを楽しんだ。'},
+    {t:'どろんこ遊び', kind:'感触あそび', doms:['健康','環境'], c:'#AFD0F0', note:'泥の感触を全身で味わい、水路づくりに何度も挑戦する姿があった。'},
+    {t:'絵本の読み聞かせ', kind:'言語活動', doms:['言葉'], c:'#C8B3ED', note:'物語の続きを想像して言葉にし、自分の考えを進んで発表した。'},
+    {t:'リズム遊び', kind:'音楽表現', doms:['健康','表現'], c:'#FFD0D8', note:'音に合わせて体を大きく動かし、友だちと動きを合わせて楽しんだ。'},
+    {t:'梅シロップづくり', kind:'クッキング', doms:['環境','人間関係'], c:'#F4C6A6', note:'変化を予想し、毎日観察して気づいたことを言葉にして共有した。'},
+  ];
+  const domains=['すべて','健康','人間関係','環境','言葉','表現'];
+  const [d,setD]=useState('すべて');
+  const rows = acts.filter(a=> d==='すべて'||a.doms.includes(d));
   return (
     <div>
       <PageHead title="ドキュメンテーション" sub="日々の活動を写真＋気づきで記録。AIが5領域を提案し、要録・保護者配信へそのままつながる。"
         action={<div className="flex gap-2"><Btn kind="soft" icon="ai">AIで活動をまとめる</Btn><Btn kind="primary" icon="plus">活動を記録</Btn></div>}/>
+      <Card className="p-3 mb-4"><div className="flex flex-wrap items-center gap-2"><span className="text-[12px] text-muted font-bold px-1">5領域で絞り込み：</span>{domains.map(x=><button key={x} onClick={()=>setD(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', d===x?'bg-purple-500 text-white border-purple-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {acts.map((a,i)=>(
+        {rows.map((a,i)=>(
           <Card key={i} className="overflow-hidden">
-            <div className="h-32 grid grid-cols-3 gap-1 p-1" style={{background:a[3]+'33'}}>{[0,1,2].map(j=><div key={j} className="rounded-lg" style={{background:a[3]+(j===0?'cc':'88')}}/>)}</div>
+            <div className="h-32 grid grid-cols-3 gap-1 p-1" style={{background:a.c+'33'}}>{[0,1,2].map(j=><div key={j} className="rounded-lg flex items-center justify-center" style={{background:a.c+(j===0?'cc':'88')}}>{j===0&&<Ic name="camera" className="w-6 h-6 text-white/70"/>}</div>)}</div>
             <div className="p-4">
-              <div className="flex items-center gap-2 mb-1"><h3 className="font-bold text-ink">{a[0]}</h3><Badge tone="gray">{a[1]}</Badge></div>
+              <div className="flex items-center gap-2 mb-1"><h3 className="font-bold text-ink">{a.t}</h3><Badge tone="gray">{a.kind}</Badge></div>
               <div className="flex items-center gap-2 mb-2"><AIChip/><span className="text-[12px] text-muted font-bold">先生の気づきをAIが整文</span></div>
-              <p className="text-[13px] text-ink leading-relaxed mb-3">子どもが自分から「なぜ？」と問いを立て、友だちと考えを伝え合う姿が見られた。</p>
-              <div className="flex flex-wrap items-center gap-1.5">{a[2].map((t,k)=><Badge key={k} tone="purple">{t}</Badge>)}<span className="ml-auto text-[12px] text-brand-600 font-bold">保護者へ公開 →</span></div>
+              <p className="text-[13px] text-ink leading-relaxed mb-3">{a.note}</p>
+              <div className="flex flex-wrap items-center gap-1.5">{a.doms.map((t,k)=><Badge key={k} tone="purple">{t}</Badge>)}<button onClick={()=>mockTap(a.t+'を保護者へ公開（モック）')} className="ml-auto text-[12px] text-brand-600 font-bold">保護者へ公開 →</button></div>
             </div>
           </Card>
         ))}
@@ -1271,23 +1382,36 @@ function Lesson(){
 }
 
 function Portfolio(){
-  const child=KIDS[1];
+  // 園児を選ぶと、その子の蓄積・成長のあゆみが切り替わる（記録がポートフォリオに結実する体験）。
+  const STORY = {
+    0:[['6月','健康','鉄棒の前回りを繰り返し挑戦し成功','#FDC089'],['5月','人間関係','友だちを誘って一緒に遊ぶ姿が増えた','#C8B3ED'],['4月','表現','好きな色を使って大きく描く','#FFD0D8']],
+    1:[['6月','環境','だんごむしの観察。問いを立てる力が伸びた','#ADDABB'],['5月','表現','こいのぼり制作で色の組合せを工夫','#FDC089'],['4月','人間関係','進級し、年下の子に優しく接する姿','#C8B3ED']],
+    3:[['6月','言葉','お店やさんごっこで役になりきり言葉が豊かに','#AFD0F0'],['5月','健康','長い距離も最後まで歩けるように','#ADDABB'],['4月','環境','春の草花を集めて分類して遊ぶ','#FDC089']],
+  };
+  const list = KIDS.filter(k=>k.klass==='あおば組').slice(0,4);
+  const [sel,setSel] = useState(list[0].id);
+  const child = KIDS.find(k=>k.id===sel) || list[0];
+  const story = STORY[child.id] || STORY[1];
   return (
     <div>
       <PageHead title="ポートフォリオ" sub="園児ごとに記録・作品・成長を時系列で蓄積。卒園時に1冊の物語に。"
         action={<Btn kind="ghost" icon="file">PDFアルバム出力</Btn>}/>
+      <Card className="p-3 mb-4"><div className="flex flex-wrap items-center gap-2"><span className="text-[12px] text-muted font-bold px-1">園児を選ぶ：</span>{list.map(k=>(
+        <button key={k.id} onClick={()=>setSel(k.id)} className={cx('inline-flex items-center gap-1.5 pl-1 pr-3 py-1 rounded-full border transition', sel===k.id?'bg-brand-50 border-brand-300':'bg-white border-[#E8D5C4] hover:bg-cream/60')}><Avatar name={k.n} color={k.color} size={24}/><span className="text-[12px] font-bold text-ink">{k.n}</span></button>
+      ))}</div></Card>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="p-5">
-          <div className="flex flex-col items-center"><Avatar name={child.n} color={child.color} size={64} ring/><div className="font-extrabold text-ink mt-2">{child.n}</div><div className="text-[12px] text-muted font-bold">あおば組（年長）</div></div>
+          <div className="flex flex-col items-center"><Avatar name={child.n} color={child.color} size={64} ring/><div className="font-extrabold text-ink mt-2">{child.n}</div><div className="text-[12px] text-muted font-bold">{child.klass}（{child.age}）</div></div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 text-center">
-            <div><div className="text-xl font-extrabold text-brand-500">48</div><div className="text-[11px] text-muted font-bold">記録</div></div>
-            <div><div className="text-xl font-extrabold text-brand-500">23</div><div className="text-[11px] text-muted font-bold">作品</div></div>
+            <div><div className="text-xl font-extrabold text-brand-500">{42+child.id*3}</div><div className="text-[11px] text-muted font-bold">記録</div></div>
+            <div><div className="text-xl font-extrabold text-brand-500">{18+child.id*2}</div><div className="text-[11px] text-muted font-bold">作品</div></div>
             <div><div className="text-xl font-extrabold text-brand-500">9</div><div className="text-[11px] text-muted font-bold">月数</div></div>
           </div>
+          <div className="mt-4 grid grid-cols-3 gap-1.5">{[child.color,'#AFD0F0','#FDC089','#ADDABB','#C8B3ED','#FFD0D8'].map((c,i)=><div key={i} className="aspect-square rounded-lg" style={{background:c+'88'}}/>)}</div>
         </Card>
         <Card className="col-span-2 p-5">
-          <CardHead icon="star" title="成長のあゆみ"/>
-          <div className="px-5 pb-5 space-y-3">{[['6月','探究','だんごむしの観察。問いを立てる力が伸びた','#ADDABB'],['5月','表現','こいのぼり制作で色の組合せを工夫','#FDC089'],['4月','人間関係','進級し、年下の子に優しく接する姿','#C8B3ED']].map((r,i)=>(
+          <CardHead icon="star" title={child.n+'さんの成長のあゆみ'}/>
+          <div className="px-5 pb-5 space-y-3">{story.map((r,i)=>(
             <div key={i} className="flex gap-3"><div className="text-[12px] font-bold text-muted w-10 shrink-0 pt-1">{r[0]}</div><div className="flex-1 rounded-xl p-3 border border-[#F3E6D9]" style={{background:r[3]+'22'}}><Badge tone="purple">{r[1]}</Badge><p className="text-[13px] text-ink mt-1">{r[2]}</p></div></div>
           ))}</div>
         </Card>
@@ -1367,14 +1491,30 @@ function MediaMgmt(){
 }
 
 function NoticeBoard(){
-  const items=[['6月の保育参観のお知らせ','行事','配信済','98%','green'],['園だより 6月号','おたより','配信済','91%','green'],['プール開きと持ち物','連絡','予約 6/10','—','amber'],['夏祭りボランティア募集','募集','下書き','—','gray']];
+  const items=[
+    {title:'6月の保育参観のお知らせ', cat:'行事', state:'配信済', read:'98%', tone:'green'},
+    {title:'園だより 6月号', cat:'おたより', state:'配信済', read:'91%', tone:'green'},
+    {title:'プール開きと持ち物', cat:'連絡', state:'予約 6/10', read:'—', tone:'amber'},
+    {title:'夏祭りボランティア募集', cat:'募集', state:'下書き', read:'—', tone:'gray'},
+    {title:'献立変更のお知らせ（6/5）', cat:'連絡', state:'配信済', read:'86%', tone:'green'},
+    {title:'園だより 5月号', cat:'おたより', state:'配信済', read:'94%', tone:'green'},
+  ];
+  const cats=['すべて','行事','おたより','連絡','募集'];
+  const [c,setC]=useState('すべて');
+  const rows = items.filter(n=> c==='すべて'||n.cat===c);
   return (
     <div>
-      <PageHead title="お知らせ・お便り" sub="園だより・行事連絡をテンプレから作成。既読率も追える。"
+      <PageHead title="お知らせ・お便り" sub="園だより・行事連絡をテンプレから作成。既読率も家庭ごとに追える。"
         action={<div className="flex gap-2"><Btn kind="soft" icon="ai">AIで園だより生成</Btn><Btn kind="primary" icon="plus">新規作成</Btn></div>}/>
-      <Card><CardHead icon="bell" title="お知らせ一覧"/>
-        <div className="px-5 pb-5 space-y-2">{items.map((n,i)=>(
-          <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40"><span className="shrink-0"><Badge tone={n[4]==='green'?'orange':n[4]==='amber'?'amber':'gray'}>{n[1]}</Badge></span><div className="flex-1 font-bold text-ink text-[14px]">{n[0]}</div><Badge tone={n[4]}>{n[2]}</Badge>{n[3]!=='—'&&<span className="text-[12px] text-muted font-bold w-16 text-right">既読 {n[3]}</span>}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        {[['配信済','4','green'],['予約・下書き','2','amber'],['平均既読率','92%','orange'],['未読家庭','9','red']].map((s,i)=>(
+          <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='green'?'green':s[2]==='orange'?'orange':s[2]==='red'?'red':'ink'}/></Card>
+        ))}
+      </div>
+      <Card className="p-3 mb-4"><div className="flex flex-wrap gap-2">{cats.map(x=><button key={x} onClick={()=>setC(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', c===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
+      <Card><CardHead icon="bell" title={'お知らせ一覧（'+rows.length+'件）'}/>
+        <div className="px-5 pb-5 space-y-2">{rows.map((n,i)=>(
+          <button key={i} onClick={()=>mockTap(n.title+' の既読状況を表示（モック）')} className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40 transition"><span className="shrink-0"><Badge tone={n.cat==='行事'?'orange':n.cat==='おたより'?'purple':n.cat==='募集'?'blue':'gray'}>{n.cat}</Badge></span><div className="flex-1 font-bold text-ink text-[14px]">{n.title}</div><Badge tone={n.tone}>{n.state}</Badge>{n.read!=='—'&&<span className="text-[12px] text-muted font-bold w-16 text-right">既読 {n.read}</span>}<Ic name="chevron" className="w-4 h-4 text-brand-300 shrink-0"/></button>
         ))}</div>
       </Card>
     </div>
