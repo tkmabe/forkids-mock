@@ -541,49 +541,91 @@ function RecordInput({go}){
   );
 }
 
-function OutputPreview(){
+function OutputPreview({go}){
   const [tab,setTab] = useState('要録');
   return (
     <div>
       <PageHead title="3方向出力プレビュー" sub="ひとつの記録から、3つの宛先へ。AIが下書き、先生が仕上げる。"
         action={<Tabs tabs={['要録','保護者フィードバック','キャリア評価ログ']} active={tab} onChange={setTab}/>} />
-      {tab==='要録' && <Card className="p-6 max-w-3xl">
-        <div className="flex items-center justify-between mb-4">
+      <Card className="p-4 mb-5 bg-[#FBFAFF] border-[#EEE7FB]">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <button onClick={()=>go&&go('record')} className="inline-flex items-center gap-1 text-[12px] font-bold text-brand-600 hover:text-brand-700"><Ic name="chevron" className="w-4 h-4 rotate-180"/>元の記録へ</button>
+          <span className="hidden sm:block w-px h-4 bg-[#E8D5C4]"/>
+          <div className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-ink">
+            <Badge tone="gray">1つの記録</Badge><Ic name="arrow" className="w-4 h-4 text-brand-400"/>
+            <Badge tone="purple">要録</Badge><Badge tone="pink">保護者配信</Badge><Badge tone="orange">キャリア評価</Badge>
+            <span className="text-muted">入力は一度、AIが3方向の下書きへ展開</span>
+          </div>
+        </div>
+      </Card>
+      {tab==='要録' && <Card className="p-5 sm:p-6 max-w-3xl">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <div><div className="font-extrabold text-ink text-lg">幼稚園幼児指導要録（さくら）</div><div className="text-[12px] text-muted font-bold">守谷市様式 v2025 ・ 年長</div></div>
           <div className="flex gap-2"><AIChip/><Badge tone="amber">主任承認待ち</Badge></div>
         </div>
+        <div className="flex items-center gap-2 mb-4 bg-cream rounded-xl p-3 border border-[#F3E6D9] flex-wrap">
+          {[['担任','完了','green'],['主任','承認待ち','amber'],['園長','—','gray']].map((s,i)=>(
+            <React.Fragment key={i}>
+              <div className="flex items-center gap-1.5"><span className={cx('w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold', s[1]==='完了'?'bg-green-500 text-white':s[1]==='承認待ち'?'bg-amber-400 text-white':'bg-white text-muted border border-[#E8D5C4]')}>{s[1]==='完了'?'✓':i+1}</span><span className="text-[12px] font-bold text-ink">{s[0]}</span><Badge tone={s[2]}>{s[1]}</Badge></div>
+              {i<2 && <Ic name="arrow" className="w-4 h-4 text-muted"/>}
+            </React.Fragment>
+          ))}
+        </div>
         {[['健康','基本的な生活習慣が身につき、戸外で全身を使って意欲的に遊ぶ。'],
           ['人間関係','友だちと目的を共有し、考えを伝え合いながら遊びを進める。'],
-          ['環境','身近な自然に興味を持ち、"なぜ" を自分から問い、調べようとする。'],
+          ['環境','身近な自然に興味を持ち、なぜと自分から問い、調べようとする。'],
           ['言葉','気づいたことを言葉で伝え、友だちに説明する姿が増えた。'],
-          ['表現','観察したことを絵や言葉で表現することを楽しむ。']].map((r,i)=>(
+          ['表現','観察したことを絵や言葉で表現することを楽しむ。'],
+          ['特に配慮すべき事項','食物アレルギー（卵）に留意。少人数の場面で力を発揮しやすい。']].map((r,i)=>(
           <div key={i} className="flex gap-3 py-3 border-t border-[#F3E6D9]">
-            <div className="w-20 shrink-0"><Badge tone="purple">{r[0]}</Badge></div>
+            <div className="w-24 shrink-0"><Badge tone={r[0]==='特に配慮すべき事項'?'red':'purple'}>{r[0]}</Badge></div>
             <p className="text-[14px] text-ink leading-relaxed flex-1">{r[1]}</p>
             <button onClick={()=>mockTap('要録を編集（モック）')} className="text-brand-500 shrink-0"><Ic name="edit" className="w-4 h-4"/></button>
           </div>
         ))}
-        <div className="flex gap-2 mt-4"><Btn kind="primary" icon="check">承認に回す</Btn><Btn kind="ghost" icon="file">PDF / Excel 出力</Btn></div>
+        <div className="flex flex-wrap gap-2 mt-4"><Btn kind="primary" icon="check">承認に回す</Btn><Btn kind="ghost" icon="file">PDF 出力</Btn><Btn kind="ghost" icon="file">Excel 出力</Btn></div>
       </Card>}
 
-      {tab==='保護者フィードバック' && <Card className="p-0 max-w-md overflow-hidden">
-        <div className="h-40 bg-gradient-to-br from-cat-orange to-brand-300 relative flex items-end p-5">
-          <div className="text-white"><div className="text-[12px] font-bold opacity-90">2026年6月</div><div className="text-2xl font-extrabold">さくらの ひとつき</div></div>
-        </div>
-        <div className="p-5">
-          <div className="flex gap-2 mb-3"><AIChip/><Badge tone="green">写真6枚・動画1本</Badge></div>
-          <p className="text-[14px] text-ink leading-relaxed">今月のさくらちゃんは、だんごむしの観察に夢中でした。「あしは何本？」と自分から問いを立て、図鑑で調べてお友だちに教えてあげる姿が印象的でした。</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-            {['#FDC089','#C8B3ED','#ADDABB','#FFD0D8','#AFD0F0','#F4C6A6'].map((c,i)=><div key={i} className="aspect-square rounded-xl" style={{background:c}}/>)}
+      {tab==='保護者フィードバック' && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+        <Card className="p-0 w-full max-w-md overflow-hidden">
+          <div className="h-40 bg-gradient-to-br from-cat-orange to-brand-300 relative flex items-end p-5">
+            <div className="text-white"><div className="text-[12px] font-bold opacity-90">2026年6月</div><div className="text-2xl font-extrabold">さくらの ひとつき</div></div>
           </div>
-          <div className="mt-4 bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-ink"><span className="font-bold text-brand-600">担任より：</span> ご家庭でも "なんでだろうね？" と一緒に考えてあげてください。</div>
+          <div className="p-5">
+            <div className="flex gap-2 mb-3"><AIChip/><Badge tone="green">写真6枚・動画1本</Badge></div>
+            <p className="text-[14px] text-ink leading-relaxed">今月のさくらちゃんは、だんごむしの観察に夢中でした。「あしは何本？」と自分から問いを立て、図鑑で調べてお友だちに教えてあげる姿が印象的でした。</p>
+            <div className="rounded-xl overflow-hidden relative h-36 mt-4 bg-cat-purple/40 flex items-center justify-center"><Ic name="play" className="w-12 h-12 text-white"/></div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {['#FDC089','#C8B3ED','#ADDABB','#FFD0D8','#AFD0F0','#F4C6A6'].map((c,i)=><div key={i} className="aspect-square rounded-xl" style={{background:c}}/>)}
+            </div>
+            <div className="mt-4 bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-ink"><span className="font-bold text-brand-600">担任より：</span> ご家庭でも、なんでだろうね？ と一緒に考えてあげてください。</div>
+          </div>
+        </Card>
+        <div className="space-y-4 w-full">
+          <Card className="p-5">
+            <h3 className="font-bold text-ink mb-3">今月のトピック（AIが記録から抽出）</h3>
+            <div className="space-y-1">
+              {[['だんごむしの観察','環境・言葉','green'],['お店やさんごっこ','人間関係・表現','purple'],['どろんこ遊び','健康・環境','blue']].map((t,i)=>(
+                <div key={i} className="flex items-center gap-2 py-2 border-t border-[#F3E6D9] first:border-0"><span className="flex-1 font-bold text-ink text-[13px]">{t[0]}</span><Badge tone={t[2]}>{t[1]}</Badge></div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-5">
+            <h3 className="font-bold text-ink mb-2">配信設定</h3>
+            <div className="space-y-2 text-[13px]">
+              <div className="flex items-center justify-between"><span className="text-muted font-bold">配信先</span><span className="font-bold text-ink">さくら 保護者（2名）</span></div>
+              <div className="flex items-center justify-between"><span className="text-muted font-bold">写真NG家庭</span><Badge tone="green">自動オプトアウト</Badge></div>
+              <div className="flex items-center justify-between"><span className="text-muted font-bold">兄弟まとめ</span><Badge tone="blue">1通に統合</Badge></div>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4"><Btn kind="primary" icon="send">承認に回す</Btn><Btn kind="ghost" icon="heart">プレビュー配信</Btn></div>
+          </Card>
         </div>
-      </Card>}
+      </div>}
 
       {tab==='キャリア評価ログ' && <Card className="p-6 max-w-3xl">
         <div className="flex items-center justify-between mb-4">
           <div className="font-extrabold text-ink text-lg">田中先生・実践評価ログ</div>
-          <Badge tone="orange"><Ic name="star" className="w-3 h-3"/>変化量ではなく "取り組み方" を評価</Badge>
+          <Badge tone="orange"><Ic name="star" className="w-3 h-3"/>変化量でなく 取り組み方 を評価</Badge>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
           <Card className="p-4 bg-cream/50"><Stat label="今月の実践ログ" value="32" tone="orange"/></Card>
@@ -591,13 +633,26 @@ function OutputPreview(){
           <Card className="p-4 bg-cream/50"><Stat label="研修連動" value="2件" tone="ink"/></Card>
         </div>
         {[['問いを引き出す関わり','よくできている','green','戸外・製作で計18回の実践ログ'],
-          ['見守りの姿勢','成長中','amber','"つい手を出す" の内省ログから改善傾向'],
+          ['見守りの姿勢','成長中','amber','つい手を出す、の内省ログから改善傾向'],
           ['保護者対応の言葉選び','よくできている','green','主任フィードバックでも高評価']].map((r,i)=>(
           <div key={i} className="flex items-center gap-3 py-3 border-t border-[#F3E6D9]">
             <div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[3]}</div></div>
             <Badge tone={r[2]}>{r[1]}</Badge>
           </div>
         ))}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9]">
+            <div className="text-[12px] font-bold text-brand-600 mb-2">連動する研修</div>
+            <div className="space-y-1.5 text-[13px]">
+              <div className="flex items-center gap-2"><Badge tone="amber">受講中</Badge><span className="font-bold text-ink">乳幼児保育 専門研修</span></div>
+              <div className="flex items-center gap-2"><Badge tone="blue">推奨</Badge><span className="font-bold text-ink">リーダー育成研修</span></div>
+            </div>
+          </div>
+          <div className="bg-[#FBFAFF] rounded-xl p-4 border border-[#EEE7FB]">
+            <div className="text-[12px] font-bold text-purple-600 mb-2">第三者評価コメント</div>
+            <p className="text-[13px] text-ink">待つ関わりが板についてきた。次は同僚への共有役も期待（園長）。</p>
+          </div>
+        </div>
         <p className="text-[12px] text-muted font-bold mt-4">※ ストライド思想：結果の大小ではなく、取り組みのプロセスを評価し、研修・処遇につなげます。</p>
       </Card>}
     </div>
