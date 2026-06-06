@@ -661,23 +661,33 @@ function OutputPreview({go}){
 
 function Roster(){
   // klass は KIDS（単一情報源）を参照。cert は年長児のため3号認定は付かない（1号／2号のみ・施設サマリと整合）。
-  const rows = KIDS.slice(0,8).map((k,i)=>({...k, cert:['1号','2号'][i%2], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
+  const all = KIDS.map((k,i)=>({...k, cert:['1号','2号'][i%2], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
+  const filters = ['全クラス','あおば組','ふたば組','つぼみ組','1号認定','2号認定'];
+  const [f,setF] = useState('全クラス');
+  const rows = all.filter(r=>{
+    if(f==='全クラス') return true;
+    if(f==='1号認定') return r.cert==='1号';
+    if(f==='2号認定') return r.cert==='2号';
+    return r.klass===f;
+  }).slice(0,10);
   return (
     <div>
       <PageHead title="名簿センター" sub="在園児・未就園児・職員を一元管理。すべての機能のハブ。"
         action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV入出力</Btn><Btn kind="primary" icon="plus">園児を追加</Btn></div>} />
       <Card className="p-3 mb-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-cream rounded-xl px-3 py-2 flex-1 border border-[#F3E6D9]"><Ic name="search" className="w-4 h-4 text-muted"/><span className="text-[13px] text-muted font-bold">名前・ふりがな・保護者で検索</span></div>
-          {['全クラス','年長','年中','年少','1号認定','2号認定'].map((f,i)=><button key={i} onClick={()=>mockTap('（モック）絞り込み：'+f)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{f}</button>)}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-cream rounded-xl px-3 py-2 flex-1 min-w-[180px] border border-[#F3E6D9]"><Ic name="search" className="w-4 h-4 text-muted"/><span className="text-[13px] text-muted font-bold">名前・ふりがな・保護者で検索</span></div>
+          {filters.map((x,i)=><button key={i} onClick={()=>setF(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border', f===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}
         </div>
       </Card>
+      <div className="text-[12px] text-muted font-bold mb-2 px-1">{rows.length}名を表示中（絞り込み：{f}）</div>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
           <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">
             {['園児','クラス','認定区分','保護者','タグ',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}
           </tr></thead>
           <tbody>
+            {rows.length===0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-muted font-bold">該当する園児はいません</td></tr>}
             {rows.map(r=>(
               <tr key={r.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
                 <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={r.n} color={r.color} size={32}/><span className="font-bold text-ink">{r.n}</span></div></td>
@@ -861,24 +871,45 @@ function Shift(){
 }
 
 function Shop(){
-  const goods = [['通園帽子','¥2,200','#FDC089'],['体操服セット','¥4,800','#AFD0F0'],['上履き','¥1,600','#ADDABB'],['お道具箱','¥3,200','#C8B3ED'],['名札','¥600','#FFD0D8'],['絵本バッグ','¥2,900','#F4C6A6']];
+  const goods = [['通園帽子',2200,'#FDC089',38],['体操服セット',4800,'#AFD0F0',31],['上履き',1600,'#ADDABB',27],['お道具箱',3200,'#C8B3ED',22],['名札',600,'#FFD0D8',15],['絵本バッグ',2900,'#F4C6A6',10]];
+  const [tab,setTab] = useState('商品一覧');
   return (
     <div>
       <PageHead title="物販（注文管理）" sub="2026年11月の受付開始に向けた最小フロー ・ 注文 → 集計 → 帳票"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="chart">注文集計</Btn><Btn kind="primary" icon="plus">商品を追加</Btn></div>}/>
+        action={<Tabs tabs={['商品一覧','注文集計']} active={tab} onChange={setTab}/>}/>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <Card className="p-4"><Stat label="受付中の商品" value="6" tone="ink"/></Card>
         <Card className="p-4"><Stat label="今月の注文" value="143件" tone="orange"/></Card>
         <Card className="p-4"><Stat label="売上(見込)" value="¥412,800" tone="green"/></Card>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {tab==='商品一覧' && <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {goods.map((g,i)=>(
           <Card key={i} className="overflow-hidden">
             <div className="h-28 flex items-center justify-center" style={{background:g[2]+'55'}}><Ic name="shop" className="w-10 h-10 text-ink/30"/></div>
-            <div className="p-4"><div className="font-bold text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600">{g[1]}</span><Badge tone="green">受付中</Badge></div></div>
+            <div className="p-4"><div className="font-bold text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600">¥{g[1].toLocaleString()}</span><Badge tone="green">受付中</Badge></div>
+              <button onClick={()=>mockTap(g[0]+'の注文者一覧（モック）')} className="mt-2 text-[12px] font-bold text-brand-600">注文 {g[3]}件 を見る →</button></div>
           </Card>
         ))}
-      </div>
+      </div>}
+      {tab==='注文集計' && <Card className="overflow-hidden">
+        <CardHead icon="chart" title="商品別 注文集計（6月）" action={<Btn kind="ghost" icon="file">帳票を出力</Btn>}/>
+        <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['商品','単価','注文数','小計','進捗'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+          <tbody>{goods.map((g,i)=>{
+            const pct = Math.round(g[3]/38*100);
+            return (
+              <tr key={i} className="border-b border-[#F7EFE7]">
+                <td className="px-5 py-3 font-bold text-ink">{g[0]}</td>
+                <td className="px-5 py-3 text-gray-600 font-bold">¥{g[1].toLocaleString()}</td>
+                <td className="px-5 py-3 font-bold text-ink">{g[3]}件</td>
+                <td className="px-5 py-3 font-extrabold text-brand-600">¥{(g[1]*g[3]).toLocaleString()}</td>
+                <td className="px-5 py-3 w-32"><div className="h-2 rounded-full bg-cream overflow-hidden"><div className="h-full bg-brand-400 rounded-full" style={{width:pct+'%'}}/></div></td>
+              </tr>
+            );
+          })}</tbody>
+          <tfoot><tr className="bg-cream/40"><td className="px-5 py-3 font-extrabold text-ink" colSpan={3}>合計</td><td className="px-5 py-3 font-extrabold text-brand-600" colSpan={2}>¥412,800</td></tr></tfoot>
+        </table>
+      </Card>}
     </div>
   );
 }
@@ -1223,24 +1254,32 @@ function ApproveBox(){
     {kind:'シフト変更', who:'久保先生', target:'6/15 早番→遅番', tone:'blue', note:'年少クラスの配置基準に影響なし', t:'昨日'},
     {kind:'物販価格', who:'ROHACHI', target:'体操服セット ¥4,800', tone:'orange', note:'仕入改定にともなう価格変更の承認依頼', t:'2日前'},
   ];
+  // 承認/差戻しを状態化：操作した項目は結果バッジに変わり、承認待ち件数・承認済が連動して動く。
+  const [acted,setActed] = useState({});
+  const act = (i,v)=> setActed(a=>({...a,[i]:v}));
+  const approveAll = ()=> setActed(items.reduce((a,_,i)=>{a[i]='ok';return a;},{}));
+  const remain = items.filter((_,i)=>!acted[i]).length;
+  const okCount = 8 + Object.values(acted).filter(v=>v==='ok').length;
   return (
     <div>
       <PageHead title="承認ボックス" sub="主任・園長の承認待ちを1か所に。記録から要録・配信・労務までワンストップで回す。"
-        action={<Btn kind="primary" icon="check">条件を満たす項目を一括承認</Btn>}/>
+        action={<Btn kind="primary" icon="check" onClick={approveAll}>条件を満たす項目を一括承認</Btn>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-        {[['承認待ち','5','red'],['本日承認済','8','green'],['要録 進捗','64%','ink'],['配信 待ち','1','orange']].map((s,i)=>(
+        {[['承認待ち',String(remain),'red'],['本日承認済',String(okCount),'green'],['要録 進捗','64%','ink'],['配信 待ち','1','orange']].map((s,i)=>(
           <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='red'?'red':s[2]==='green'?'green':s[2]==='orange'?'orange':'ink'}/></Card>
         ))}
       </div>
       <Card>
-        <CardHead icon="check" title="承認待ち（5件）" action={<span className="text-[12px] text-muted font-bold">古い順</span>}/>
+        <CardHead icon="check" title={'承認待ち（'+remain+'件）'} action={remain===0? <Badge tone="green"><Ic name="check" className="w-3 h-3"/>処理完了</Badge> : <span className="text-[12px] text-muted font-bold">古い順</span>}/>
         <div className="px-5 pb-5 space-y-2">
           {items.map((it,i)=>(
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40">
+            <div key={i} className={cx('flex items-center gap-3 p-3 rounded-xl border transition', acted[i]==='ok'?'border-[#E8F5E9] bg-[#E8F5E9]/40':acted[i]==='ng'?'border-red-100 bg-red-50/40':'border-[#F3E6D9] hover:bg-cream/40')}>
               <span className="shrink-0"><Badge tone={it.tone}>{it.kind}</Badge></span>
               <div className="flex-1 min-w-0"><div className="font-bold text-ink text-[14px]">{it.target} <span className="text-muted font-bold text-[12px]">／ {it.who}</span></div><div className="text-[12px] text-muted font-bold truncate">{it.note}</div></div>
               <div className="text-[12px] text-muted font-bold shrink-0">{it.t}</div>
-              <div className="flex gap-1 shrink-0"><Btn kind="ghost">差戻し</Btn><Btn kind="soft" icon="check">承認</Btn></div>
+              {acted[i]
+                ? <span className={cx('inline-flex items-center gap-1 text-[13px] font-bold shrink-0', acted[i]==='ok'?'text-green-600':'text-red-500')}><Ic name={acted[i]==='ok'?'check':'arrow'} className="w-4 h-4"/>{acted[i]==='ok'?'承認済':'差戻し済'}</span>
+                : <div className="flex gap-1 shrink-0"><Btn kind="ghost" onClick={()=>act(i,'ng')}>差戻し</Btn><Btn kind="soft" icon="check" onClick={()=>act(i,'ok')}>承認</Btn></div>}
             </div>
           ))}
         </div>
@@ -1522,14 +1561,18 @@ function NoticeBoard(){
 }
 
 function FileBox(){
-  const files=[['入園のしおり2026.pdf','PDF','2.4MB','全体'],['年間行事予定.pdf','PDF','0.8MB','全体'],['給食だより6月.pdf','PDF','1.1MB','全体'],['保健だより6月.pdf','PDF','0.9MB','全体'],['制服・用品リスト.pdf','PDF','1.6MB','新入園'],['運動会プログラム.pdf','PDF','3.2MB','年長']];
+  const files=[['入園のしおり2026.pdf','PDF','2.4MB','全体'],['年間行事予定.pdf','PDF','0.8MB','全体'],['給食だより6月.pdf','PDF','1.1MB','全体'],['保健だより6月.pdf','PDF','0.9MB','全体'],['制服・用品リスト.pdf','PDF','1.6MB','新入園'],['運動会プログラム.pdf','PDF','3.2MB','年長'],['プール開きのしおり.pdf','PDF','1.0MB','年中'],['夏祭りのご案内.pdf','PDF','1.4MB','全体']];
+  const targets=['すべて','全体','新入園','年中','年長'];
+  const [t,setT]=useState('すべて');
+  const rows = files.filter(f=> t==='すべて'||f[3]===t);
   return (
     <div>
       <PageHead title="資料・ファイルBOX" sub="園からの配布資料を保護者へ。クラス・対象で出し分け。"
         action={<Btn kind="primary" icon="plus">資料をアップロード</Btn>}/>
+      <Card className="p-3 mb-4"><div className="flex flex-wrap items-center gap-2"><span className="text-[12px] text-muted font-bold px-1">公開対象で絞り込み：</span>{targets.map(x=><button key={x} onClick={()=>setT(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', t===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
       <Card className="overflow-hidden"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['ファイル','種別','サイズ','公開対象','DL'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-        <tbody>{files.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button onClick={()=>mockTap('資料を開く（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
+        <tbody>{rows.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button onClick={()=>mockTap(f[0]+'を開く（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
       </table></Card>
     </div>
   );
@@ -1553,16 +1596,29 @@ function Feedback(){
 
 function Help(){
   const guides=[['はじめての記録入力','音声・写真・テキストでの記録のコツ','mic'],['要録のAI下書き','下書き→編集→承認の流れ','file'],['保護者配信のつくり方','月次レポート作成手順','photo'],['他システムからの移行','コミュなび/おうちえんからの取込','ai']];
+  const faqs=[
+    ['記録した内容はいつ保護者に公開されますか？','記録は下書きとして保存され、「保護者へ公開」操作をした分だけが配信されます。月次レポートは主任・園長の承認後にまとめて配信されます。'],
+    ['要録の様式は自治体ごとに変えられますか？','はい。設定・連携の「市の要録様式」で自治体パックを選べます。現在は守谷市様式に対応し、他自治体も順次追加します。'],
+    ['写真にAIの自動タグはつきますか？','活動・5領域の自動提案に対応しています。顔認証による園児の自動分類は次フェーズで提供予定です（設定で個別にON/OFF）。'],
+    ['データのバックアップはどうなっていますか？','日次で自動バックアップを取得し、30日分を保持します。退園後の個人データは規定の保存期間後に自動で削除されます。'],
+  ];
+  const [open,setOpen] = useState(0);
   return (
     <div>
       <PageHead title="使い方・サポート" sub="動画ガイドとよくある質問。困ったらAIサポートにすぐ相談。"
         action={<Btn kind="primary" icon="ai">AIサポートに聞く</Btn>}/>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">{guides.map((g,i)=>(
-        <Card key={i} className="p-4 flex items-center gap-3"><div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={g[2]} className="w-6 h-6"/></div><div className="flex-1"><div className="font-bold text-ink">{g[0]}</div><div className="text-[12px] text-muted font-bold">{g[1]}</div></div><span className="text-brand-500"><Ic name="play" className="w-5 h-5"/></span></Card>
+        <button key={i} onClick={()=>mockTap(g[0]+'の動画ガイドを再生（モック）')} className="text-left"><Card className="p-4 flex items-center gap-3 hover:bg-cream/40 transition"><div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={g[2]} className="w-6 h-6"/></div><div className="flex-1"><div className="font-bold text-ink">{g[0]}</div><div className="text-[12px] text-muted font-bold">{g[1]}</div></div><span className="text-brand-500"><Ic name="play" className="w-5 h-5"/></span></Card></button>
       ))}</div>
       <Card className="p-5"><CardHead icon="book" title="よくある質問"/>
-        <div className="px-5 pb-2">{['記録した内容はいつ保護者に公開されますか？','要録の様式は自治体ごとに変えられますか？','写真にAIの自動タグはつきますか？','データのバックアップはどうなっていますか？'].map((q,i)=>(
-          <div key={i} className="flex items-center gap-2 py-3 border-t border-[#F3E6D9]"><span className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></span><span className="text-[14px] font-bold text-ink">{q}</span></div>
+        <div className="px-5 pb-2">{faqs.map((q,i)=>(
+          <div key={i} className="border-t border-[#F3E6D9]">
+            <button onClick={()=>setOpen(open===i?-1:i)} className="w-full flex items-center gap-2 py-3 text-left">
+              <span className={cx('text-brand-400 transition-transform', open===i&&'rotate-90')}><Ic name="chevron" className="w-4 h-4"/></span>
+              <span className="text-[14px] font-bold text-ink flex-1">{q[0]}</span>
+            </button>
+            {open===i && <div className="pb-3 pl-6 pr-2 text-[13px] text-muted font-bold leading-relaxed">{q[1]}</div>}
+          </div>
         ))}</div>
       </Card>
     </div>
