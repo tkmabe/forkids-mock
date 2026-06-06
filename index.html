@@ -951,10 +951,11 @@ function YoroukuList(){
   );
 }
 
-function ExecHome(){
+function ExecHome({go}){
   return (
     <div>
-      <PageHead title="管理職マイページ" sub="あおばグループ 経営ダッシュボード ・ 教育・育成の質を中心に"/>
+      <PageHead title="管理職マイページ" sub="あおばグループ 経営ダッシュボード ・ 教育・育成の質を中心に"
+        action={<Btn kind="ghost" icon="org" onClick={()=>go&&go('org')}>組織図を見る</Btn>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         {[['在園率','96.4%','green'],['保護者配信 開封率','88%','orange'],['要録 進捗','64%','ink'],['職員エンゲージ','A-','green']].map((s,i)=>(
           <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':'text-ink')}>{s[1]}</div></Card>
@@ -976,6 +977,28 @@ function ExecHome(){
           <p className="text-[13px] text-muted font-bold mb-4">月次の数値と現場の質を1枚に。AIが下書きします。</p>
           <Btn kind="soft" icon="ai" className="w-full mb-2">月次レポートを生成</Btn>
           <Btn kind="ghost" icon="file" className="w-full">前月分PDFを見る</Btn>
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+        <Card className="col-span-2 p-5"><CardHead icon="star" title="職員の育成・処遇（記録→評価→研修→処遇）"/>
+          <div className="px-5 pb-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              {[['Lv.1-2','3名','gray'],['Lv.3 中堅','5名','orange'],['Lv.4 リーダー','2名','purple'],['Lv.5 主幹','1名','green']].map((s,i)=>(
+                <div key={i} className="rounded-xl border border-[#F3E6D9] p-3 text-center"><div className="text-[11px] text-muted font-bold">{s[0]}</div><div className="mt-1"><Badge tone={s[2]}>{s[1]}</Badge></div></div>
+              ))}
+            </div>
+            <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold flex items-center gap-2"><Ic name="ai" className="w-4 h-4 text-purple-600"/>実践ログと研修修了が処遇改善手当に自動連動。今月、田中先生がLv.4要件の68%に到達。</div>
+          </div>
+        </Card>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">承認待ち</h3>
+          <div className="space-y-2">
+            {[['要録','12件','youroku'],['保護者配信','3件','monthly'],['シフト/休暇','2件','approve']].map((r,i)=>(
+              <button key={i} onClick={()=>go&&go(r[2])} className="w-full flex items-center gap-2 p-2.5 rounded-xl border border-[#F3E6D9] hover:bg-cream/40 transition text-left">
+                <span className="flex-1 font-bold text-ink text-[13px]">{r[0]}</span><Badge tone="amber">{r[1]}</Badge><Ic name="chevron" className="w-4 h-4 text-brand-400"/>
+              </button>
+            ))}
+          </div>
+          <Btn kind="soft" icon="check" className="w-full mt-3" onClick={()=>go&&go('approve')}>承認ボックスへ</Btn>
         </Card>
       </div>
     </div>
