@@ -1650,16 +1650,25 @@ function ParentReport({setTab}){
   </div>);
 }
 function ParentNotice(){
-  return (<div><PTitle sub="先生とのやりとり">れんらく帳</PTitle>
+  return (<div><PTitle sub="先生とのやりとり（健康・連絡）">れんらく帳</PTitle>
     <div className="px-5 space-y-3">
-      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生</div>今日は戸外でだんごむしを観察していました🐛</div></div>
-      <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし</div>ずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
-      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-2"><Ic name="camera" className="w-5 h-5 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">メッセージ…</span><button onClick={()=>mockTap('メッセージを送信しました（モック）')} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
+      <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月6日（金）</span></div>
+      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:20</div>今日は戸外でだんごむしを観察していました🐛「あしは何本？」と自分から数えていましたよ。
+        <div className="mt-2 h-20 rounded-xl bg-cat-green/40 flex items-center justify-center"><Ic name="photo" className="w-7 h-7 text-white"/></div></div></div>
+      <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし ・ 19:02</div>ずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
+      <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月5日（木）</span></div>
+      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:10</div>給食をおかわりしました。最近よく食べています🍚</div></div>
+      <div className="flex flex-wrap gap-2 pt-1">{['ありがとうございます','承知しました','お迎えを変更します'].map((q,i)=><button key={i} onClick={()=>mockTap('定型文を入力（モック）：'+q)} className="px-3 py-1.5 rounded-full text-[12px] font-bold border bg-white text-gray-600 border-[#E8D5C4]">{q}</button>)}</div>
+      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>mockTap('写真を添付（モック）')} className="text-muted"><Ic name="camera" className="w-5 h-5 ml-1"/></button><span className="flex-1 text-[12px] text-muted font-bold">メッセージ…</span><button onClick={()=>mockTap('メッセージを送信しました（モック）')} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
     </div></div>);
 }
-function ParentPhoto(){
-  return (<div><PTitle sub="クラスの思い出">写真・動画</PTitle>
-    <div className="px-5 grid grid-cols-2 gap-2">{CAT.concat(CAT).map((c,i)=>(<div key={i} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}>{i%4===0&&<div className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-8 h-8 text-white"/></div>}</div>))}</div></div>);
+function ParentPhoto({setTab}){
+  const cats=['すべて','最近','行事','日常'];
+  return (<div><PTitle sub="クラスの思い出（販売中の写真も）">写真・動画</PTitle>
+    <div className="px-5 mb-3 flex flex-wrap gap-2">{cats.map((t,i)=><button key={i} onClick={()=>mockTap('（モック）絞り込み：'+t)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+    <div className="px-5 grid grid-cols-2 gap-2">{CAT.concat(CAT).map((c,i)=>(<button key={i} onClick={()=>mockTap('写真を拡大（モック）')} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}>{i%4===0&&<span className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-8 h-8 text-white"/></span>}{i%5===0&&<span className="absolute top-1 left-1 bg-brand-500 text-white text-[9px] font-bold px-1.5 rounded-full">NEW</span>}</button>))}</div>
+    <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3" onClick={()=>setTab&&setTab('media')}>気に入った写真・動画を購入する</Btn></div>
+  </div>);
 }
 function ParentAttend(){
   return (<div><PTitle sub="欠席・遅刻・お迎え時間など">出欠の申請</PTitle>
