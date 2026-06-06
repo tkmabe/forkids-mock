@@ -207,34 +207,42 @@ const SCREEN_TITLES = {};
 NAV.forEach(g=>g.items.forEach(i=>SCREEN_TITLES[i.id]=i.label));
 
 /* ============================== RBAC（役割×機能アクセス） ============================== */
-// 役割の定義（園内）。owner=園長は全権。
+// 役割の定義（園内・3ロール）。admin=管理職(園長)は全権。office=事務(旧 主任＋事務を統合)。
 const ROLES = {
-  owner:   { label:'園長',  desc:'全機能・権限管理・設定', color:'#E07B4A' },
-  manager: { label:'主任',  desc:'記録〜承認・育成。精算/設定は不可', color:'#C8B3ED' },
-  teacher: { label:'担任',  desc:'日々の記録・保育中心。精算/注文/労務/承認は非表示', color:'#FDC089' },
-  jimu:    { label:'事務',  desc:'精算・注文・労務・台帳。保育記録/評価は不可', color:'#ADDABB' },
+  admin:   { label:'管理職', desc:'園長。全機能＋設定＋権限管理（園のトップ）', color:'#E07B4A' },
+  office:  { label:'事務',  desc:'主任＋事務を統合。記録〜承認・育成・台帳・お便り＋精算/注文/労務', color:'#C8B3ED' },
+  teacher: { label:'担任',  desc:'日々の記録・保育中心。精算/注文/労務/承認/設定/権限管理は既定非表示', color:'#FDC089' },
 };
-const ROLE_ORDER = ['owner','manager','teacher','jimu'];
-// 機能（画面id）→ 閲覧できる役割。owner は常に全許可。未掲載は全役割可。
+const ROLE_ORDER = ['admin','office','teacher'];
+// 機能（画面id）→ 既定で閲覧できるロール。admin は常に全許可（canAccessで担保）。未掲載は全ロール可。
+// office = 旧 主任(manager) ∪ 旧 事務(jimu) の権限を継承。
 const SCREEN_ROLES = {
-  teacher:['owner','manager','teacher'], exec:['owner','manager'],
-  record:['owner','manager','teacher'], output:['owner','manager','teacher'],
-  renraku:['owner','manager','teacher'], check:['owner','manager','teacher'],
-  docs:['owner','manager','teacher'], lesson:['owner','manager','teacher'],
-  portfolio:['owner','manager','teacher'], youroku:['owner','manager','teacher'],
-  filebox:['owner','manager','teacher','jimu'],
-  monthly:['owner','manager','teacher'], broadcast:['owner','manager','teacher'],
-  notices:['owner','manager','teacher'], media:['owner','manager','teacher'],
-  attendance:['owner','manager','teacher'], feedback:['owner','manager'],
-  roster:['owner','manager','teacher','jimu'], kids:['owner','manager','teacher','jimu'],
-  allergy:['owner','manager','teacher','jimu'], calendar:['owner','manager','teacher','jimu'],
-  bus:['owner','manager','jimu'],
-  // ↓ 一般の先生(担任)には見せない：精算・注文管理・労務・承認・設定・権限管理
-  billing:['owner','jimu'], shop:['owner','jimu'], shift:['owner','manager','jimu'],
-  approve:['owner','manager'], settings:['owner'], roles:['owner'], org:['owner','manager'],
-  help:['owner','manager','teacher','jimu'],
+  teacher:['office','teacher'], exec:['office'],
+  record:['office','teacher'], output:['office','teacher'],
+  renraku:['office','teacher'], check:['office','teacher'],
+  docs:['office','teacher'], lesson:['office','teacher'],
+  portfolio:['office','teacher'], youroku:['office','teacher'],
+  filebox:['office','teacher'],
+  monthly:['office','teacher'], broadcast:['office','teacher'],
+  notices:['office','teacher'], media:['office','teacher'],
+  attendance:['office','teacher'], feedback:['office'],
+  roster:['office','teacher'], kids:['office','teacher'],
+  allergy:['office','teacher'], calendar:['office','teacher'],
+  bus:['office'],
+  // 精算・注文管理・労務・承認は事務まで。設定・権限管理は管理職(園長)のみ。
+  billing:['office'], shop:['office'], shift:['office'],
+  approve:['office'], settings:['admin'], roles:['admin'], org:['office'],
+  help:['office','teacher'],
 };
-const canAccess = (role, id) => role==='owner' || (SCREEN_ROLES[id] || ROLE_ORDER).includes(role);
+// 合成判定：ロール既定 ＋ 個別カスタム上書き（ov: {screenId:'grant'|'deny'}）。
+// admin(管理職)は常に全許可・剥奪不可（ロックアウト防止）。第3引数は任意（シェルのロール既定判定は従来どおり）。
+const canAccess = (role, id, ov) => {
+  if(role==='admin') return true;
+  const o = ov && ov[id];
+  if(o==='grant') return true;
+  if(o==='deny') return false;
+  return (SCREEN_ROLES[id] || ROLE_ORDER).includes(role);
+};
 
 function AccessDenied({label, role}){
   return (
@@ -242,8 +250,8 @@ function AccessDenied({label, role}){
       <Card className="p-8 text-center">
         <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 mx-auto flex items-center justify-center mb-3"><Ic name="lock" className="w-7 h-7"/></div>
         <h2 className="text-xl font-extrabold text-ink">この機能は権限がありません</h2>
-        <p className="text-[13px] text-muted font-bold mt-2">「{label}」は現在の役割（{ROLES[role]?.label}）では表示できません。<br/>必要な場合は園長・管理者に権限の付与を依頼してください。</p>
-        <div className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-brand-600 bg-brand-50 rounded-lg px-3 py-2"><Ic name="lock" className="w-4 h-4"/>権限管理は［園運営 ▶ 権限管理］で設定できます</div>
+        <p className="text-[13px] text-muted font-bold mt-2">「{label}」は現在の役割（{ROLES[role]?.label}）では表示できません。<br/>必要な場合は管理職（園長）に権限の付与を依頼してください。</p>
+        <div className="mt-4 inline-flex items-center gap-2 text-[12px] font-bold text-brand-600 bg-brand-50 rounded-lg px-3 py-2"><Ic name="lock" className="w-4 h-4"/>権限管理は管理職が［園運営 ▶ 権限管理］で設定できます</div>
       </Card>
     </div>
   );
@@ -1214,14 +1222,29 @@ function Help(){
   );
 }
 
+const STAFF_MEMBERS = [
+  {name:'塚田 のぞみ', role:'admin'},
+  {name:'佐々木 ゆい', role:'office'},                    // 元・主任 → 事務へ統合
+  {name:'渡辺 さき',   role:'office', ov:{approve:'deny'}},  // 事務だが「承認」は個別で剥奪（例）
+  {name:'田中 みさき', role:'teacher', ov:{feedback:'grant'}}, // 担任に「ご意見・アンケート」を個別付与（例）
+  {name:'久保 けんと', role:'teacher'},
+];
 function Roles(){
-  const counts={owner:1,manager:2,teacher:8,jimu:1};
-  const staff=[['塚田 のぞみ','owner'],['佐々木 ゆい','manager'],['田中 みさき','teacher'],['久保 けんと','teacher'],['渡辺 さき','jimu']];
+  const [members,setMembers] = useState(STAFF_MEMBERS);
+  const counts = ROLE_ORDER.reduce((a,r)=>{ a[r]=members.filter(m=>m.role===r).length; return a; },{});
+  const base = (role,id)=> (SCREEN_ROLES[id]||ROLE_ORDER).includes(role);
+  // クリックで循環：既定 →（既定可なら「除」/既定不可なら「個」）→ 既定に戻す。管理職は固定。
+  const toggle = (mi,id)=> setMembers(ms=>ms.map((m,i)=>{
+    if(i!==mi || m.role==='admin') return m;
+    const ov = {...(m.ov||{})};
+    if(ov[id]===undefined){ ov[id] = base(m.role,id) ? 'deny' : 'grant'; } else { delete ov[id]; }
+    return {...m, ov};
+  }));
   return (
     <div>
-      <PageHead title="権限管理" sub="役割ごとに使える機能を管理。一般の先生に精算・注文などを見せない設定もここで行います。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="plus">役割を追加</Btn><Btn kind="primary" icon="check">変更を保存</Btn></div>}/>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <PageHead title="権限管理" sub="ロール既定＋個別カスタム上書きの合成で、登録している先生“全員”の権限を管理します（操作できるのは管理職のみ）。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="plus">先生を追加</Btn><Btn kind="primary" icon="check">変更を保存</Btn></div>}/>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         {ROLE_ORDER.map(r=>(
           <Card key={r} className="p-4">
             <div className="flex items-center gap-2 mb-1"><span className="w-3 h-3 rounded-full" style={{background:ROLES[r].color}}/><span className="font-bold text-ink">{ROLES[r].label}</span><span className="ml-auto text-[12px] text-muted font-bold">{counts[r]}名</span></div>
@@ -1229,27 +1252,51 @@ function Roles(){
           </Card>
         ))}
       </div>
-      <Card className="overflow-hidden mb-5">
-        <CardHead icon="lock" title="機能 × 役割 アクセス表" action={<span className="text-[12px] text-muted font-bold">✓=利用可 / 🔒=非表示</span>}/>
+      <Card className="overflow-hidden mb-3">
+        <CardHead icon="lock" title="権限マトリクス（機能 × 先生）" action={<span className="text-[12px] text-muted font-bold">セルをタップで個別ON/OFF</span>}/>
+        <div className="px-5 pb-2 flex flex-wrap items-center gap-3 text-[11px] font-bold text-muted">
+          <span className="inline-flex items-center gap-1"><span className="inline-flex w-5 h-5 items-center justify-center rounded bg-green-50 text-green-600"><Ic name="check" className="w-3.5 h-3.5"/></span>利用可</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-flex w-5 h-5 items-center justify-center rounded bg-gray-50 text-gray-300"><Ic name="lock" className="w-3 h-3"/></span>非表示</span>
+          <span className="inline-flex items-center gap-1"><Badge tone="green">個</Badge>個別付与</span>
+          <span className="inline-flex items-center gap-1"><Badge tone="red">除</Badge>個別剥奪</span>
+          <span className="ml-auto">管理職の列は固定（剥奪不可）</span>
+        </div>
         <div className="overflow-x-auto"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
           <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">
-            <th className="px-5 py-2 text-left">機能</th>
-            {ROLE_ORDER.map(r=><th key={r} className="px-3 py-2 text-center">{ROLES[r].label}</th>)}
+            <th className="px-5 py-2 text-left sticky left-0 bg-cream/40">機能</th>
+            {members.map((m,mi)=>(
+              <th key={mi} className="px-3 py-2 text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <Avatar name={m.name} color={ROLES[m.role].color} size={26}/>
+                  <span className="text-[11px] text-ink">{m.name}</span>
+                  <span className="inline-flex items-center gap-1 text-[10px]"><span className="w-2 h-2 rounded-full" style={{background:ROLES[m.role].color}}/>{ROLES[m.role].label}</span>
+                </div>
+              </th>
+            ))}
           </tr></thead>
           <tbody>
             {NAV.map(g=>(
               <React.Fragment key={g.group}>
-                <tr className="bg-cream/30"><td className="px-5 py-1.5 text-[11px] font-bold text-warm" colSpan={5}>{g.group}</td></tr>
+                <tr className="bg-cream/30"><td className="px-5 py-1.5 text-[11px] font-bold text-warm" colSpan={members.length+1}>{g.group}</td></tr>
                 {g.items.map(it=>(
                   <tr key={it.id} className="border-b border-[#F7EFE7]">
-                    <td className="px-5 py-2 font-bold text-ink"><div className="flex items-center gap-2"><Ic name={it.icon} className="w-4 h-4 text-brand-400"/>{it.label}</div></td>
-                    {ROLE_ORDER.map(r=>(
-                      <td key={r} className="px-3 py-2 text-center">
-                        {canAccess(r,it.id)
-                          ? <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-green-50 text-green-600"><Ic name="check" className="w-4 h-4"/></span>
-                          : <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-gray-50 text-gray-300"><Ic name="lock" className="w-3.5 h-3.5"/></span>}
-                      </td>
-                    ))}
+                    <td className="px-5 py-2 font-bold text-ink sticky left-0 bg-white"><div className="flex items-center gap-2"><Ic name={it.icon} className="w-4 h-4 text-brand-400"/>{it.label}</div></td>
+                    {members.map((m,mi)=>{
+                      const o = m.ov && m.ov[it.id];
+                      const eff = canAccess(m.role, it.id, m.ov);
+                      const cell = eff
+                        ? <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-green-50 text-green-600"><Ic name="check" className="w-4 h-4"/></span>
+                        : <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-gray-50 text-gray-300"><Ic name="lock" className="w-3.5 h-3.5"/></span>;
+                      if(m.role==='admin') return <td key={mi} className="px-3 py-2 text-center" title="管理職は全機能固定">{cell}</td>;
+                      return (
+                        <td key={mi} className="px-3 py-2 text-center">
+                          <button onClick={()=>toggle(mi,it.id)} className="inline-flex flex-col items-center gap-0.5 hover:scale-110 transition" title="タップで個別ON/OFF">
+                            {cell}
+                            {o && <span className={cx('text-[9px] font-bold px-1 rounded-full', o==='grant'?'bg-[#E8F5E9] text-green-700':'bg-red-50 text-red-600')}>{o==='grant'?'個':'除'}</span>}
+                          </button>
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </React.Fragment>
@@ -1257,17 +1304,21 @@ function Roles(){
           </tbody>
         </table></div>
       </Card>
+      <div className="text-[12px] text-muted font-bold mb-5 px-1">ロール既定をベースに、特定の先生だけ機能を付与（個）／剥奪（除）できます。例：担任の田中先生に「ご意見・アンケート」を個別付与、事務の渡辺さんから「承認」を個別剥奪。</div>
       <Card className="overflow-hidden">
-        <CardHead icon="users" title="職員への役割割当"/>
+        <CardHead icon="users" title="先生一覧と役割"/>
         <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
-          <tbody>{staff.map((s,i)=>(
-            <tr key={i} className="border-b border-[#F7EFE7] last:border-0">
-              <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={s[0]} color={ROLES[s[1]].color} size={30}/><span className="font-bold text-ink">{s[0]}</span></div></td>
-              <td className="px-5 py-3 text-right">
-                <span className="inline-flex items-center gap-2 bg-cream border border-[#E8D5C4] rounded-lg px-3 py-1.5 font-bold text-ink"><span className="w-2.5 h-2.5 rounded-full" style={{background:ROLES[s[1]].color}}/>{ROLES[s[1]].label}<Ic name="chevron" className="w-3.5 h-3.5 text-muted rotate-90"/></span>
-              </td>
-            </tr>
-          ))}</tbody>
+          <tbody>{members.map((m,i)=>{
+            const ovCount = m.ov ? Object.keys(m.ov).length : 0;
+            return (
+              <tr key={i} className="border-b border-[#F7EFE7] last:border-0">
+                <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={m.name} color={ROLES[m.role].color} size={30}/><span className="font-bold text-ink">{m.name}</span>{ovCount>0 && <Badge tone="amber">個別{ovCount}件</Badge>}</div></td>
+                <td className="px-5 py-3 text-right">
+                  <span className="inline-flex items-center gap-2 bg-cream border border-[#E8D5C4] rounded-lg px-3 py-1.5 font-bold text-ink"><span className="w-2.5 h-2.5 rounded-full" style={{background:ROLES[m.role].color}}/>{ROLES[m.role].label}<Ic name="chevron" className="w-3.5 h-3.5 text-muted rotate-90"/></span>
+                </td>
+              </tr>
+            );
+          })}</tbody>
         </table>
       </Card>
     </div>
@@ -1284,7 +1335,7 @@ const STAFF_SCREENS = {
 };
 
 /* ============================== STAFF SHELL ============================== */
-const ROLE_USER = { owner:'塚田 のぞみ', manager:'佐々木 ゆい', teacher:'田中 みさき', jimu:'渡辺 さき' };
+const ROLE_USER = { admin:'塚田 のぞみ', office:'佐々木 ゆい', teacher:'田中 みさき' };
 function Sidebar({screen, go, role, setRole, navOpen, setNavOpen}){
   const pick=(id)=>{ go(id); setNavOpen&&setNavOpen(false); };
   return (
@@ -1334,7 +1385,7 @@ function Sidebar({screen, go, role, setRole, navOpen, setNavOpen}){
 }
 
 function StaffApp({screen, go}){
-  const [role,setRole]=useState('owner');
+  const [role,setRole]=useState('admin');
   const [navOpen,setNavOpen]=useState(false);
   const allowed = canAccess(role, screen);
   const Screen = STAFF_SCREENS[screen] || TeacherHome;
