@@ -271,21 +271,33 @@ function PageHead({title, sub, action}){
 }
 
 function TeacherHome({go}){
-  const [tab,setTab] = useState('クラス');
+  const [tab,setTab] = useState('今日のクラス');
   return (
     <div>
-      <PageHead title="おはようございます、田中先生" sub="2026年6月2日（火）・あおば組（年長）担任"
+      <PageHead title="おはようございます、田中先生" sub="2026年6月6日（土）・あおば組（年長）担任 ・ キャリアLv.3 中堅保育者"
         action={<Btn kind="ghost" icon="bell">通知 3</Btn>} />
-      <div className="mb-5"><Tabs tabs={['クラス','わたしの育成','給与・有給']} active={tab} onChange={setTab}/></div>
+      <div className="mb-5"><Tabs tabs={['今日のクラス','わたしの育成','キャリア・研修','給与・有給']} active={tab} onChange={setTab}/></div>
 
-      {tab==='クラス' && <>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+      {tab==='今日のクラス' && <>
+        {/* 「問いを渡す」UI：答えでなく今日の問いを先生自身に渡す */}
+        <Card className="p-5 mb-5 bg-[#FBFAFF] border-[#EEE7FB]">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0"><Ic name="ai" className="w-6 h-6"/></div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1"><span className="font-bold text-ink">今日の問い</span><AIChip/></div>
+              <p className="text-[14px] text-ink font-bold leading-relaxed">「先回りして答えを言いたくなった場面」は今日ありましたか？ その時、子どもは何を感じていたと思いますか？</p>
+              <p className="text-[12px] text-muted font-bold mt-1">— 感じて、考える。記録のついでに、あなた自身の気づきも一行どうぞ。</p>
+            </div>
+          </div>
+        </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           <Card className="p-4"><Stat label="今日の記録" value="7 / 12" tone="orange"/></Card>
           <Card className="p-4"><Stat label="未記録" value="5" tone="red"/></Card>
-          <Card className="p-4"><Stat label="今月の保護者配信" value="下書き中" tone="ink"/></Card>
+          <Card className="p-4"><Stat label="今月の実践ログ" value="32" tone="green"/></Card>
+          <Card className="p-4"><Stat label="保護者配信" value="下書き中" tone="ink"/></Card>
         </div>
         <Card>
-          <CardHead icon="users" title="あおば組の子どもたち（12名）" action={<span className="text-[12px] text-muted font-bold">タップで記録 →</span>}/>
+          <CardHead icon="users" title="あおば組の子どもたち（12名）" action={<Btn kind="soft" icon="mic" onClick={()=>go('record')}>記録を始める</Btn>}/>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-5 pb-5">
             {KIDS.map(k=>(
               <button key={k.id} onClick={()=>go('record')} className="group rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:shadow-card p-3 flex flex-col items-center transition bg-cream/40">
@@ -299,30 +311,96 @@ function TeacherHome({go}){
       </>}
 
       {tab==='わたしの育成' && <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Card className="col-span-2 p-5">
-          <h3 className="font-bold text-ink mb-1">今月のわたしの軸</h3>
-          <p className="text-[13px] text-muted font-bold mb-4">「感じて、考える」— 子どもが自分で気づくまで待つ関わりを意識する</p>
-          <div className="space-y-3">
-            {[['6/1','戸外あそびで、虫を見つけた子に答えを言わず "どう思う？" と問い返せた','green'],
-              ['5/30','製作活動、つい手を出しすぎた。明日は見守る時間を増やす','amber'],
-              ['5/28','主任から「保護者対応の言葉選びが良い」とフィードバック','purple']].map((r,i)=>(
-              <div key={i} className="flex gap-3">
-                <div className="text-[12px] text-muted font-bold w-12 shrink-0 pt-0.5">{r[0]}</div>
-                <div className="flex-1 bg-cream rounded-xl px-3 py-2 text-[13px] text-ink border border-[#F3E6D9]">{r[1]}</div>
+        <div className="lg:col-span-2 space-y-5">
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-1"><h3 className="font-bold text-ink">今月のわたしの軸</h3><Btn kind="ghost" icon="edit">軸を編集</Btn></div>
+            <p className="text-[13px] text-brand-600 font-bold mb-4">「感じて、考える」— 子どもが自分で気づくまで待つ関わりを意識する</p>
+            <div className="text-[12px] text-muted font-bold mb-2">実践ログ（AIが日々の記録から"取り組み方"を抽出）</div>
+            <div className="space-y-3">
+              {[['6/6','戸外あそびで、虫を見つけた子に答えを言わず "どう思う？" と問い返せた','green','問いを引き出す関わり'],
+                ['6/4','製作活動、つい手を出しすぎた。明日は見守る時間を増やす','amber','見守りの姿勢'],
+                ['6/2','主任から「保護者対応の言葉選びが良い」とフィードバック','purple','保護者対応']].map((r,i)=>(
+                <div key={i} className="flex gap-3">
+                  <div className="text-[12px] text-muted font-bold w-12 shrink-0 pt-0.5">{r[0]}</div>
+                  <div className="flex-1 bg-cream rounded-xl px-3 py-2 border border-[#F3E6D9]">
+                    <p className="text-[13px] text-ink">{r[1]}</p>
+                    <div className="mt-1"><Badge tone={r[2]}>{r[3]}</Badge></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-3"><Ic name="edit" className="w-4 h-4 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">今日の気づきを一行で…</span><button className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div>
+          </Card>
+          <Card className="p-5">
+            <CardHead icon="star" title="取り組み方の評価（変化量でなく "過程" を見る）"/>
+            <p className="px-5 text-[12px] text-muted font-bold -mt-2 mb-3">ストライド思想：結果の大小でなく、関わりのプロセスを評価し研修・処遇につなげます。</p>
+            <div className="px-5 pb-5 space-y-2">
+              {[['問いを引き出す関わり','よくできている','green','戸外・製作で計18回の実践ログ'],
+                ['見守りの姿勢','成長中','amber','"つい手を出す" の内省ログから改善傾向'],
+                ['保護者対応の言葉選び','よくできている','green','主任フィードバックでも高評価']].map((r,i)=>(
+                <div key={i} className="flex items-center gap-3 py-2.5 border-t border-[#F3E6D9] first:border-0">
+                  <div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[3]}</div></div>
+                  <Badge tone={r[1]==='よくできている'?'green':'amber'}>{r[1]}</Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+        <div className="space-y-5">
+          <Card className="p-5">
+            <h3 className="font-bold text-ink mb-3">第三者からのフィードバック</h3>
+            <div className="space-y-3">
+              {[['佐々木 主任','#C8B3ED','保護者対応の言葉選びが丁寧。クラスだよりも読みやすい。'],['塚田 園長','#E07B4A','"待つ" 関わりが板についてきた。次は同僚への共有役も。']].map((r,i)=>(
+                <div key={i} className="bg-cream rounded-xl p-3 border border-[#F3E6D9]">
+                  <div className="flex items-center gap-2 mb-1"><Avatar name={r[0]} color={r[1]} size={22}/><span className="text-[12px] font-bold text-ink">{r[0]}</span></div>
+                  <p className="text-[13px] text-ink">{r[2]}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-5 bg-[#FBFAFF] border-[#EEE7FB]">
+            <div className="flex items-center gap-2 mb-1"><Ic name="ai" className="w-4 h-4 text-purple-600"/><span className="font-bold text-ink text-[14px]">今週のふりかえりの問い</span></div>
+            <p className="text-[13px] text-ink leading-relaxed">あなたが今週いちばん "待て" た場面はどこでしたか。その時の子どもの表情を思い出してみましょう。</p>
+          </Card>
+        </div>
+      </div>}
+
+      {tab==='キャリア・研修' && <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Card className="lg:col-span-2 p-5">
+          <CardHead icon="org" title="キャリアラダー"/>
+          <div className="px-5 pb-5">
+            <div className="flex items-center gap-1 mb-4">
+              {['Lv.1 新任','Lv.2 初級','Lv.3 中堅','Lv.4 リーダー','Lv.5 主幹'].map((s,i)=>(
+                <React.Fragment key={i}>
+                  <div className="flex flex-col items-center flex-1">
+                    <div className={cx('w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold', i<2?'bg-green-500 text-white':i===2?'bg-brand-500 text-white ring-4 ring-brand-100':'bg-cream text-muted border border-[#E8D5C4]')}>{i<2?'✓':i+1}</div>
+                    <span className={cx('text-[10px] font-bold mt-1 text-center', i===2?'text-brand-600':'text-muted')}>{s}</span>
+                  </div>
+                  {i<4 && <div className={cx('h-1 flex-1 rounded-full mb-4', i<2?'bg-green-300':'bg-cream')}/>}
+                </React.Fragment>
+              ))}
+            </div>
+            <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9]">
+              <div className="text-[12px] font-bold text-brand-600 mb-1">次ステージ（Lv.4 リーダー）まで</div>
+              <div className="h-2.5 rounded-full bg-white overflow-hidden mb-2 border border-[#F3E6D9]"><div className="h-full bg-brand-400" style={{width:'68%'}}/></div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[12px] mt-3">
+                <div className="flex items-center gap-1.5"><Badge tone="amber">研修 2件</Badge><span className="text-muted font-bold">未修了</span></div>
+                <div className="flex items-center gap-1.5"><Badge tone="green">実践ログ 32</Badge><span className="text-muted font-bold">/ 50</span></div>
+                <div className="flex items-center gap-1.5"><Badge tone="green">第三者評価 A</Badge></div>
               </div>
-            ))}
+            </div>
           </div>
         </Card>
         <Card className="p-5">
-          <h3 className="font-bold text-ink mb-3">キャリアステージ</h3>
-          <div className="text-center mb-3">
-            <div className="text-[12px] text-muted font-bold">ステージ</div>
-            <div className="text-3xl font-extrabold text-brand-500">Lv.3</div>
-            <div className="text-[12px] text-muted font-bold">中堅保育者</div>
+          <CardHead icon="book" title="研修（処遇に連動）"/>
+          <div className="px-5 pb-5 space-y-2">
+            {[['マネジメント研修','修了','green'],['乳幼児保育 専門研修','受講中','amber'],['リーダー育成研修','推奨','blue'],['食育・アレルギー','推奨','blue']].map((r,i)=>(
+              <div key={i} className="flex items-center gap-2 py-2 border-t border-[#F3E6D9] first:border-0">
+                <span className="flex-1 font-bold text-ink text-[13px]">{r[0]}</span><Badge tone={r[2]}>{r[1]}</Badge>
+              </div>
+            ))}
+            <div className="mt-3 bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold">研修の修了とキャリアアップ手当（処遇改善）が自動で連動します。</div>
           </div>
-          <div className="h-2.5 rounded-full bg-cream overflow-hidden mb-2"><div className="h-full bg-brand-400" style={{width:'68%'}}/></div>
-          <p className="text-[12px] text-muted font-bold mb-4">次ステージまで 研修2件・実践ログ32件</p>
-          <Btn kind="soft" icon="star" className="w-full" onClick={()=>go('output')}>キャリア評価ログを見る</Btn>
         </Card>
       </div>}
 
@@ -331,6 +409,7 @@ function TeacherHome({go}){
           <div className="text-3xl font-extrabold text-ink">¥283,500</div>
           <p className="text-[12px] text-muted font-bold mt-1">基本給＋処遇改善＋キャリアアップ手当</p>
           <div className="mt-4 space-y-2 text-[13px]">
+            <div className="flex justify-between"><span className="text-muted font-bold">基本給</span><span className="font-bold">¥230,500</span></div>
             <div className="flex justify-between"><span className="text-muted font-bold">処遇改善等加算</span><span className="font-bold">¥38,000</span></div>
             <div className="flex justify-between"><span className="text-muted font-bold">キャリアアップ手当(Lv.3)</span><span className="font-bold text-brand-600">¥15,000</span></div>
           </div>
@@ -340,11 +419,12 @@ function TeacherHome({go}){
           <p className="text-[12px] text-muted font-bold mt-1">付与20日 / 取得7.5日</p>
           <Btn kind="ghost" icon="plus" className="w-full mt-4">休暇を申請する</Btn>
         </Card>
-        <Card className="p-5"><h3 className="font-bold text-ink mb-3">研修・処遇のつながり</h3>
-          <p className="text-[13px] text-muted font-bold mb-3">記録・評価ログが研修と給与にそのまま連動します。</p>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[13px]"><Badge tone="green"><Ic name="check" className="w-3 h-3"/>修了</Badge><span className="font-bold">マネジメント研修</span></div>
-            <div className="flex items-center gap-2 text-[13px]"><Badge tone="amber">受講中</Badge><span className="font-bold">乳幼児保育 専門研修</span></div>
+        <Card className="p-5"><h3 className="font-bold text-ink mb-3">記録 → 研修 → 処遇のつながり</h3>
+          <p className="text-[13px] text-muted font-bold mb-3">日々の記録・実践ログが評価と研修に、研修修了が処遇（手当）にそのまま連動します。</p>
+          <div className="flex items-center gap-2 text-[12px] font-bold text-ink">
+            <span className="bg-cream rounded-lg px-2 py-1 border border-[#F3E6D9]">記録</span><Ic name="arrow" className="w-4 h-4 text-brand-400"/>
+            <span className="bg-cream rounded-lg px-2 py-1 border border-[#F3E6D9]">評価・研修</span><Ic name="arrow" className="w-4 h-4 text-brand-400"/>
+            <span className="bg-brand-50 rounded-lg px-2 py-1 border border-brand-200 text-brand-600">処遇</span>
           </div>
         </Card>
       </div>}
