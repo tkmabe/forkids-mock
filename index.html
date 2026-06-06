@@ -2658,17 +2658,21 @@ function OpLeads({go, leads}){
   </div>);
 }
 function OpPlans(){
-  const plans=[['ライト','¥9,800','/月・園','小規模園向け',['記録・要録','保護者アプリ','名簿']],['スタンダード','¥19,800','/月・園','標準機能一式',['ライトの全機能','精算・物販','シフト・バス','AI要約']],['プレミアム','¥34,800','/月・園','グループ・多機能',['スタンダード全機能','組織可視化','キャリア評価','優先サポート']]];
+  const plans=[['ライト',9800,'小規模園向け',['記録・要録','保護者アプリ','名簿']],['スタンダード',19800,'標準機能一式',['ライトの全機能','精算・物販','シフト・バス','AI要約']],['プレミアム',34800,'グループ・多機能',['スタンダード全機能','組織可視化','キャリア評価','優先サポート']]];
+  // 月額/年額トグル：年額は2か月分無料（実質10か月分）で表示。請求モデルの柔軟さを体感させる。
+  const [cycle,setCycle]=useState('月額');
+  const price=(m)=> cycle==='月額' ? m : Math.round(m*10/12);
   return (<div>
     <PageHead title="プラン・課金" sub="プラン定義と請求。fincodeでテナントごとに請求先を分離（こしょこしょ同様）。"
-      action={<Btn kind="primary" icon="check">プランを編集</Btn>}/>
+      action={<div className="flex gap-2"><Tabs tabs={['月額','年額']} active={cycle} onChange={setCycle}/><Btn kind="primary" icon="check">プランを編集</Btn></div>}/>
+    {cycle==='年額'&&<div className="mb-4 inline-flex items-center gap-2 text-[12px] font-bold text-green-700 bg-[#E8F5E9] rounded-lg px-3 py-2"><Ic name="check" className="w-4 h-4"/>年額一括は2か月分無料（実質10か月分の月割表示）</div>}
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">{plans.map((p,i)=>(
       <Card key={i} className={cx('p-5', i===1&&'ring-2 ring-brand-300')}>
         {i===1&&<Badge tone="orange">人気</Badge>}
         <div className="font-extrabold text-ink text-lg mt-1">{p[0]}</div>
-        <div className="flex items-end gap-1 mt-1"><span className="text-2xl font-extrabold text-brand-500">{p[1]}</span><span className="text-[12px] text-muted font-bold mb-1">{p[2]}</span></div>
-        <p className="text-[12px] text-muted font-bold mt-1 mb-3">{p[3]}</p>
-        <div className="space-y-1.5">{p[4].map((f,k)=>(<div key={k} className="flex items-center gap-2 text-[13px] text-ink"><span className="text-green-500"><Ic name="check" className="w-4 h-4"/></span>{f}</div>))}</div>
+        <div className="flex items-end gap-1 mt-1"><span className="text-2xl font-extrabold text-brand-500">¥{price(p[1]).toLocaleString()}</span><span className="text-[12px] text-muted font-bold mb-1">/月・園</span></div>
+        <p className="text-[12px] text-muted font-bold mt-1 mb-3">{p[2]}</p>
+        <div className="space-y-1.5">{p[3].map((f,k)=>(<div key={k} className="flex items-center gap-2 text-[13px] text-ink"><span className="text-green-500"><Ic name="check" className="w-4 h-4"/></span>{f}</div>))}</div>
       </Card>
     ))}</div>
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -2956,18 +2960,22 @@ function OpAudit(){
     ['2026-06-03 09:48','不明','ログイン失敗（5回）','— ／ IP 203.0.113.* ','警告','amber'],
     ['2026-06-02 22:10','興縁・運営チーム','法務文書 改訂','情報セキュリティ方針 v2.0','成功','green'],
   ];
+  const [f,setF]=useState('すべて');
+  const filters=['すべて','成功','警告'];
+  const rows=logs.filter(l=> f==='すべて'||l[4]===f);
   return (<div>
     <PageHead title="システム監査ログ" sub="運営・園・保護者をまたぐ重要操作の証跡。改ざん不可・エクスポート対応。"
-      action={<div className="flex gap-2"><Btn kind="ghost" icon="search">絞り込み</Btn><Btn kind="ghost" icon="file">CSVエクスポート</Btn></div>}/>
+      action={<Btn kind="ghost" icon="file">CSVエクスポート</Btn>}/>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
       {[['本日の操作','1,284件','ink'],['要承認操作','6件','orange'],['警告イベント','2件','amber'],['保持期間','13か月','ink']].map((s,i)=>(
         <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='orange'?'text-brand-500':s[2]==='amber'?'text-amber-500':'text-ink')}>{s[1]}</div></Card>
       ))}
     </div>
-    <Card className="overflow-hidden"><CardHead icon="shield" title="操作ログ"/>
+    <Card className="p-3 mb-4"><div className="flex flex-wrap items-center gap-2"><span className="text-[12px] text-muted font-bold px-1">結果で絞り込み：</span>{filters.map(x=><button key={x} onClick={()=>setF(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', f===x?'bg-ink text-white border-ink':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
+    <Card className="overflow-hidden"><CardHead icon="shield" title={'操作ログ（'+rows.length+'件）'}/>
       <div className="overflow-x-auto"><table className="w-full text-[13px]">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['日時','操作者','操作','対象','結果'].map((h,i)=><th key={i} className="px-5 py-2.5 whitespace-nowrap">{h}</th>)}</tr></thead>
-        <tbody>{logs.map((l,i)=>(
+        <tbody>{rows.map((l,i)=>(
           <tr key={i} className="border-b border-[#F7EFE7] last:border-0 hover:bg-cream/40">
             <td className="px-5 py-3 text-gray-500 font-bold text-[12px] whitespace-nowrap">{l[0]}</td>
             <td className="px-5 py-3 font-bold text-ink whitespace-nowrap">{l[1]}</td>
