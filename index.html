@@ -2461,18 +2461,59 @@ function ParentHome({setTab}){
     </div>
   </div>);
 }
+// 成長レポートの写真キャプション（架空）。タップで開くビューアで使用。
+const REPORT_PHOTOS=[
+  ['#FDC089','だんごむしを夢中で観察'],['#C8B3ED','図鑑で「あしは何本？」を調べる'],['#ADDABB','お友だちに教えてあげる'],
+  ['#FFD0D8','園庭でかけっこ'],['#AFD0F0','給食をおかわり'],['#F4C6A6','製作のじかん'],
+];
+/* 成長レポートのメディアビューア（動画／写真）。レポートの動画・写真タップで開く。
+   保護者にとってレポートの写真・動画が“本体”なので、タップで拡大して見られるようにする。 */
+function ParentMediaViewer({view, onClose, setTab}){
+  if(!view) return null;
+  const isVideo = view.type==='video';
+  const total = REPORT_PHOTOS.length;
+  const idx = view.idx||0;
+  const ph = REPORT_PHOTOS[idx];
+  const go = (d)=> onClose({type:'photo', idx:(idx+d+total)%total});
+  return (
+    <Modal open={!!view} onClose={()=>onClose(null)} icon={isVideo?'play':'photo'}
+      title={isVideo?'今月のダイジェスト動画':'写真'} sub={isVideo?'さくらの ひとつき・2026年6月':((idx+1)+' / '+total)}
+      footer={<><Btn kind="ghost" icon="shop" onClick={()=>{ onClose(null); setTab&&setTab('media'); }}>購入ページへ</Btn><Btn kind="primary" icon="heart" onClick={()=>mockTap('先生に「ありがとう」を送りました（モック）')}>ありがとうを送る</Btn></>}>
+      {isVideo
+        ? <div className="space-y-3">
+            <div className="rounded-2xl overflow-hidden relative h-52 bg-cat-purple/50 flex items-center justify-center">
+              <button onClick={()=>mockTap('動画を再生（モック）')} className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center hover:bg-white"><Ic name="play" className="w-8 h-8 text-brand-500"/></button>
+              <span className="absolute bottom-2 right-3 text-white text-[12px] font-bold bg-ink/50 px-2 py-0.5 rounded-full">1:24</span>
+            </div>
+            <p className="text-[13px] text-ink font-bold leading-relaxed">だんごむしの観察に夢中だった一か月。「あしは何本？」と自分から問いを立てる姿をまとめました。</p>
+          </div>
+        : <div className="space-y-3">
+            <div className="rounded-2xl h-56 flex items-end p-4" style={{background:ph[0]}}>
+              <span className="text-ink/80 text-[12px] font-bold bg-white/70 px-2 py-1 rounded-lg">{ph[1]}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <button onClick={()=>go(-1)} className="px-3 py-2 rounded-xl border border-[#E8D5C4] bg-white text-[12px] font-bold text-gray-600 hover:border-brand-300">← 前の写真</button>
+              <span className="text-[12px] font-bold text-muted">{idx+1} / {total}</span>
+              <button onClick={()=>go(1)} className="px-3 py-2 rounded-xl border border-[#E8D5C4] bg-white text-[12px] font-bold text-gray-600 hover:border-brand-300">次の写真 →</button>
+            </div>
+          </div>}
+    </Modal>
+  );
+}
 function ParentReport({setTab}){
+  const [view,setView] = useState(null); // {type:'video'} | {type:'photo', idx}
   return (<div>
     <div className="h-44 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-5 mb-3"><div className="text-white"><div className="text-[12px] font-bold opacity-90">2026年6月</div><div className="text-2xl font-extrabold">さくらの ひとつき</div></div></div>
     <div className="px-5 space-y-4">
       <div className="flex gap-2"><AIChip/><Badge tone="green">写真6・動画1</Badge></div>
       <p className="text-[14px] text-ink leading-relaxed">今月のさくらちゃんは、だんごむしの観察に夢中でした。「あしは何本？」と自分から問いを立て、図鑑で調べてお友だちに教えてあげる姿が印象的でした。</p>
-      <div className="rounded-2xl overflow-hidden relative h-40 bg-cat-purple/40 flex items-center justify-center"><Ic name="play" className="w-12 h-12 text-white"/></div>
-      <div className="grid grid-cols-3 gap-2">{['#FDC089','#C8B3ED','#ADDABB','#FFD0D8','#AFD0F0','#F4C6A6'].map((c,i)=><div key={i} className="aspect-square rounded-xl" style={{background:c}}/>)}</div>
+      <button onClick={()=>setView({type:'video'})} className="w-full rounded-2xl overflow-hidden relative h-40 bg-cat-purple/40 flex items-center justify-center hover:bg-cat-purple/50 transition"><Ic name="play" className="w-12 h-12 text-white"/><span className="absolute bottom-2 right-3 text-white text-[12px] font-bold bg-ink/40 px-2 py-0.5 rounded-full">1:24</span></button>
+      <div className="grid grid-cols-3 gap-2">{REPORT_PHOTOS.map((p,i)=><button key={i} onClick={()=>setView({type:'photo', idx:i})} className="aspect-square rounded-xl hover:opacity-80 transition" style={{background:p[0]}}/>)}</div>
       <Card className="p-4"><div className="text-[12px] font-bold text-brand-600 mb-1">担任より</div><p className="text-[13px] text-ink">ご家庭でも「なんでだろうね？」と一緒に考えてみてください😊</p></Card>
-      <div className="flex gap-2"><Btn kind="ghost" icon="file" className="flex-1">PDF保存</Btn><Btn kind="primary" icon="heart" className="flex-1">ありがとうを送る</Btn></div>
+      <div className="flex gap-2"><Btn kind="ghost" icon="file" className="flex-1" onClick={()=>mockTap('成長レポートをPDF保存（モック）')}>PDF保存</Btn><Btn kind="primary" icon="heart" className="flex-1" onClick={()=>mockTap('先生に「ありがとう」を送りました（モック）')}>ありがとうを送る</Btn></div>
       <button onClick={()=>setTab('growth')} className="w-full text-center text-[13px] font-bold text-brand-600 py-2">これまでの成長アルバムを見る →</button>
     </div>
+    <ParentMediaViewer view={view} onClose={setView} setTab={setTab}/>
   </div>);
 }
 function ParentNotice(){
