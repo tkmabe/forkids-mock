@@ -1324,31 +1324,71 @@ function YoroukuList(){
 }
 
 function ExecHome({go}){
+  // KPI はタップでドリルダウン（園別内訳＋前月差＋AIコメント）。経営者が「なぜ？」を1タップで追える。
+  const KPI = [
+    {key:'enroll', label:'在園率', value:'96.4%', tone:'green', icon:'users', delta:'+0.8pt', deltaTone:'green',
+      rows:[['あおば幼稚園','97.5%',98],['ふたば幼稚園','95.3%',95],['つぼみ保育園','96.1%',96]],
+      ai:'空き枠はつぼみ0-2歳のみ。次年度の1号認定の問い合わせが前年同月比+18%。' },
+    {key:'open', label:'保護者配信 開封率', value:'88%', tone:'orange', icon:'send', delta:'+5pt', deltaTone:'green',
+      rows:[['あおば幼稚園','91%',91],['ふたば幼稚園','86%',86],['つぼみ保育園','84%',84]],
+      ai:'動画つき配信の開封率が写真のみより+14pt高い。夕方17時台の配信が最も読まれている。' },
+    {key:'youroku', label:'要録 進捗', value:'64%', tone:'ink', icon:'file', delta:'+22pt', deltaTone:'green',
+      rows:[['あおば幼稚園','72%',72],['ふたば幼稚園','61%',61],['つぼみ保育園','55%',55]],
+      ai:'AI下書きの活用で昨年同時期の37%を上回るペース。未着手12名は主任承認待ちでブロック中。' },
+    {key:'engage', label:'職員エンゲージ', value:'A-', tone:'green', icon:'heart', delta:'横ばい', deltaTone:'gray',
+      rows:[['記録の負担感','改善',74],['研修満足度','高い',88],['処遇の納得感','普通',62]],
+      ai:'処遇の納得感がやや低め。実践ログと手当の連動を見える化すると改善余地が大きい。' },
+  ];
+  const PARKS = {
+    'あおば幼稚園':{n:'118名',sat:'満足度 4.6',klass:'あおば組・ひまわり組・もも組',staff:'職員14名',cert:'1号・2号認定',note:'園児あたり記録数が最多。ドキュメンテーション活用がグループ随一。'},
+    'ふたば幼稚園':{n:'86名',sat:'満足度 4.5',klass:'ふたば組・たんぽぽ組',staff:'職員11名',cert:'1号認定',note:'保護者アンケートで「写真が増えて嬉しい」の声。配信頻度を上げる余地。'},
+    'つぼみ保育園':{n:'64名',sat:'満足度 4.7',klass:'つぼみ組・ふじ組・うめ組',staff:'職員10名',cert:'2号・3号認定',note:'満足度トップ。0-2歳の連絡帳のやり取りが活発で信頼が厚い。'},
+  };
+  const [kpi,setKpi] = useState(null);
+  const [park,setPark] = useState(null);
+  // 承認待ちキュー：その場で承認/差戻し。件数が連動して減り、処理済はバッジ化。
+  const QUEUE = [
+    {id:'youroku', kind:'要録', label:'要録（あおば組）', n:12, tone:'purple', note:'さくら・ひなた ほか10名。AI下書き済み・主任承認待ち', screen:'youroku'},
+    {id:'monthly', kind:'配信', label:'保護者配信（6月号）', n:3, tone:'pink', note:'あおば組/ふたば組/つぼみ組の月次配信が園長承認待ち', screen:'monthly'},
+    {id:'leave', kind:'労務', label:'シフト/休暇', n:2, tone:'green', note:'佐々木先生 有給1日・久保先生 シフト変更', screen:'approve'},
+  ];
+  const [done,setDone] = useState({});
+  const remain = QUEUE.filter(q=>!done[q.id]).reduce((s,q)=>s+q.n,0);
   return (
     <div>
       <PageHead title="管理職マイページ" sub="あおばグループ 経営ダッシュボード ・ 教育・育成の質を中心に"
         action={<Btn kind="ghost" icon="org" onClick={()=>go&&go('org')}>組織図を見る</Btn>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-        {[['在園率','96.4%','green'],['保護者配信 開封率','88%','orange'],['要録 進捗','64%','ink'],['職員エンゲージ','A-','green']].map((s,i)=>(
-          <Card key={i} className="p-5"><div className="text-[12px] text-muted font-bold mb-1">{s[0]}</div><div className={cx('text-2xl font-extrabold', s[2]==='green'?'text-green-600':s[2]==='orange'?'text-brand-500':'text-ink')}>{s[1]}</div></Card>
+        {KPI.map((s)=>(
+          <button key={s.key} onClick={()=>setKpi(s)} className="text-left">
+            <Card className="p-5 hover:bg-cream/30 transition h-full">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[12px] text-muted font-bold">{s.label}</div>
+                <span className="text-brand-300"><Ic name="chevron" className="w-4 h-4"/></span>
+              </div>
+              <div className={cx('text-2xl font-extrabold', s.tone==='green'?'text-green-600':s.tone==='orange'?'text-brand-500':'text-ink')}>{s.value}</div>
+              <div className="mt-1"><Badge tone={s.deltaTone}>前月比 {s.delta}</Badge></div>
+            </Card>
+          </button>
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Card className="col-span-2 p-5"><CardHead icon="chart" title="園別サマリ（あおば・ふたば・つぼみ）"/>
+        <Card className="col-span-2 p-5"><CardHead icon="chart" title="園別サマリ（あおば・ふたば・つぼみ）" action={<span className="text-[11px] text-muted font-bold">タップで詳細</span>}/>
           <div className="px-5 pb-5 space-y-3">
-            {[['あおば幼稚園','118名','満足度 4.6'],['ふたば幼稚園','86名','満足度 4.5'],['つぼみ保育園','64名','満足度 4.7']].map((r,i)=>(
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]">
+            {Object.entries(PARKS).map(([name,p],i)=>(
+              <button key={i} onClick={()=>setPark(name)} className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40 transition text-left">
                 <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="building" className="w-5 h-5"/></div>
-                <div className="flex-1"><div className="font-bold text-ink">{r[0]}</div><div className="text-[12px] text-muted font-bold">在園 {r[1]}</div></div>
-                <Badge tone="green">{r[2]}</Badge>
-              </div>
+                <div className="flex-1"><div className="font-bold text-ink">{name}</div><div className="text-[12px] text-muted font-bold">在園 {p.n}・{p.staff}</div></div>
+                <Badge tone="green">{p.sat}</Badge>
+                <Ic name="chevron" className="w-4 h-4 text-brand-400"/>
+              </button>
             ))}
           </div>
         </Card>
         <Card className="p-5"><h3 className="font-bold text-ink mb-3">経営報告書</h3>
           <p className="text-[13px] text-muted font-bold mb-4">月次の数値と現場の質を1枚に。AIが下書きします。</p>
-          <Btn kind="soft" icon="ai" className="w-full mb-2">月次レポートを生成</Btn>
-          <Btn kind="ghost" icon="file" className="w-full">前月分PDFを見る</Btn>
+          <Btn kind="soft" icon="ai" className="w-full mb-2" onClick={()=>mockTap('AIが在園率・配信・要録・エンゲージの4指標から月次経営報告書の下書きを生成（モック）')}>月次レポートを生成</Btn>
+          <Btn kind="ghost" icon="file" className="w-full" onClick={()=>mockTap('前月分の経営報告書PDFを表示（モック）')}>前月分PDFを見る</Btn>
         </Card>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
@@ -1362,17 +1402,50 @@ function ExecHome({go}){
             <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold flex items-center gap-2"><Ic name="ai" className="w-4 h-4 text-purple-600"/>実践ログと研修修了が処遇改善手当に自動連動。今月、田中先生がLv.4要件の68%に到達。</div>
           </div>
         </Card>
-        <Card className="p-5"><h3 className="font-bold text-ink mb-3">承認待ち</h3>
-          <div className="space-y-2">
-            {[['要録','12件','youroku'],['保護者配信','3件','monthly'],['シフト/休暇','2件','approve']].map((r,i)=>(
-              <button key={i} onClick={()=>go&&go(r[2])} className="w-full flex items-center gap-2 p-2.5 rounded-xl border border-[#F3E6D9] hover:bg-cream/40 transition text-left">
-                <span className="flex-1 font-bold text-ink text-[13px]">{r[0]}</span><Badge tone="amber">{r[1]}</Badge><Ic name="chevron" className="w-4 h-4 text-brand-400"/>
-              </button>
+        <Card className="p-5"><CardHead icon="check" title={'承認待ち（'+remain+'件）'} action={remain===0?<Badge tone="green"><Ic name="check" className="w-3 h-3"/>完了</Badge>:null}/>
+          <div className="px-5 pb-5 space-y-2">
+            {QUEUE.map((q)=>(
+              <div key={q.id} className={cx('p-2.5 rounded-xl border transition', done[q.id]?'border-[#E8F5E9] bg-[#E8F5E9]/40':'border-[#F3E6D9]')}>
+                <button onClick={()=>go&&go(q.screen)} className="w-full flex items-center gap-2 text-left">
+                  <span className="flex-1 font-bold text-ink text-[13px]">{q.label}</span>
+                  {done[q.id]? <Badge tone="green"><Ic name="check" className="w-3 h-3"/>処理済</Badge> : <Badge tone="amber">{q.n}件</Badge>}
+                  <Ic name="chevron" className="w-4 h-4 text-brand-400"/>
+                </button>
+                <div className="text-[11px] text-muted font-bold mt-1 line-clamp-1">{q.note}</div>
+                {!done[q.id] && <div className="flex gap-1 mt-2">
+                  <Btn kind="ghost" className="flex-1" onClick={()=>setDone(d=>({...d,[q.id]:'ng'}))}>差戻し</Btn>
+                  <Btn kind="soft" icon="check" className="flex-1" onClick={()=>setDone(d=>({...d,[q.id]:'ok'}))}>一括承認</Btn>
+                </div>}
+              </div>
             ))}
           </div>
-          <Btn kind="soft" icon="check" className="w-full mt-3" onClick={()=>go&&go('approve')}>承認ボックスへ</Btn>
+          <div className="px-5 pb-4"><Btn kind="soft" icon="check" className="w-full" onClick={()=>go&&go('approve')}>承認ボックスへ</Btn></div>
         </Card>
       </div>
+
+      <Modal open={!!kpi} onClose={()=>setKpi(null)} icon={kpi&&kpi.icon} title={kpi&&(kpi.label+'：'+kpi.value)} sub="園別の内訳とAIの気づき"
+        footer={<Btn kind="soft" icon="ai" onClick={()=>mockTap('この指標の詳細レポートをAIが作成（モック）')}>詳細レポートをAIで作成</Btn>}>
+        {kpi && <div className="space-y-3">
+          <div className="flex items-center gap-2"><Badge tone={kpi.deltaTone}>前月比 {kpi.delta}</Badge><span className="text-[12px] text-muted font-bold">3園の内訳</span></div>
+          {kpi.rows.map((r,i)=>(
+            <div key={i}>
+              <div className="flex items-center justify-between text-[13px] mb-1"><span className="font-bold text-ink">{r[0]}</span><span className="font-extrabold text-brand-600">{r[1]}</span></div>
+              <Bar pct={r[2]} tone={kpi.tone==='green'?'green':kpi.tone==='orange'?'amber':'brand'}/>
+            </div>
+          ))}
+          <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold flex items-start gap-2 mt-2"><Ic name="ai" className="w-4 h-4 text-purple-600 mt-0.5 shrink-0"/>{kpi.ai}</div>
+        </div>}
+      </Modal>
+
+      <Modal open={!!park} onClose={()=>setPark(null)} icon="building" title={park||''} sub={park&&PARKS[park].cert}
+        footer={<Btn kind="soft" icon="chart" onClick={()=>mockTap(park+' の詳細ダッシュボードを開く（モック）')}>この園のダッシュボードへ</Btn>}>
+        {park && <div className="space-y-2">
+          {[['在園',PARKS[park].n],['クラス',PARKS[park].klass],['職員',PARKS[park].staff],['保護者満足度',PARKS[park].sat]].map((r,i)=>(
+            <div key={i} className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="text-[12px] text-muted font-bold">{r[0]}</span><span className="font-bold text-ink text-[13px]">{r[1]}</span></div>
+          ))}
+          <div className="bg-cream/50 border border-[#F3E6D9] rounded-xl p-3 text-[12px] text-ink font-bold flex items-start gap-2"><Ic name="ai" className="w-4 h-4 text-purple-600 mt-0.5 shrink-0"/>{PARKS[park].note}</div>
+        </div>}
+      </Modal>
     </div>
   );
 }
