@@ -3524,6 +3524,7 @@ const FACILITY_STATUSES=['準備中','導入中','移行中','稼働中'];
 const FAC_STATUS_TONE={'準備中':'gray','導入中':'amber','移行中':'blue','稼働中':'green'};
 function OpFacilities({go, facilities}){
   const facs = facilities||OP_FACILITIES;
+  const [detail,setDetail] = useState(null); // 選択中施設 {f,i} or null（行→詳細モーダル）
   return (<div>
     <PageHead title="園・施設管理" sub="全38施設をテナント横断で一元管理。施設ごとの種別・プラン・定員・在籍・稼働状態（準備中／導入中／移行中／稼働中）を一覧で把握し、導入・移行の進捗を追えます。"
       action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV出力</Btn><Btn kind="primary" icon="plus" onClick={()=>go&&go('opnewfacility')}>施設を追加</Btn></div>}/>
@@ -3544,12 +3545,110 @@ function OpFacilities({go, facilities}){
             <td className="px-5 py-3 font-bold text-gray-600">{f[4]}</td>
             <td className="px-5 py-3"><Badge tone={f[5]==='プレミアム'?'orange':'blue'}>{f[5]}</Badge></td>
             <td className="px-5 py-3"><Badge tone={f[7]}>{f[6]}</Badge></td>
-            <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+            <td className="px-5 py-3 text-right"><button onClick={()=>setDetail({f,i})} className="text-brand-500" title="施設詳細を開く"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
       </table></div>
     </Card>
+    <OpFacilityDetail detail={detail} onClose={()=>setDetail(null)} go={go}/>
   </div>);
+}
+
+/* 園・施設詳細モーダル（マスターコンソール）。施設一覧行→chevron で開く。テナント詳細→園・施設管理 のドリル先。
+   すべて架空ダミー：行データ(f)と index(i) から決定的に合成。施設削除/プラン変更は要承認のためトースト止まり。 */
+function opFacilitySynth(f, i){
+  const cap = parseInt(f[3]) || 0;
+  const enr = parseInt(f[4]) || 0;
+  const fill = cap ? Math.round(enr/cap*100) : 0;
+  const classCount = Math.max(3, Math.round(cap/30));
+  const ageBands = ['年少','年中','年長','満3歳','つぼみ','ほし'];
+  const classes = Array.from({length:Math.min(classCount,6)}, (_,k)=>({
+    name: ageBands[k % ageBands.length]+'組',
+    kids: Math.round(enr/Math.min(classCount,6)) + ((i+k)%5) - 2,
+    teacher: ['塚田','佐々木','田中','大野','森','岡'][(i+k)%6]+' 先生',
+  }));
+  const staff = 8 + Math.round(cap/24) + (i%3);
+  const steps = ['契約','初期設定','データ移行','研修','稼働'];
+  const stIdx = { '準備中':1, '導入中':2, '移行中':3, '稼働中':5 }[f[6]] || 1;
+  return { cap, enr, fill, classCount, classes, staff, steps, stIdx,
+           hiddenClasses: classCount - classes.length,
+           active: 68 + (i*9)%28, lastLogin: stIdx>=5 ? '本日' : '導入支援中' };
+}
+function OpFacilityDetail({detail, onClose, go}){
+  if(!detail) return null;
+  const { f, i } = detail;
+  const d = opFacilitySynth(f, i);
+  const Stat = ({label, value, sub})=>(
+    <div className="rounded-xl border border-[#F3E6D9] bg-cream/40 px-3 py-2">
+      <div className="text-[11px] font-bold text-muted">{label}</div>
+      <div className="text-[15px] font-extrabold text-ink leading-tight mt-0.5">{value}</div>
+      {sub && <div className="text-[11px] font-bold text-warm mt-0.5">{sub}</div>}
+    </div>
+  );
+  const footer = (<>
+    <span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="lock" className="w-3.5 h-3.5"/>プラン変更・施設削除は要承認（モックは実行しません）</span>
+    <Btn kind="ghost" icon="building" onClick={()=>{ onClose(); go&&go('optenants'); }}>所属テナントへ</Btn>
+    <Btn kind="ghost" icon="edit" onClick={()=>mockTap('施設情報の編集はモック範囲外です')}>施設情報を編集</Btn>
+  </>);
+  return (
+    <Modal open={!!detail} onClose={onClose} wide icon="home"
+      title={f[0]} sub={f[1]+'・'+f[2]}
+      footer={footer}>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <Badge tone={f[2]==='幼稚園'?'orange':f[2]==='保育園'?'blue':'purple'}>{f[2]}</Badge>
+        <Badge tone={f[5]==='プレミアム'?'orange':'blue'}>{f[5]}プラン</Badge>
+        <Badge tone={f[7]}>{f[6]}</Badge>
+        <span className="text-[12px] font-bold text-muted">施設ID FAC-{String(200+i)}</span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <Stat label="定員" value={f[3]}/>
+        <Stat label="在籍" value={f[4]}/>
+        <Stat label="クラス数" value={d.classCount+'クラス'}/>
+        <Stat label="職員数" value={d.staff+'名'}/>
+      </div>
+      <div className="mb-5">
+        <div className="text-[11px] font-bold text-muted mb-1">充足率 {d.fill}%（在籍 {d.enr} / 定員 {d.cap}）</div>
+        <Bar pct={d.fill} tone={d.fill>=95?'red':d.fill>=80?'amber':'green'}/>
+      </div>
+
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2"><div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5"><Ic name="users" className="w-4 h-4 text-brand-500"/>クラス編成</div><span className="text-[11px] font-bold text-muted">{d.classCount}クラス</span></div>
+        <div className="grid sm:grid-cols-2 gap-2">
+          {d.classes.map((c,k)=>(
+            <div key={k} className="flex items-center gap-3 p-2.5 rounded-xl border border-[#F3E6D9] bg-white">
+              <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center shrink-0 text-[12px] font-extrabold">{c.kids}</div>
+              <div className="flex-1 min-w-0"><div className="font-bold text-ink text-[13px] truncate">{c.name}</div><div className="text-[11px] font-bold text-muted">担任 {c.teacher}・{c.kids}名</div></div>
+            </div>
+          ))}
+          {d.hiddenClasses>0 && <div className="text-[12px] font-bold text-muted px-1 self-center">ほか {d.hiddenClasses} クラス</div>}
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-[#F3E6D9] p-4">
+          <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-3"><Ic name="ai" className="w-4 h-4 text-brand-500"/>導入・移行の進捗</div>
+          <div className="space-y-2">
+            {d.steps.map((s,k)=>(
+              <div key={k} className="flex items-center gap-2 text-[12px] font-bold">
+                <span className={cx('w-5 h-5 rounded-full flex items-center justify-center text-[11px]', k<d.stIdx?'bg-green-500 text-white':k===d.stIdx?'bg-brand-500 text-white':'bg-cream text-muted border border-[#F3E6D9]')}>{k<d.stIdx?'✓':k+1}</span>
+                <span className={cx(k<d.stIdx?'text-ink':k===d.stIdx?'text-brand-600':'text-muted')}>{s}</span>
+                {k===d.stIdx && <Badge tone="amber">進行中</Badge>}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-[#F3E6D9] p-4">
+          <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-3"><Ic name="chart" className="w-4 h-4 text-brand-500"/>利用状況</div>
+          <div className="text-[11px] font-bold text-muted mb-1">アクティブ率（直近30日） {d.active}%</div>
+          <Bar pct={d.active} tone="brand"/>
+          <div className="flex items-center justify-between text-[12px] font-bold mt-3 mb-1"><span className="text-muted">直近ログイン</span><span className="text-ink">{d.lastLogin}</span></div>
+          <div className="flex items-center justify-between text-[12px] font-bold mb-1"><span className="text-muted">よく使う機能</span><span className="text-ink">日常記録・お便り</span></div>
+          <div className="flex items-center justify-between text-[12px] font-bold"><span className="text-muted">サポート</span><span className="text-ink">未対応 0 件</span></div>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 function OpNewFacility({go, addFacility, tenants}){
   const TEN = tenants||TENANTS;
