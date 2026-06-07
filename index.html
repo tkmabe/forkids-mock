@@ -153,6 +153,41 @@ function Stat({label, value, tone='ink'}){
 }
 function AIChip(){ return <Badge tone="purple"><Ic name="ai" className="w-3 h-3"/>AI生成</Badge>; }
 
+/* 汎用モーダル：fixed オーバーレイ（portal不要）。open=false で描画しない。 */
+function Modal({open, onClose, title, sub, icon, children, footer, wide=false}){
+  if(!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"/>
+      <div onClick={e=>e.stopPropagation()} className={cx('relative bg-white w-full rounded-t-3xl sm:rounded-3xl shadow-xl border border-[#F3E6D9] max-h-[92vh] overflow-y-auto noscroll', wide?'sm:max-w-3xl':'sm:max-w-lg')}>
+        <div className="flex items-start gap-3 px-5 pt-5 pb-3 sticky top-0 bg-white/95 backdrop-blur border-b border-[#F3E6D9] z-10">
+          {icon && <span className="w-9 h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"><Ic name={icon} className="w-5 h-5"/></span>}
+          <div className="flex-1 min-w-0"><h3 className="font-extrabold text-ink text-[17px] leading-tight">{title}</h3>{sub && <p className="text-[12px] text-muted font-bold mt-0.5">{sub}</p>}</div>
+          <button onClick={onClose} className="text-muted hover:text-ink p-1 -mr-1 shrink-0"><Ic name="plus" className="w-5 h-5 rotate-45"/></button>
+        </div>
+        <div className="px-5 py-4">{children}</div>
+        {footer && <div className="px-5 py-3 border-t border-[#F3E6D9] bg-cream/40 flex flex-wrap gap-2 justify-end sticky bottom-0">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+/* トグルスイッチ（制御）。on/onToggle で状態を持つ側が管理。 */
+function Toggle({on, onToggle, label}){
+  return (
+    <button onClick={onToggle} className="inline-flex items-center gap-2 text-[13px] font-bold text-ink">
+      <span className={cx('w-9 h-5 rounded-full relative transition', on?'bg-brand-500':'bg-gray-300')}>
+        <span className={cx('absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all', on?'right-0.5':'left-0.5')}/>
+      </span>
+      {label}
+    </button>
+  );
+}
+/* 横バー（進捗・比率）。pct=0..100、tone で色。 */
+function Bar({pct, tone='brand'}){
+  const c={brand:'bg-brand-400', green:'bg-green-400', amber:'bg-amber-400', purple:'bg-purple-400', pink:'bg-pink-400', red:'bg-red-400'}[tone]||'bg-brand-400';
+  return <div className="h-2 rounded-full bg-cream overflow-hidden border border-[#F3E6D9]"><div className={cx('h-full rounded-full', c)} style={{width:Math.max(0,Math.min(100,pct))+'%'}}/></div>;
+}
+
 /* ============================== SAMPLE DATA (架空) ============================== */
 const CAT = ['#FDC089','#C8B3ED','#FFD0D8','#ADDABB','#AFD0F0','#F4C6A6'];
 // klass（所属クラス）は単一情報源。各画面はこの値を参照し、主役児「さくら」は全画面あおば組で一貫。
@@ -275,13 +310,67 @@ function PageHead({title, sub, action}){
   );
 }
 
+// 先生の育成データ（架空・単一情報源）。記録→評価→研修→処遇を貫く軸。
+const TEACHER = {
+  name:'田中 みさき', klass:'あおば組（年長）', lv:3, lvLabel:'中堅保育者',
+  logsThisMonth:32, logsTarget:50, thirdParty:'A', allowance:15000,
+};
+// コンピテンシー（取り組み方）。実践ログから抽出した過程評価。pct=習熟度。
+const COMPETENCIES = [
+  {key:'問いを引き出す関わり', level:'よくできている', tone:'green', pct:82, logs:18,
+   note:'戸外・製作で計18回の実践ログ。答えを言わず問い返す場面が定着。',
+   evidence:['6/6 だんごむし観察で「どう思う？」と問い返した','5/29 製作で完成形を見せず手順を問いかけた','5/22 けんかの仲裁で双方に理由を聞いた']},
+  {key:'見守りの姿勢', level:'成長中', tone:'amber', pct:54, logs:9,
+   note:'"つい手を出す" の内省ログから改善傾向。待つ時間が伸びている。',
+   evidence:['6/4 製作活動で手を出しすぎたと内省','5/30 給食準備を見守れた（前月比+2分）','5/18 着替えを先回りせず待てた']},
+  {key:'保護者対応の言葉選び', level:'よくできている', tone:'green', pct:88, logs:12,
+   note:'主任フィードバックでも高評価。クラスだよりの可読性も高い。',
+   evidence:['6/2 主任から言葉選びを評価された','5/27 連絡帳の返信が丁寧と保護者から反応','5/20 個人面談の所見が読みやすい']},
+  {key:'協同を促す関わり', level:'これから', tone:'gray', pct:38, logs:5,
+   note:'グループ活動の設計はこれから。リーダー昇格の伸びしろ領域。',
+   evidence:['5/31 お店やさんごっこで役割分担を促した','5/15 当番活動の声かけ']},
+];
+const TRAININGS = [
+  {name:'マネジメント研修', status:'修了', tone:'green', pct:100, hours:'12h / 12h', link:'リーダー要件', detail:'園内マネジメント・面談技法。修了でLv.4要件を1つ充足。'},
+  {name:'乳幼児保育 専門研修', status:'受講中', tone:'amber', pct:60, hours:'9h / 15h', link:'専門性手当', detail:'発達理解と環境構成。修了で専門分野手当 月¥5,000 が加算。'},
+  {name:'リーダー育成研修', status:'推奨', tone:'blue', pct:0, hours:'0h / 20h', link:'Lv.4昇格', detail:'同僚への助言・OJT設計。Lv.4昇格の必須研修。'},
+  {name:'食育・アレルギー', status:'推奨', tone:'blue', pct:0, hours:'0h / 6h', link:'安全要件', detail:'除去食対応とヒヤリハット。全担任の推奨研修。'},
+];
+
 function TeacherHome({go}){
   const [tab,setTab] = useState('今日のクラス');
+  const [logModal,setLogModal] = useState(null);   // コンピテンシー詳細
+  const [trModal,setTrModal] = useState(null);      // 研修詳細
+  const [leave,setLeave] = useState(false);          // 有給申請モーダル
+  const [leaveDone,setLeaveDone] = useState(false);
+  const [note,setNote] = useState('');               // 今日の気づき
+  const [notes,setNotes] = useState([]);
+  const addNote = ()=>{ if(!note.trim()) return; setNotes(n=>[{t:'たった今', body:note.trim()},...n]); setNote(''); };
+  const lvSteps=['Lv.1 新任','Lv.2 初級','Lv.3 中堅','Lv.4 リーダー','Lv.5 主幹'];
   return (
     <div>
       <PageHead title="おはようございます、田中先生" sub="2026年6月6日（土）・あおば組（年長）担任 ・ キャリアLv.3 中堅保育者"
         action={<Btn kind="ghost" icon="bell">通知 3</Btn>} />
       <div className="mb-5"><Tabs tabs={['今日のクラス','わたしの育成','キャリア・研修','給与・有給']} active={tab} onChange={setTab}/></div>
+
+      {/* 育成パイプライン：記録→評価→研修→処遇 を全タブ共通のヘッダ帯で常時可視化（本プロダクトの核） */}
+      <Card className="p-3 sm:p-4 mb-5 bg-gradient-to-r from-[#FBFAFF] to-[#FFF7F1] border-[#EEE7FB]">
+        <div className="flex items-center gap-1.5 mb-2 text-[12px] font-bold text-purple-600"><Ic name="ai" className="w-4 h-4"/>あなたの育成エンジン（毎日の記録が、評価・研修・処遇まで自動でつながる）</div>
+        <div className="flex items-stretch gap-1 sm:gap-2 overflow-x-auto noscroll">
+          {[['記録','file','今月 '+TEACHER.logsThisMonth+' 件','brand','今日のクラス'],
+            ['過程評価','star','第三者評価 '+TEACHER.thirdParty,'purple','わたしの育成'],
+            ['研修','book','受講中 1・推奨 2','amber','キャリア・研修'],
+            ['処遇','money','手当 +¥'+TEACHER.allowance.toLocaleString(),'green','給与・有給']].map((s,i)=>(
+            <React.Fragment key={i}>
+              <button onClick={()=>setTab(s[4])} className={cx('flex-1 min-w-[112px] rounded-xl border px-3 py-2 text-left transition hover:shadow-card', tab===s[4]?'bg-white border-brand-300 shadow-card':'bg-white/70 border-[#F3E6D9]')}>
+                <div className="flex items-center gap-1.5 mb-0.5"><span className="text-brand-500"><Ic name={s[1]} className="w-4 h-4"/></span><span className="text-[12px] font-bold text-ink">{s[0]}</span></div>
+                <div className="text-[12px] text-muted font-bold">{s[2]}</div>
+              </button>
+              {i<3 && <div className="flex items-center text-brand-300 shrink-0"><Ic name="arrow" className="w-4 h-4"/></div>}
+            </React.Fragment>
+          ))}
+        </div>
+      </Card>
 
       {tab==='今日のクラス' && <>
         {/* 「問いを渡す」UI：答えでなく今日の問いを先生自身に渡す */}
@@ -322,6 +411,12 @@ function TeacherHome({go}){
             <p className="text-[13px] text-brand-600 font-bold mb-4">「感じて、考える」— 子どもが自分で気づくまで待つ関わりを意識する</p>
             <div className="text-[12px] text-muted font-bold mb-2">実践ログ（AIが日々の記録から"取り組み方"を抽出）</div>
             <div className="space-y-3">
+              {notes.map((n,i)=>(
+                <div key={'u'+i} className="flex gap-3">
+                  <div className="text-[12px] text-muted font-bold w-12 shrink-0 pt-0.5">{n.t}</div>
+                  <div className="flex-1 bg-[#FBFAFF] rounded-xl px-3 py-2 border border-[#EEE7FB]"><p className="text-[13px] text-ink">{n.body}</p><div className="mt-1"><Badge tone="purple">あなたの気づき</Badge></div></div>
+                </div>
+              ))}
               {[['6/6','戸外あそびで、虫を見つけた子に答えを言わず "どう思う？" と問い返せた','green','問いを引き出す関わり'],
                 ['6/4','製作活動、つい手を出しすぎた。明日は見守る時間を増やす','amber','見守りの姿勢'],
                 ['6/2','主任から「保護者対応の言葉選びが良い」とフィードバック','purple','保護者対応']].map((r,i)=>(
@@ -334,19 +429,26 @@ function TeacherHome({go}){
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-3"><Ic name="edit" className="w-4 h-4 text-muted ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">今日の気づきを一行で…</span><button onClick={()=>mockTap('気づきを追記しました（モック）')} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div>
+            <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9] mt-3">
+              <Ic name="edit" className="w-4 h-4 text-muted ml-1"/>
+              <input value={note} onChange={e=>setNote(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addNote()} placeholder="今日の気づきを一行で…" className="flex-1 bg-transparent text-[13px] font-bold text-ink outline-none placeholder:text-muted"/>
+              <button onClick={addNote} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button>
+            </div>
           </Card>
           <Card className="p-5">
             <CardHead icon="star" title="取り組み方の評価（変化量でなく 「過程」 を見る）"/>
-            <p className="px-5 text-[12px] text-muted font-bold -mt-2 mb-3">ストライド思想：結果の大小でなく、関わりのプロセスを評価し研修・処遇につなげます。</p>
-            <div className="px-5 pb-5 space-y-2">
-              {[['問いを引き出す関わり','よくできている','green','戸外・製作で計18回の実践ログ'],
-                ['見守りの姿勢','成長中','amber','"つい手を出す" の内省ログから改善傾向'],
-                ['保護者対応の言葉選び','よくできている','green','主任フィードバックでも高評価']].map((r,i)=>(
-                <div key={i} className="flex items-center gap-3 py-2.5 border-t border-[#F3E6D9] first:border-0">
-                  <div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[3]}</div></div>
-                  <Badge tone={r[1]==='よくできている'?'green':'amber'}>{r[1]}</Badge>
-                </div>
+            <p className="px-5 text-[12px] text-muted font-bold -mt-2 mb-3">ストライド思想：結果の大小でなく、関わりのプロセスを評価し研修・処遇につなげます。タップで根拠の実践ログ。</p>
+            <div className="px-5 pb-5 space-y-3">
+              {COMPETENCIES.map((c,i)=>(
+                <button key={i} onClick={()=>setLogModal(c)} className="w-full text-left flex items-center gap-3 py-2.5 border-t border-[#F3E6D9] first:border-0 hover:bg-cream/40 rounded-lg px-1 transition">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2"><span className="font-bold text-ink text-[14px]">{c.key}</span><Badge tone="gray">{c.logs} ログ</Badge></div>
+                    <div className="text-[12px] text-muted font-bold mb-1.5 truncate">{c.note}</div>
+                    <Bar pct={c.pct} tone={c.tone==='gray'?'brand':c.tone}/>
+                  </div>
+                  <Badge tone={c.tone}>{c.level}</Badge>
+                  <Ic name="chevron" className="w-4 h-4 text-brand-300 shrink-0"/>
+                </button>
               ))}
             </div>
           </Card>
@@ -375,7 +477,7 @@ function TeacherHome({go}){
           <CardHead icon="org" title="キャリアラダー"/>
           <div className="px-5 pb-5">
             <div className="flex items-center gap-1 mb-4">
-              {['Lv.1 新任','Lv.2 初級','Lv.3 中堅','Lv.4 リーダー','Lv.5 主幹'].map((s,i)=>(
+              {lvSteps.map((s,i)=>(
                 <React.Fragment key={i}>
                   <div className="flex flex-col items-center flex-1">
                     <div className={cx('w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold', i<2?'bg-green-500 text-white':i===2?'bg-brand-500 text-white ring-4 ring-brand-100':'bg-cream text-muted border border-[#E8D5C4]')}>{i<2?'✓':i+1}</div>
@@ -386,25 +488,27 @@ function TeacherHome({go}){
               ))}
             </div>
             <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9]">
-              <div className="text-[12px] font-bold text-brand-600 mb-1">次ステージ（Lv.4 リーダー）まで</div>
-              <div className="h-2.5 rounded-full bg-white overflow-hidden mb-2 border border-[#F3E6D9]"><div className="h-full bg-brand-400" style={{width:'68%'}}/></div>
+              <div className="text-[12px] font-bold text-brand-600 mb-1">次ステージ（Lv.4 リーダー）まで ・ 達成度 68%</div>
+              <Bar pct={68}/>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[12px] mt-3">
-                <div className="flex items-center gap-1.5"><Badge tone="amber">研修 2件</Badge><span className="text-muted font-bold">未修了</span></div>
-                <div className="flex items-center gap-1.5"><Badge tone="green">実践ログ 32</Badge><span className="text-muted font-bold">/ 50</span></div>
-                <div className="flex items-center gap-1.5"><Badge tone="green">第三者評価 A</Badge></div>
+                <div className="bg-white rounded-lg p-2 border border-[#F3E6D9]"><div className="flex items-center gap-1.5 mb-1"><Badge tone="amber">研修</Badge><span className="text-muted font-bold">2件 未修了</span></div><Bar pct={50} tone="amber"/></div>
+                <div className="bg-white rounded-lg p-2 border border-[#F3E6D9]"><div className="flex items-center gap-1.5 mb-1"><Badge tone="green">実践ログ</Badge><span className="text-muted font-bold">{TEACHER.logsThisMonth}/{TEACHER.logsTarget}</span></div><Bar pct={TEACHER.logsThisMonth/TEACHER.logsTarget*100} tone="green"/></div>
+                <div className="bg-white rounded-lg p-2 border border-[#F3E6D9]"><div className="flex items-center gap-1.5 mb-1"><Badge tone="green">第三者評価</Badge><span className="text-muted font-bold">A</span></div><Bar pct={90} tone="green"/></div>
               </div>
+              <div className="mt-3 text-[12px] text-ink font-bold flex items-start gap-1.5"><Ic name="ai" className="w-4 h-4 text-purple-500 shrink-0 mt-0.5"/>AIの後押し：あと「リーダー育成研修」修了 ＋ 協同を促す関わりの実践ログ +13 で Lv.4 要件が揃います。</div>
             </div>
           </div>
         </Card>
         <Card className="p-5">
           <CardHead icon="book" title="研修（処遇に連動）"/>
           <div className="px-5 pb-5 space-y-2">
-            {[['マネジメント研修','修了','green'],['乳幼児保育 専門研修','受講中','amber'],['リーダー育成研修','推奨','blue'],['食育・アレルギー','推奨','blue']].map((r,i)=>(
-              <div key={i} className="flex items-center gap-2 py-2 border-t border-[#F3E6D9] first:border-0">
-                <span className="flex-1 font-bold text-ink text-[13px]">{r[0]}</span><Badge tone={r[2]}>{r[1]}</Badge>
-              </div>
+            {TRAININGS.map((r,i)=>(
+              <button key={i} onClick={()=>setTrModal(r)} className="w-full text-left py-2.5 border-t border-[#F3E6D9] first:border-0 hover:bg-cream/40 rounded-lg px-1 transition">
+                <div className="flex items-center gap-2 mb-1"><span className="flex-1 font-bold text-ink text-[13px]">{r.name}</span><Badge tone={r.tone}>{r.status}</Badge></div>
+                <div className="flex items-center gap-2"><div className="flex-1"><Bar pct={r.pct} tone={r.tone==='blue'?'brand':r.tone}/></div><span className="text-[11px] text-muted font-bold shrink-0">{r.hours}</span></div>
+              </button>
             ))}
-            <div className="mt-3 bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold">研修の修了とキャリアアップ手当（処遇改善）が自動で連動します。</div>
+            <div className="mt-3 bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold">研修の修了とキャリアアップ手当（処遇改善）が自動で連動します。タップで詳細。</div>
           </div>
         </Card>
       </div>}
@@ -416,23 +520,70 @@ function TeacherHome({go}){
           <div className="mt-4 space-y-2 text-[13px]">
             <div className="flex justify-between"><span className="text-muted font-bold">基本給</span><span className="font-bold">¥230,500</span></div>
             <div className="flex justify-between"><span className="text-muted font-bold">処遇改善等加算</span><span className="font-bold">¥38,000</span></div>
-            <div className="flex justify-between"><span className="text-muted font-bold">キャリアアップ手当(Lv.3)</span><span className="font-bold text-brand-600">¥15,000</span></div>
+            <div className="flex justify-between items-center"><span className="text-muted font-bold">キャリアアップ手当(Lv.3)</span><span className="font-bold text-brand-600">¥15,000</span></div>
           </div>
+          <div className="mt-3 bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink"><span className="font-bold text-purple-600">連動の内訳：</span> マネジメント研修修了 +¥8,000／第三者評価A +¥7,000。Lv.4昇格で手当は ¥23,000 に。</div>
         </Card>
         <Card className="p-5"><h3 className="font-bold text-ink mb-3">有給休暇</h3>
-          <div className="flex items-end gap-2"><div className="text-3xl font-extrabold text-green-600">12.5</div><div className="text-muted font-bold mb-1">日 残</div></div>
-          <p className="text-[12px] text-muted font-bold mt-1">付与20日 / 取得7.5日</p>
-          <Btn kind="ghost" icon="plus" className="w-full mt-4">休暇を申請する</Btn>
+          <div className="flex items-end gap-2"><div className="text-3xl font-extrabold text-green-600">{leaveDone?'11.5':'12.5'}</div><div className="text-muted font-bold mb-1">日 残</div></div>
+          <p className="text-[12px] text-muted font-bold mt-1">付与20日 / 取得{leaveDone?'8.5':'7.5'}日</p>
+          <div className="mt-3"><Bar pct={leaveDone?42.5:37.5} tone="green"/></div>
+          {leaveDone && <div className="mt-3 bg-[#E8F5E9]/50 border border-[#E8F5E9] rounded-xl p-2.5 text-[12px] font-bold text-green-700 flex items-center gap-1.5"><Ic name="check" className="w-4 h-4"/>6/20(金) の休暇を申請しました（主任承認待ち）</div>}
+          <Btn kind="ghost" icon="plus" className="w-full mt-4" onClick={()=>setLeave(true)}>休暇を申請する</Btn>
         </Card>
         <Card className="p-5"><h3 className="font-bold text-ink mb-3">記録 → 研修 → 処遇のつながり</h3>
           <p className="text-[13px] text-muted font-bold mb-3">日々の記録・実践ログが評価と研修に、研修修了が処遇（手当）にそのまま連動します。</p>
-          <div className="flex items-center gap-2 text-[12px] font-bold text-ink">
+          <div className="flex items-center gap-2 text-[12px] font-bold text-ink flex-wrap">
             <span className="bg-cream rounded-lg px-2 py-1 border border-[#F3E6D9]">記録</span><Ic name="arrow" className="w-4 h-4 text-brand-400"/>
             <span className="bg-cream rounded-lg px-2 py-1 border border-[#F3E6D9]">評価・研修</span><Ic name="arrow" className="w-4 h-4 text-brand-400"/>
             <span className="bg-brand-50 rounded-lg px-2 py-1 border border-brand-200 text-brand-600">処遇</span>
           </div>
+          <div className="mt-4 space-y-1.5 text-[12px] font-bold">
+            <div className="flex justify-between"><span className="text-muted">今月の実践ログ</span><span className="text-ink">{TEACHER.logsThisMonth} 件</span></div>
+            <div className="flex justify-between"><span className="text-muted">研修修了（年度）</span><span className="text-ink">1 件</span></div>
+            <div className="flex justify-between"><span className="text-muted">手当への反映</span><span className="text-brand-600">+¥{TEACHER.allowance.toLocaleString()}/月</span></div>
+          </div>
         </Card>
       </div>}
+
+      {/* コンピテンシー詳細モーダル */}
+      <Modal open={!!logModal} onClose={()=>setLogModal(null)} icon="star"
+        title={logModal?logModal.key:''} sub={logModal?('過程評価：'+logModal.level+' ・ '+logModal.logs+' 件の実践ログ'):''}
+        footer={<><Btn kind="ghost" onClick={()=>setLogModal(null)}>閉じる</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('評価メモを要録の所見へ反映（モック）')}>所見に引用</Btn></>}>
+        {logModal && <div className="space-y-4">
+          <div><div className="flex items-center justify-between mb-1.5"><span className="text-[12px] font-bold text-muted">習熟度</span><span className="text-[12px] font-bold text-ink">{logModal.pct}%</span></div><Bar pct={logModal.pct} tone={logModal.tone==='gray'?'brand':logModal.tone}/></div>
+          <p className="text-[13px] text-ink leading-relaxed bg-cream rounded-xl p-3 border border-[#F3E6D9]">{logModal.note}</p>
+          <div>
+            <div className="text-[12px] font-bold text-brand-600 mb-2">根拠になった実践ログ（記録から自動抽出）</div>
+            <div className="space-y-2">{logModal.evidence.map((e,i)=>(
+              <div key={i} className="flex gap-2 items-start bg-white border border-[#F3E6D9] rounded-xl p-2.5"><span className="w-6 h-6 rounded-lg bg-purple-50 text-purple-500 flex items-center justify-center shrink-0"><Ic name="file" className="w-3.5 h-3.5"/></span><p className="text-[13px] text-ink flex-1">{e}</p></div>
+            ))}</div>
+          </div>
+          <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold flex items-start gap-1.5"><Ic name="ai" className="w-4 h-4 text-purple-500 shrink-0 mt-0.5"/>このコンピテンシーは「{logModal.level==='よくできている'?'処遇改善の根拠':'次の研修テーマ'}」として育成計画に反映されます。</div>
+        </div>}
+      </Modal>
+
+      {/* 研修詳細モーダル */}
+      <Modal open={!!trModal} onClose={()=>setTrModal(null)} icon="book"
+        title={trModal?trModal.name:''} sub={trModal?(trModal.status+' ・ '+trModal.hours):''}
+        footer={<><Btn kind="ghost" onClick={()=>setTrModal(null)}>閉じる</Btn>{trModal&&trModal.status!=='修了'&&<Btn kind="primary" icon="check" onClick={()=>{mockTap(trModal.name+'を受講予約しました（モック）');setTrModal(null);}}>受講を予約</Btn>}</>}>
+        {trModal && <div className="space-y-4">
+          <div><div className="flex items-center justify-between mb-1.5"><span className="text-[12px] font-bold text-muted">進捗</span><span className="text-[12px] font-bold text-ink">{trModal.hours}</span></div><Bar pct={trModal.pct} tone={trModal.tone==='blue'?'brand':trModal.tone}/></div>
+          <p className="text-[13px] text-ink leading-relaxed bg-cream rounded-xl p-3 border border-[#F3E6D9]">{trModal.detail}</p>
+          <div className="flex items-center gap-2 bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3"><Badge tone="orange"><Ic name="money" className="w-3 h-3"/>処遇連動</Badge><span className="text-[13px] font-bold text-ink">{trModal.link}</span></div>
+        </div>}
+      </Modal>
+
+      {/* 有給申請モーダル */}
+      <Modal open={leave} onClose={()=>setLeave(false)} icon="calendar" title="休暇を申請する" sub="残 12.5 日 ・ 主任→園長の順で承認されます"
+        footer={<><Btn kind="ghost" onClick={()=>setLeave(false)}>キャンセル</Btn><Btn kind="primary" icon="send" onClick={()=>{setLeaveDone(true);setLeave(false);}}>申請する</Btn></>}>
+        <div className="space-y-3">
+          <div><div className="text-[12px] font-bold text-muted mb-1">種類</div><div className="flex gap-2">{['年次有給','時間有給','慶弔'].map((t,i)=><span key={i} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border',i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{t}</span>)}</div></div>
+          <div><div className="text-[12px] font-bold text-muted mb-1">日付</div><div className="bg-cream rounded-xl px-3 py-2.5 border border-[#F3E6D9] text-[13px] font-bold text-ink flex items-center gap-2"><Ic name="calendar" className="w-4 h-4 text-brand-500"/>2026年6月20日（金）・ 1日</div></div>
+          <div><div className="text-[12px] font-bold text-muted mb-1">理由（任意）</div><div className="bg-cream rounded-xl px-3 py-2.5 border border-[#F3E6D9] text-[13px] text-muted font-bold h-16">私用のため</div></div>
+          <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-2.5 text-[12px] font-bold text-ink flex items-center gap-1.5"><Ic name="clock" className="w-4 h-4 text-purple-500"/>配置基準チェック：6/20 は充足。承認に支障はありません。</div>
+        </div>
+      </Modal>
     </div>
   );
 }
