@@ -3127,41 +3127,118 @@ function OpPlans(){
   const plans=[['ライト',9800,'小規模園向け',['記録・要録','保護者アプリ','名簿']],['スタンダード',19800,'標準機能一式',['ライトの全機能','精算・物販','シフト・バス','AI要約']],['プレミアム',34800,'グループ・多機能',['スタンダード全機能','組織可視化','キャリア評価','優先サポート']]];
   // 月額/年額トグル：年額は2か月分無料（実質10か月分）で表示。請求モデルの柔軟さを体感させる。
   const [cycle,setCycle]=useState('月額');
+  const [tab,setTab]=useState('プラン');
   const price=(m)=> cycle==='月額' ? m : Math.round(m*10/12);
+  // テナント別請求状況（架空）。状態フィルタで未入金の洗い出しを体感。
+  const bills=[
+    ['あおば幼稚園','プレミアム',34800,'入金済','green','6/5'],
+    ['ふたば幼稚園','スタンダード',19800,'入金済','green','6/4'],
+    ['つぼみ保育園','スタンダード',19800,'請求済','amber','—'],
+    ['なごみ学園','ライト',9800,'入金済','green','6/2'],
+    ['さくら学園','スタンダード',19800,'未送付','gray','—'],
+    ['みどり幼稚園','プレミアム',34800,'入金遅延','red','督促中'],
+  ];
+  const [bf,setBf]=useState('すべて');
+  const BFS=['すべて','入金済','請求済','未送付','入金遅延'];
+  const visBills=bills.filter(b=>bf==='すべて'||b[3]===bf);
+  const total=bills.reduce((s,b)=>s+b[2],0), paid=bills.filter(b=>b[3]==='入金済').reduce((s,b)=>s+b[2],0);
   return (<div>
     <PageHead title="プラン・課金" sub="プラン定義と請求。fincodeでテナントごとに請求先を分離（こしょこしょ同様）。"
-      action={<div className="flex gap-2"><Tabs tabs={['月額','年額']} active={cycle} onChange={setCycle}/><Btn kind="primary" icon="check">プランを編集</Btn></div>}/>
-    {cycle==='年額'&&<div className="mb-4 inline-flex items-center gap-2 text-[12px] font-bold text-green-700 bg-[#E8F5E9] rounded-lg px-3 py-2"><Ic name="check" className="w-4 h-4"/>年額一括は2か月分無料（実質10か月分の月割表示）</div>}
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">{plans.map((p,i)=>(
-      <Card key={i} className={cx('p-5', i===1&&'ring-2 ring-brand-300')}>
-        {i===1&&<Badge tone="orange">人気</Badge>}
-        <div className="font-extrabold text-ink text-lg mt-1">{p[0]}</div>
-        <div className="flex items-end gap-1 mt-1"><span className="text-2xl font-extrabold text-brand-500">¥{price(p[1]).toLocaleString()}</span><span className="text-[12px] text-muted font-bold mb-1">/月・園</span></div>
-        <p className="text-[12px] text-muted font-bold mt-1 mb-3">{p[2]}</p>
-        <div className="space-y-1.5">{p[3].map((f,k)=>(<div key={k} className="flex items-center gap-2 text-[13px] text-ink"><span className="text-green-500"><Ic name="check" className="w-4 h-4"/></span>{f}</div>))}</div>
+      action={<Tabs tabs={['プラン','請求']} active={tab} onChange={setTab}/>}/>
+    {tab==='プラン' && <React.Fragment>
+      <div className="mb-4 flex items-center gap-2"><Tabs tabs={['月額','年額']} active={cycle} onChange={setCycle}/><Btn kind="primary" icon="check" onClick={()=>mockTap('プラン定義の編集（機能セット・価格）モック')}>プランを編集</Btn></div>
+      {cycle==='年額'&&<div className="mb-4 inline-flex items-center gap-2 text-[12px] font-bold text-green-700 bg-[#E8F5E9] rounded-lg px-3 py-2"><Ic name="check" className="w-4 h-4"/>年額一括は2か月分無料（実質10か月分の月割表示）</div>}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">{plans.map((p,i)=>(
+        <Card key={i} className={cx('p-5', i===1&&'ring-2 ring-brand-300')}>
+          {i===1&&<Badge tone="orange">人気</Badge>}
+          <div className="font-extrabold text-ink text-lg mt-1">{p[0]}</div>
+          <div className="flex items-end gap-1 mt-1"><span className="text-2xl font-extrabold text-brand-500">¥{price(p[1]).toLocaleString()}</span><span className="text-[12px] text-muted font-bold mb-1">/月・園</span></div>
+          <p className="text-[12px] text-muted font-bold mt-1 mb-3">{p[2]}</p>
+          <div className="space-y-1.5">{p[3].map((f,k)=>(<div key={k} className="flex items-center gap-2 text-[13px] text-ink"><span className="text-green-500"><Ic name="check" className="w-4 h-4"/></span>{f}</div>))}</div>
+          <div className="mt-3 text-[12px] text-muted font-bold">契約園数：{[2,2,2][i]}園</div>
+        </Card>
+      ))}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="p-4"><Stat label="今月の請求総額" value={'¥'+(total/1000000).toFixed(2)+'M'} tone="orange"/></Card>
+        <Card className="p-4"><Stat label="入金済" value={bills.filter(b=>b[3]==='入金済').length+'/'+bills.length} tone="green"/></Card>
+        <Card className="p-4"><Stat label="fincodeサブショップ" value={String(bills.length)} tone="ink"/></Card>
+      </div>
+    </React.Fragment>}
+
+    {tab==='請求' && <React.Fragment>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <Card className="p-4"><Stat label="請求総額" value={'¥'+total.toLocaleString()} tone="orange"/></Card>
+        <Card className="p-4"><Stat label="入金済" value={'¥'+paid.toLocaleString()} tone="green"/></Card>
+        <Card className="p-4"><Stat label="未収" value={'¥'+(total-paid).toLocaleString()} tone="red"/></Card>
+        <Card className="p-4"><Stat label="入金率" value={Math.round(paid/total*100)+'%'} tone="ink"/></Card>
+      </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {BFS.map(f=>{ const n=f==='すべて'?bills.length:bills.filter(b=>b[3]===f).length;
+          return <button key={f} onClick={()=>setBf(f)} className={cx('px-3 py-1.5 rounded-xl text-[13px] font-bold border transition', bf===f?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4] hover:bg-brand-50')}>{f}<span className={cx('ml-1.5 px-1.5 rounded-full text-[11px]', bf===f?'bg-white/25':'bg-cream')}>{n}</span></button>;
+        })}
+      </div>
+      <Card>
+        <CardHead icon="money" title={'テナント別 請求状況（'+visBills.length+'件）'} action={<Btn kind="ghost" icon="file" onClick={()=>mockTap('請求一覧をCSVで書き出し（モック）')}>CSV出力</Btn>}/>
+        <div className="px-5 pb-5 space-y-2">
+          {visBills.map((b,i)=>(
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40">
+              <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name="building" className="w-5 h-5"/></div>
+              <div className="flex-1 min-w-0"><div className="font-bold text-ink text-[14px]">{b[0]}</div><div className="text-[12px] text-muted font-bold">{b[1]}・入金日 {b[5]}</div></div>
+              <div className="font-extrabold text-ink text-[14px]">¥{b[2].toLocaleString()}</div>
+              <Badge tone={b[4]}>{b[3]}</Badge>
+              {(b[3]==='未送付'||b[3]==='入金遅延') ? <Btn kind="soft" onClick={()=>mockTap(b[0]+' に'+(b[3]==='未送付'?'請求書を送付':'督促を送信')+'（モック）')}>{b[3]==='未送付'?'送付':'督促'}</Btn> : <span className="text-green-500"><Ic name="check" className="w-5 h-5"/></span>}
+            </div>
+          ))}
+        </div>
       </Card>
-    ))}</div>
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <Card className="p-4"><Stat label="今月の請求総額" value="¥1.82M" tone="orange"/></Card>
-      <Card className="p-4"><Stat label="入金済" value="21/24" tone="green"/></Card>
-      <Card className="p-4"><Stat label="fincodeサブショップ" value="24" tone="ink"/></Card>
-    </div>
+    </React.Fragment>}
   </div>);
 }
 function OpOnboard(){
   const steps=['申込・契約','テナント発行','データ移行','管理者研修','本番開始'];
+  const cur=2; // 現在のステップ（さくら学園）
+  // 各ステップのタスク内訳。タップで下のパネルに展開し、進捗バー＋チェックで「今どこで止まっているか」を可視化。
+  const TASKS={
+    0:[['利用申込書の受領',true],['見積・プランの合意',true],['利用規約・DPA締結',true],['請求先(fincode)の登録',true]],
+    1:[['テナント発行',true],['管理者アカウント作成',true],['園・施設マスタ登録',true],['独自ドメイン設定',false]],
+    2:[['旧システムからエクスポート',true],['名簿・園児データのAI変換',true],['写真・動画の移行',false],['保護者アカウント引継ぎ',false]],
+    3:[['管理者向けオンライン研修',false],['担任向け記録ハンズオン',false],['保護者への案内文配布',false]],
+    4:[['並行運用の確認',false],['旧システム停止',false],['本番切替',false]],
+  };
   const migs=[['なごみ学園','おうちえん','園児・保護者・写真','68%','blue'],['さくら学園','コミュなび','名簿・請求','35%','amber'],['みどり幼稚園','バスキャッチ','バス・名簿','完了','green']];
+  const [sel,setSel]=useState(cur);
+  const done=(TASKS[sel]||[]).filter(t=>t[1]).length, total=(TASKS[sel]||[]).length;
   return (<div>
     <PageHead title="オンボーディング・移行" sub="他システムからの移行を含む導入フロー。移行容易性が最重要KPI。"/>
-    <Card className="p-5 mb-5"><CardHead icon="ai" title="導入ステップ（さくら学園）"/>
+    <Card className="p-5 mb-5"><CardHead icon="ai" title="導入ステップ（さくら学園）" action={<span className="text-[11px] text-muted font-bold">ステップをタップ</span>}/>
       <div className="px-5 pb-4 flex items-center gap-2">{steps.map((s,i)=>(
         <React.Fragment key={i}>
-          <div className="flex flex-col items-center"><div className={cx('w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold', i<2?'bg-green-500 text-white':i===2?'bg-brand-500 text-white':'bg-cream text-muted border border-[#E8D5C4]')}>{i<2?'✓':i+1}</div><span className="text-[11px] font-bold text-ink mt-1 w-16 text-center">{s}</span></div>
-          {i<steps.length-1&&<div className={cx('flex-1 h-1 rounded-full', i<2?'bg-green-300':'bg-cream')}/>}
+          <button onClick={()=>setSel(i)} className="flex flex-col items-center group">
+            <div className={cx('w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold transition', i<cur?'bg-green-500 text-white':i===cur?'bg-brand-500 text-white':'bg-cream text-muted border border-[#E8D5C4]', sel===i&&'ring-4 ring-brand-100')}>{i<cur?'✓':i+1}</div>
+            <span className={cx('text-[11px] font-bold mt-1 w-16 text-center', sel===i?'text-brand-600':'text-ink')}>{s}</span>
+          </button>
+          {i<steps.length-1&&<div className={cx('flex-1 h-1 rounded-full', i<cur?'bg-green-300':'bg-cream')}/>}
         </React.Fragment>
       ))}</div>
+      <div className="px-5 pb-2">
+        <div className="rounded-xl border border-[#F3E6D9] bg-cream/30 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-bold text-ink text-[14px]">{steps[sel]}<span className="ml-2 text-[12px] text-muted font-bold">{done}/{total} 完了</span></div>
+            <Badge tone={sel<cur?'green':sel===cur?'orange':'gray'}>{sel<cur?'完了':sel===cur?'進行中':'未着手'}</Badge>
+          </div>
+          <Bar pct={total?Math.round(done/total*100):0} tone={sel<cur?'green':'brand'}/>
+          <div className="mt-3 space-y-1.5">
+            {(TASKS[sel]||[]).map((t,ti)=>(
+              <div key={ti} className="flex items-center gap-2 text-[13px]">
+                <span className={cx('w-5 h-5 rounded-md flex items-center justify-center shrink-0', t[1]?'bg-[#E8F5E9] text-green-600':'bg-cream text-muted border border-[#E8D5C4]')}><Ic name={t[1]?'check':'clock'} className="w-3.5 h-3.5"/></span>
+                <span className={cx('font-bold', t[1]?'text-ink':'text-muted')}>{t[0]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </Card>
-    <Card><CardHead icon="ai" title="データ移行の進捗（AI変換）"/>
+    <Card><CardHead icon="ai" title="データ移行の進捗（AI変換）" action={<Btn kind="ghost" icon="ai" onClick={()=>mockTap('移行マッピングをAIが再生成（モック）')}>マッピング再生成</Btn>}/>
       <div className="px-5 pb-5 space-y-3">{migs.map((m,i)=>(
         <div key={i} className="flex items-center gap-3"><div className="w-32 shrink-0"><div className="font-bold text-ink text-[14px]">{m[0]}</div><div className="text-[11px] text-muted font-bold">{m[1]}より</div></div>
           <div className="flex-1"><div className="text-[12px] text-muted font-bold mb-1">{m[2]}</div><div className="h-2 rounded-full bg-cream overflow-hidden"><div className="h-full bg-brand-400" style={{width:m[3]==='完了'?'100%':m[3]}}/></div></div>
