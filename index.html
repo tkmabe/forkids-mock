@@ -1893,13 +1893,24 @@ function Portfolio(){
 
 function KidsInfo(){
   const [tab,setTab]=useState('基本情報');
+  const [kf,setKf]=useState('すべて'); // 組フィルタ
+  const [sel,setSel]=useState(null);   // カルテモーダル対象の園児id
+  const KLASSES=['すべて','あおば組','ふたば組','つぼみ組'];
+  const fam=(i)=>({nm:['佐藤','鈴木','高橋','田村','小林','加藤'][i%6], gv:['花子','美咲','恵','彩','真由','香'][i%6], rel:['母','父','祖母'][i%3], tel:'090-xxxx-'+(1000+i), pick:['母・祖母','父・母','母・祖父'][i%3]});
+  const list=KIDS.filter(k=>kf==='すべて'||k.klass===kf);
+  const child=sel!=null?KIDS.find(k=>k.id===sel):null;
   return (
     <div>
-      <PageHead title="園児カルテ" sub="基本情報・健康・身体測定・緊急連絡を一元化。名簿センターと連動。"
+      <PageHead title="園児カルテ" sub="基本情報・健康・身体測定・緊急連絡を一元化。名簿センターと連動。園児をタップで個票。"
         action={<Tabs tabs={['基本情報','健康・身体測定','緊急連絡']} active={tab} onChange={setTab}/>}/>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {KLASSES.map(c=>{ const n=c==='すべて'?KIDS.length:KIDS.filter(k=>k.klass===c).length;
+          return <button key={c} onClick={()=>setKf(c)} className={cx('px-3 py-1.5 rounded-xl text-[13px] font-bold border transition', kf===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4] hover:bg-brand-50')}>{c}<span className={cx('ml-1.5 px-1.5 rounded-full text-[11px]', kf===c?'bg-white/25':'bg-cream')}>{n}</span></button>;
+        })}
+      </div>
       {tab==='基本情報' && <Card className="overflow-hidden"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
-        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','生年月日','クラス','認定','入園日','きょうだい'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-        <tbody>{KIDS.slice(0,8).map((k,i)=>(<tr key={k.id} className="border-b border-[#F7EFE7]"><td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td><td className="px-5 py-3 text-gray-600 font-bold">2020/{(i%12)+1}/{(i*2)%28+1}</td><td className="px-5 py-3 font-bold text-gray-600">あおば組</td><td className="px-5 py-3"><Badge tone="blue">{['1号','2号'][i%2]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">2023/4/1</td><td className="px-5 py-3">{i%2? <Badge tone="green">あり</Badge>:'—'}</td></tr>))}</tbody>
+        <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','生年月日','クラス','認定','入園日','きょうだい',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+        <tbody>{list.map((k,i)=>(<tr key={k.id} onClick={()=>setSel(k.id)} className="border-b border-[#F7EFE7] hover:bg-cream/40 cursor-pointer"><td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td><td className="px-5 py-3 text-gray-600 font-bold">2020/{(k.id%12)+1}/{(k.id*2)%28+1}</td><td className="px-5 py-3 font-bold text-gray-600">{k.klass}</td><td className="px-5 py-3"><Badge tone="blue">{['1号','2号'][k.id%2]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">2023/4/1</td><td className="px-5 py-3">{k.id%2? <Badge tone="green">あり</Badge>:'—'}</td><td className="px-5 py-3 text-brand-400"><Ic name="chevron" className="w-4 h-4"/></td></tr>))}</tbody>
       </table></Card>}
       {tab==='健康・身体測定' && <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="col-span-2 p-5"><CardHead icon="chart" title="身体測定の推移（さくら）"/>
@@ -1912,30 +1923,94 @@ function KidsInfo(){
       </div>}
       {tab==='緊急連絡' && <Card className="overflow-hidden"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','保護者','続柄','電話','お迎え可能者'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-        <tbody>{KIDS.slice(0,6).map((k,i)=>(<tr key={k.id} className="border-b border-[#F7EFE7]"><td className="px-5 py-3 font-bold text-ink">{k.n}</td><td className="px-5 py-3 text-gray-600 font-bold">{['佐藤','鈴木','高橋'][i%3]} {['花子','美咲','恵'][i%3]}</td><td className="px-5 py-3 text-gray-600 font-bold">{['母','父','祖母'][i%3]}</td><td className="px-5 py-3 text-gray-600 font-bold">090-xxxx-{1000+i}</td><td className="px-5 py-3 text-gray-600 font-bold">{['母・祖母','父・母','母・祖父'][i%3]}</td></tr>))}</tbody>
+        <tbody>{list.map((k,i)=>{const fm=fam(k.id);return(<tr key={k.id} onClick={()=>setSel(k.id)} className="border-b border-[#F7EFE7] hover:bg-cream/40 cursor-pointer"><td className="px-5 py-3 font-bold text-ink">{k.n}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.nm} {fm.gv}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.rel}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.tel}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.pick}</td></tr>);})}</tbody>
       </table></Card>}
+
+      <Modal open={child!=null} onClose={()=>setSel(null)} wide icon="book" title={child&&(child.n+' の個票')} sub={child&&(child.klass+'（'+child.age+'）')}
+        footer={<><Btn kind="ghost" icon="file" onClick={()=>mockTap('カルテをPDF出力（モック）')}>PDF出力</Btn><Btn kind="soft" icon="star" onClick={()=>mockTap(child.n+' のポートフォリオへ（モック）')}>成長の記録を見る</Btn></>}>
+        {child && <div className="space-y-4">
+          <div className="flex items-center gap-3"><Avatar name={child.n} color={child.color} size={56} ring/><div><div className="font-extrabold text-ink text-lg">{child.n}</div><div className="text-[12px] text-muted font-bold">2020/{(child.id%12)+1}/{(child.id*2)%28+1} 生まれ・{['1号','2号'][child.id%2]}認定</div></div></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[['身長','114cm'],['体重','19.8kg'],['カウプ','標準'],['出席率','97%']].map((s,i)=>(<div key={i} className="rounded-xl border border-[#F3E6D9] p-3 text-center"><div className="text-[11px] text-muted font-bold">{s[0]}</div><div className="font-extrabold text-ink mt-0.5">{s[1]}</div></div>))}
+          </div>
+          <div>
+            <div className="text-[12px] text-muted font-bold mb-2">緊急連絡先</div>
+            {(()=>{const fm=fam(child.id);return(<div className="space-y-1.5 text-[13px]">
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="font-bold text-ink">{fm.nm} {fm.gv}（{fm.rel}）</span><span className="text-gray-600 font-bold">{fm.tel}</span></div>
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="text-muted font-bold">お迎え可能者</span><span className="font-bold text-ink">{fm.pick}</span></div>
+            </div>);})()}
+          </div>
+          <div>
+            <div className="text-[12px] text-muted font-bold mb-2">健康・特記</div>
+            <div className="flex flex-wrap gap-1.5">
+              {(child.id%3===0? ['卵アレルギー','代替食']: child.id%3===1? ['熱性けいれん既往']: ['特記なし']).map((t,i)=>(<Badge key={i} tone={t==='特記なし'?'gray':'red'}>{t}</Badge>))}
+              <Badge tone="green">内科健診 6/10予定</Badge>
+            </div>
+          </div>
+        </div>}
+      </Modal>
     </div>
   );
 }
 
 function Allergy(){
-  const menu=['ごはん','みそ汁','鶏のからあげ','ひじき煮','牛乳'];
-  const rows=[['ひなた',['卵','乳'],'代替食','red'],['りく',['えび','かに'],'除去','amber'],['めい',['小麦'],'代替食','red'],['そうた',['そば'],'要確認','amber']];
+  // 各献立が含むアレルゲン（架空）。園児のアレルゲンと自動クロスして該当セルを警告する。
+  const menu=[['ごはん',[]],['みそ汁',['大豆']],['鶏のからあげ',['卵','小麦']],['ひじき煮',['大豆']],['牛乳',['乳']]];
+  const kids=[['ひなた',['卵','乳'],'代替食'],['りく',['えび','かに'],'除去'],['めい',['小麦'],'代替食'],['そうた',['そば'],'要確認'],['ことね',['大豆'],'除去']];
+  const hit=(kAllerg,mAllerg)=> kAllerg.filter(a=>mAllerg.includes(a));
+  const [sel,setSel]=useState(null); // {ki,mi}
+  const totalHits = kids.reduce((s,k)=> s + menu.filter(m=>hit(k[1],m[1]).length).length, 0);
+  const s = sel ? {k:kids[sel.ki], m:menu[sel.mi], a:hit(kids[sel.ki][1],menu[sel.mi][1])} : null;
   return (
     <div>
-      <PageHead title="給食・アレルギー" sub="献立 × アレルゲンを自動クロス。該当児を色で警告し、配膳ミスを防ぐ。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="calendar">献立を取込</Btn><Btn kind="primary" icon="file">対応表を印刷</Btn></div>}/>
-      <Card className="p-5 mb-5"><div className="flex items-center gap-3"><Badge tone="orange">本日の献立</Badge><div className="flex flex-wrap gap-2">{menu.map((m,i)=><span key={i} className="px-3 py-1.5 rounded-lg bg-cream border border-[#F3E6D9] text-[13px] font-bold text-ink">{m}</span>)}</div></div></Card>
-      <Card>
-        <CardHead icon="search" title="アレルギー対応が必要な園児（4名）" action={<Badge tone="red">本日 該当 3件</Badge>}/>
-        <div className="px-5 pb-5 space-y-2">{rows.map((r,i)=>(
-          <div key={i} className={cx('flex items-center gap-3 p-3 rounded-xl border', r[3]==='red'?'border-red-200 bg-red-50/50':'border-[#F3E6D9]')}>
-            <Avatar name={r[0]} color={CAT[i]} size={36}/>
-            <div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="flex gap-1 mt-0.5">{r[1].map((a,k)=><Badge key={k} tone="red">{a}</Badge>)}</div></div>
-            <Badge tone={r[3]==='red'?'red':'amber'}>{r[2]}</Badge>
-          </div>
-        ))}</div>
+      <PageHead title="給食・アレルギー" sub="献立 × アレルゲンを自動クロス。該当セルを色で警告し、配膳ミスを防ぐ。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="calendar" onClick={()=>mockTap('明日以降の献立を取込（モック）')}>献立を取込</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('本日の配膳対応表を印刷（モック）')}>対応表を印刷</Btn></div>}/>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <Card className="p-4"><Stat label="本日の献立" value={menu.length+'品'} tone="ink"/></Card>
+        <Card className="p-4"><Stat label="対応必要な園児" value={kids.length+'名'} tone="orange"/></Card>
+        <Card className="p-4"><Stat label="本日の該当" value={totalHits+'件'} tone="red"/></Card>
+        <Card className="p-4"><Stat label="代替食 準備" value="3食" tone="green"/></Card>
+      </div>
+      <Card className="overflow-hidden mb-5">
+        <CardHead icon="search" title="献立 × 園児 クロス警告（タップで対応）" action={<Badge tone="red">⚠ が配膳注意</Badge>}/>
+        <div className="px-5 pb-5">
+          <table className="w-full text-[12px] text-center block overflow-x-auto whitespace-nowrap md:table md:overflow-visible">
+            <thead><tr className="text-muted font-bold border-b border-[#F3E6D9]"><th className="px-2 py-2 text-left sticky left-0 bg-white">園児＼献立</th>{menu.map((m,mi)=><th key={mi} className="px-2 py-2"><div className="font-bold text-ink">{m[0]}</div>{m[1].length? <div className="text-[10px] text-muted font-bold">{m[1].join('・')}</div>:<div className="text-[10px] text-green-500 font-bold">対応不要</div>}</th>)}</tr></thead>
+            <tbody>{kids.map((k,ki)=>(
+              <tr key={ki} className="border-b border-[#F7EFE7]">
+                <td className="px-2 py-2 text-left sticky left-0 bg-white"><div className="flex items-center gap-1.5"><Avatar name={k[0]} color={CAT[ki%6]} size={26}/><div><div className="font-bold text-ink">{k[0]}</div><div className="text-[10px] text-red-500 font-bold">{k[1].join('・')}</div></div></div></td>
+                {menu.map((m,mi)=>{ const h=hit(k[1],m[1]);
+                  return <td key={mi} className="px-2 py-2">{h.length
+                    ? <button onClick={()=>setSel({ki,mi})} className="w-9 h-9 rounded-lg bg-red-50 text-red-500 inline-flex items-center justify-center font-extrabold hover:bg-red-100">⚠</button>
+                    : <span className="w-9 h-9 rounded-lg bg-[#E8F5E9] text-green-500 inline-flex items-center justify-center"><Ic name="check" className="w-4 h-4"/></span>}</td>;
+                })}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
       </Card>
+      <Card>
+        <CardHead icon="heart" title="対応方針（園児別）"/>
+        <div className="px-5 pb-5 space-y-2">{kids.map((k,i)=>{ const todays=menu.filter(m=>hit(k[1],m[1]).length);
+          return (
+          <div key={i} className={cx('flex items-center gap-3 p-3 rounded-xl border', todays.length?'border-red-200 bg-red-50/50':'border-[#F3E6D9]')}>
+            <Avatar name={k[0]} color={CAT[i%6]} size={36}/>
+            <div className="flex-1"><div className="font-bold text-ink text-[14px]">{k[0]}</div><div className="flex flex-wrap gap-1 mt-0.5">{k[1].map((a,j)=><Badge key={j} tone="red">{a}</Badge>)}</div></div>
+            <div className="text-[12px] text-muted font-bold shrink-0 hidden sm:block">{todays.length? '本日 '+todays.length+'品 注意':'本日 該当なし'}</div>
+            <Badge tone={k[2]==='代替食'?'red':'amber'}>{k[2]}</Badge>
+          </div>);
+        })}</div>
+      </Card>
+
+      <Modal open={!!s} onClose={()=>setSel(null)} icon="search" title={s&&('⚠ '+s.k[0]+'：'+s.m[0])} sub="配膳前の対応確認"
+        footer={<><Btn kind="ghost" onClick={()=>mockTap('調理室へ連絡（モック）')}>調理室へ連絡</Btn><Btn kind="primary" icon="check" onClick={()=>{mockTap(s.k[0]+' の代替対応を確認済にしました（モック）');setSel(null);}}>対応を確認済に</Btn></>}>
+        {s && <div className="space-y-3">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-[13px] font-bold text-red-600 flex items-start gap-2"><Ic name="bell" className="w-4 h-4 mt-0.5 shrink-0"/>「{s.m[0]}」には {s.a.join('・')} が含まれます。{s.k[0]} は {s.k[1].join('・')} アレルギーのため配膳注意。</div>
+          <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="text-[12px] text-muted font-bold">対応方針</span><Badge tone={s.k[2]==='代替食'?'red':'amber'}>{s.k[2]}</Badge></div>
+          <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="text-[12px] text-muted font-bold">代替メニュー</span><span className="font-bold text-ink text-[13px]">{s.k[2]==='代替食'?'アレルゲン除去の個別食':'当該品を除いて配膳'}</span></div>
+          <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="text-[12px] text-muted font-bold">トレイ色分け</span><Badge tone="orange">専用トレイ（赤）</Badge></div>
+        </div>}
+      </Modal>
     </div>
   );
 }
