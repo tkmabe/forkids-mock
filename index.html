@@ -3915,6 +3915,7 @@ function OpHelpCMS(){
 function OpVersion(){
   const rings=[['社内検証','興縁チーム','v1.5.0-rc2','green'],['先行配信','あおば学園','v1.5.0-rc1','blue'],['一般配信','全テナント','v1.4.2','green']];
   const notes=[['v1.5.0','要録AIの精度改善・5領域提案の根拠表示','予定'],['v1.4.2','保護者アプリのオフライン打刻の安定化','配信中'],['v1.4.1','写真一括ダウンロードの不具合修正','配信済']];
+  const [detail,setDetail] = useState(null); // 選択中リリース {n,i} or null（行→詳細モーダル）
   return (<div>
     <PageHead title="アプリ版配信" sub="PWA／アプリのバージョンを段階配信（リング）。リリースノートとロールアウトを管理。"
       action={<Btn kind="primary" icon="send">次版を配信</Btn>}/>
@@ -3933,13 +3934,90 @@ function OpVersion(){
             <td className="px-5 py-3"><Badge tone="blue">{n[0]}</Badge></td>
             <td className="px-5 py-3 font-bold text-ink">{n[1]}</td>
             <td className="px-5 py-3"><Badge tone={n[2]==='配信中'?'green':n[2]==='予定'?'amber':'gray'}>{n[2]}</Badge></td>
-            <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+            <td className="px-5 py-3 text-right"><button onClick={()=>setDetail({n,i})} className="text-brand-500" title="リリース詳細を開く"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
       </table></div>
     </Card>
     <Card className="p-4 mt-5 bg-[#FBFAFF] border-[#EEE7FB]"><div className="flex items-start gap-2"><span className="text-purple-600 mt-0.5"><Ic name="shield" className="w-5 h-5"/></span><p className="text-[13px] text-ink font-bold">本番配信は要承認操作。一般配信リングへの昇格は運営責任者の承認後に実行されます（こしょこしょ同様の段階配信）。</p></div></Card>
+    <OpReleaseDetail detail={detail} onClose={()=>setDetail(null)}/>
   </div>);
+}
+
+/* リリース詳細モーダル（マスターコンソール）。リリースノート行→chevron で開く。
+   すべて架空ダミー：行データ(n)と index(i) から決定的に合成。一般配信への昇格は要承認のためトースト止まり＋注記。 */
+function opReleaseSynth(n, i){
+  const status = n[2];
+  // 段階配信：状態に応じて各リングの配信率を決定（予定=未配信／配信中=一般が途中／配信済=完了）
+  const rollout = status==='配信済'
+    ? [['社内検証',100],['先行配信',100],['一般配信',100]]
+    : status==='配信中'
+    ? [['社内検証',100],['先行配信',100],['一般配信',42]]
+    : [['社内検証',100],['先行配信',30],['一般配信',0]];
+  const changeMap = {
+    'v1.5.0':[['改善','要録AIの推定精度を改善（誤抽出を低減）'],['新規','5領域提案に「根拠となった記録」を表示'],['改善','音声記録の整文スピードを向上']],
+    'v1.4.2':[['改善','保護者アプリのオフライン打刻を安定化'],['修正','低速回線での同期失敗をリトライ'],['修正','一部端末で出欠が二重登録される問題']],
+    'v1.4.1':[['修正','写真一括ダウンロードが失敗する不具合'],['改善','アルバム読み込みの高速化']],
+  };
+  const changes = changeMap[n[0]] || [['改善','各種の細かな改善（モック）']];
+  const known = status==='予定' ? ['先行配信リングで回帰確認中（一般配信は承認後）'] : status==='配信中' ? ['一部の旧端末で表示が崩れる報告を調査中'] : [];
+  const released = ['—','2026-05-28','2026-05-14'][i%3];
+  const overall = rollout.reduce((s,r)=>s+r[1],0)/rollout.length;
+  return { status, rollout, changes, known, released, overall: Math.round(overall) };
+}
+function OpReleaseDetail({detail, onClose}){
+  if(!detail) return null;
+  const { n, i } = detail;
+  const d = opReleaseSynth(n, i);
+  const toneOf = (s)=> s==='配信中'?'green':s==='予定'?'amber':'gray';
+  const footer = (<>
+    <span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="lock" className="w-3.5 h-3.5"/>一般配信への昇格・ロールバックは要承認（モックは実行しません）</span>
+    <Btn kind="ghost" icon="logout" onClick={()=>mockTap('このバージョンをロールバック（要承認・モック）')}>ロールバック</Btn>
+    <Btn kind="primary" icon="send" onClick={()=>mockTap('次のリングへ昇格は運営責任者の承認後（モック）')}>次リングへ昇格</Btn>
+  </>);
+  return (
+    <Modal open={!!detail} onClose={onClose} wide icon="send"
+      title={n[0]} sub={n[1]}
+      footer={footer}>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <Badge tone="blue">{n[0]}</Badge>
+        <Badge tone={toneOf(d.status)}>{d.status}</Badge>
+        <span className="text-[12px] font-bold text-muted">配信日 {d.released}・全体ロールアウト {d.overall}%</span>
+      </div>
+
+      <div className="mb-5">
+        <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-2"><Ic name="ai" className="w-4 h-4 text-brand-500"/>変更点</div>
+        <div className="space-y-2">
+          {d.changes.map((c,k)=>(
+            <div key={k} className="flex items-start gap-2 p-2.5 rounded-xl border border-[#F3E6D9] bg-white">
+              <Badge tone={c[0]==='新規'?'orange':c[0]==='修正'?'red':'blue'}>{c[0]}</Badge>
+              <span className="text-[13px] font-bold text-ink flex-1">{c[1]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-5">
+        <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-2"><Ic name="shield" className="w-4 h-4 text-brand-500"/>段階配信リング（社内 → 先行 → 一般）</div>
+        <div className="space-y-3">
+          {d.rollout.map((r,k)=>(
+            <div key={k}>
+              <div className="flex items-center justify-between text-[12px] font-bold mb-1">
+                <span className="text-ink flex items-center gap-1.5"><span className={cx('w-2 h-2 rounded-full', r[1]===100?'bg-green-500':r[1]>0?'bg-amber-500':'bg-gray-300')}/>{r[0]}</span>
+                <span className={cx(r[1]===100?'text-green-600':r[1]>0?'text-amber-600':'text-muted')}>{r[1]===0?'未配信':r[1]+'%'}</span>
+              </div>
+              <Bar pct={r[1]} tone={r[1]===100?'green':r[1]>0?'amber':'brand'}/>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {d.known.length>0 && <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+        <div className="text-[12px] font-extrabold text-amber-700 flex items-center gap-1.5 mb-1"><Ic name="search" className="w-4 h-4"/>既知の問題・調査中</div>
+        {d.known.map((k,idx)=><div key={idx} className="text-[12px] font-bold text-ink">・{k}</div>)}
+      </div>}
+    </Modal>
+  );
 }
 function OpAudit(){
   const logs=[
