@@ -3788,6 +3788,7 @@ function OpLegal(){
 }
 function OpSupport(){
   const tickets=[['ログインできない先生がいる','あおば学園','緊急','対応中','amber'],['要録の様式追加の要望','さくら学園','要望','新規','red'],['請求書PDFの宛名変更','みどり幼稚園','通常','解決','green'],['アプリが重い時間帯がある','なごみ学園','障害調査','調査中','blue'],['保護者の写真DLができない','あおば学園','通常','解決','green']];
+  const [detail,setDetail] = useState(null); // 選択中チケット {t,i} or null（行→詳細モーダル）
   return (<div>
     <PageHead title="問い合わせサポート" sub="テナントからの問い合わせ・障害報告の一次対応とSLA管理。"
       action={<Btn kind="primary" icon="plus">チケットを起票</Btn>}/>
@@ -3805,12 +3806,82 @@ function OpSupport(){
             <td className="px-5 py-3 text-gray-600 font-bold">{t[1]}</td>
             <td className="px-5 py-3"><Badge tone="gray">{t[2]}</Badge></td>
             <td className="px-5 py-3"><Badge tone={t[4]}>{t[3]}</Badge></td>
-            <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+            <td className="px-5 py-3 text-right"><button onClick={()=>setDetail({t,i})} className="text-brand-500" title="チケット詳細を開く"><Ic name="chevron" className="w-4 h-4"/></button></td>
           </tr>
         ))}</tbody>
       </table></div>
     </Card>
+    <OpTicketDetail detail={detail} onClose={()=>setDetail(null)}/>
   </div>);
+}
+
+/* 問い合わせチケット詳細モーダル（マスターコンソール）。チケット行→chevron で開く。
+   すべて架空ダミー：行データ(t)と index(i) から決定的に合成。返信/ステータス変更/エスカレーションは
+   対外/運用操作のためトースト止まり＋注記。 */
+function opTicketSynth(t, i){
+  const type = t[2];
+  const sla = type==='緊急' ? '2時間' : type==='障害調査' ? '4時間' : '1営業日';
+  const slaLeft = t[3]==='解決' ? '達成' : ['残り 48分','期限超過','残り 3時間','残り 5時間'][i % 4];
+  const assignees = ['運営 田中','運営 佐々木','運営 大野','運営 森'];
+  const requesters = ['園長 山田','主任 鈴木','事務 高橋','担任 小林'];
+  const opened = ['本日 09:12','昨日 16:40','本日 11:05','2日前 14:20','本日 08:30'][i%5];
+  const bodyMap = {
+    'ログインできない先生がいる':'新任の先生1名が、配布したIDでログインできません。パスワード再設定メールも届かないとのことです。',
+    '要録の様式追加の要望':'自治体提出様式に新しい項目が追加されました。要録テンプレートへの反映をお願いしたいです。',
+    '請求書PDFの宛名変更':'請求書の宛名を法人名から園名に変更したいです。次回請求分から反映可能でしょうか。',
+    'アプリが重い時間帯がある':'登園時間帯（8:00-9:00）にアプリの動作が重くなることがあります。確認をお願いします。',
+    '保護者の写真DLができない':'一部の保護者から、購入済み写真のダウンロードができないと連絡がありました。',
+  };
+  const body = bodyMap[t[0]] || 'テナントからの問い合わせ内容（モック）。';
+  const thread = [
+    { who:'tenant', name: requesters[i%4], time: opened, text: body },
+    { who:'op', name: assignees[i%4], time: opened.replace(/\d2$/, '38'), text: '受付しました。状況を確認のうえ、担当より折り返しご連絡します。' },
+  ];
+  if(t[3]==='解決'){ thread.push({ who:'op', name: assignees[i%4], time:'本日 13:20', text:'対応が完了しました。再発時はこのチケットに返信ください。' }); }
+  else if(t[3]==='対応中'||t[3]==='調査中'){ thread.push({ who:'tenant', name: requesters[i%4], time:'本日 12:00', text:'ありがとうございます。引き続きよろしくお願いします。' }); }
+  return { type, sla, slaLeft, assignee: assignees[i%4], requester: requesters[i%4], opened,
+           firstResp: t[3]==='新規' ? '未' : (18 + (i*7)%40)+'分', thread };
+}
+function OpTicketDetail({detail, onClose}){
+  if(!detail) return null;
+  const { t, i } = detail;
+  const d = opTicketSynth(t, i);
+  const footer = (<>
+    <span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="lock" className="w-3.5 h-3.5"/>返信・ステータス変更・エスカレーションは運用操作（モックは実行しません）</span>
+    <Btn kind="ghost" icon="ai" onClick={()=>mockTap('開発チームへエスカレーション（モック）')}>エスカレーション</Btn>
+    <Btn kind="primary" icon="send" onClick={()=>mockTap('テナントへの返信送信は要対応記録（モック）')}>返信する</Btn>
+  </>);
+  return (
+    <Modal open={!!detail} onClose={onClose} wide icon="headset"
+      title={t[0]} sub={t[1]+'・'+d.requester}
+      footer={footer}>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <Badge tone="gray">{d.type}</Badge>
+        <Badge tone={t[4]}>{t[3]}</Badge>
+        <span className="text-[12px] font-bold text-muted">チケット OBA-T{String(300+i)}</span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+        <div className="rounded-xl border border-[#F3E6D9] bg-cream/40 px-3 py-2"><div className="text-[11px] font-bold text-muted">起票</div><div className="text-[14px] font-extrabold text-ink mt-0.5">{d.opened}</div></div>
+        <div className="rounded-xl border border-[#F3E6D9] bg-cream/40 px-3 py-2"><div className="text-[11px] font-bold text-muted">担当</div><div className="text-[14px] font-extrabold text-ink mt-0.5">{d.assignee}</div></div>
+        <div className="rounded-xl border border-[#F3E6D9] bg-cream/40 px-3 py-2"><div className="text-[11px] font-bold text-muted">初動</div><div className="text-[14px] font-extrabold text-ink mt-0.5">{d.firstResp}</div></div>
+        <div className={cx('rounded-xl border px-3 py-2', d.slaLeft==='期限超過'?'border-red-200 bg-red-50':'border-[#F3E6D9] bg-cream/40')}><div className="text-[11px] font-bold text-muted">SLA（{d.sla}）</div><div className={cx('text-[14px] font-extrabold mt-0.5', d.slaLeft==='期限超過'?'text-red-500':d.slaLeft==='達成'?'text-green-600':'text-ink')}>{d.slaLeft}</div></div>
+      </div>
+
+      <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-2"><Ic name="book" className="w-4 h-4 text-brand-500"/>やり取り</div>
+      <div className="space-y-3">
+        {d.thread.map((m,k)=>(
+          <div key={k} className={cx('flex gap-2', m.who==='op'?'flex-row-reverse':'')}>
+            <div className={cx('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', m.who==='op'?'bg-brand-500 text-white':'bg-purple-50 text-purple-600')}><Ic name={m.who==='op'?'headset':'users'} className="w-4 h-4"/></div>
+            <div className={cx('flex-1 min-w-0', m.who==='op'?'text-right':'')}>
+              <div className="text-[11px] font-bold text-muted mb-0.5">{m.name}・{m.time}</div>
+              <div className={cx('inline-block text-[13px] font-bold px-3 py-2 rounded-2xl border max-w-[90%] text-left', m.who==='op'?'bg-brand-50 border-[#F3D9C9] text-ink':'bg-white border-[#F3E6D9] text-ink')}>{m.text}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Modal>
+  );
 }
 function OpHelpCMS(){
   const cats=[['はじめに',6],['記録・要録',12],['保護者連携',9],['精算・課金',7],['管理・設定',8]];
