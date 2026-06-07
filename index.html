@@ -1647,32 +1647,71 @@ function Docs(){
 function Lesson(){
   const [tab,setTab]=useState('週案');
   const days=['月','火','水','木','金'];
+  const [aim,setAim] = useState('身近な自然に触れ、気づいたことを自分の言葉で表現する。');
+  // 週案：各曜日の活動を編集（モーダル）
+  const [week,setWeek] = useState(days.map((d,i)=>({d, act:['戸外あそび','製作','クッキング','音楽','遠足準備'][i], detail:['だんごむし観察','あじさい制作','梅シロップ','リズム遊び','しおり作り'][i]})));
+  const [dayEdit,setDayEdit] = useState(null);
+  const [dEAct,setDEAct] = useState(''); const [dEDet,setDEDet] = useState('');
+  const openDay = (i)=>{ setDayEdit(i); setDEAct(week[i].act); setDEDet(week[i].detail); };
+  const saveDay = ()=>{ setWeek(w=>w.map((x,j)=>j===dayEdit?{...x,act:dEAct,detail:dEDet}:x)); setDayEdit(null); };
+  // 日誌：編集可能フィールド＋承認＋AI下書き
+  const [diary,setDiary] = useState({ '活動':'', '子どもの育ち':'', '明日への手立て':'' });
+  const [drafted,setDrafted] = useState(false);
+  const [diaryStage,setDiaryStage] = useState(0);
+  const aiDiary = ()=>{ setDiary({ '活動':'戸外でだんごむし観察。図鑑で足の数を調べる子が複数。', '子どもの育ち':'「なぜ」を自分から問い、友だちに説明する姿。', '明日への手立て':'図鑑コーナーを充実させ、問いが深まる環境を用意する。' }); setDrafted(true); };
+  // 月案：編集可能
+  const [plan,setPlan] = useState([['ねらい','梅雨期の自然に親しみ、探究する姿を育てる'],['環境構成','図鑑・観察道具・雨の日コーナー'],['行事','保育参観・プール開き'],['家庭連携','成長レポートで探究の姿を共有']]);
+  const [planEdit,setPlanEdit] = useState(null); const [planVal,setPlanVal] = useState('');
+  const openPlan = (i)=>{ setPlanEdit(i); setPlanVal(plan[i][1]); };
+  const savePlan = ()=>{ setPlan(p=>p.map((r,i)=>i===planEdit?[r[0],planVal]:r)); setPlanEdit(null); };
   return (
     <div>
       <PageHead title="指導計画・日誌" sub="ねらい→活動→振り返りを一本化。日々の記録から日誌をAIが下書き。"
         action={<Tabs tabs={['週案','日誌','月案']} active={tab} onChange={setTab}/>}/>
       {tab==='週案' && <Card className="p-5">
         <div className="flex items-center gap-2 mb-4"><Badge tone="orange">あおば組（年長）</Badge><span className="text-[13px] font-bold text-ink">6月 第1週</span><span className="ml-auto"><AIChip/></span></div>
-        <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9] mb-4"><div className="text-[12px] font-bold text-brand-600 mb-1">今週のねらい</div><p className="text-[14px] text-ink">身近な自然に触れ、気づいたことを自分の言葉で表現する。</p></div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">{days.map((d,i)=>(
-          <div key={i} className="rounded-xl border border-[#F3E6D9] overflow-hidden">
-            <div className="bg-cream px-2 py-1.5 text-center text-[12px] font-bold text-ink">{d}</div>
-            <div className="p-2 text-[12px] text-ink space-y-1 h-28"><div className="font-bold">{['戸外あそび','製作','クッキング','音楽','遠足準備'][i]}</div><p className="text-muted font-bold text-[11px]">{['だんごむし観察','あじさい制作','梅シロップ','リズム遊び','しおり作り'][i]}</p></div>
-          </div>
+        <div className="bg-cream rounded-xl p-4 border border-[#F3E6D9] mb-4"><div className="text-[12px] font-bold text-brand-600 mb-1">今週のねらい（編集可）</div><textarea value={aim} onChange={e=>setAim(e.target.value)} className="w-full text-[14px] text-ink bg-white rounded-lg px-3 py-2 border border-[#F3E6D9] outline-none resize-none h-14"/></div>
+        <div className="text-[12px] text-muted font-bold mb-2">日ごとの計画（タップで編集）</div>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">{week.map((w,i)=>(
+          <button key={i} onClick={()=>openDay(i)} className="rounded-xl border border-[#F3E6D9] overflow-hidden text-left hover:border-brand-300 hover:shadow-card transition">
+            <div className="bg-cream px-2 py-1.5 text-center text-[12px] font-bold text-ink flex items-center justify-center gap-1">{w.d}<Ic name="edit" className="w-3 h-3 text-brand-400"/></div>
+            <div className="p-2 text-[12px] text-ink space-y-1 h-28"><div className="font-bold">{w.act}</div><p className="text-muted font-bold text-[11px]">{w.detail}</p></div>
+          </button>
         ))}</div>
       </Card>}
       {tab==='日誌' && <Card className="p-5 max-w-3xl">
-        <div className="flex items-center gap-2 mb-3"><span className="font-extrabold text-ink">2026年6月2日（火）の日誌</span><Badge tone="amber">主任承認待ち</Badge><span className="ml-auto"><AIChip/></span></div>
-        {[['活動','戸外でだんごむし観察。図鑑で足の数を調べる子が複数。'],['子どもの育ち','「なぜ」を自分から問い、友だちに説明する姿。'],['明日への手立て','図鑑コーナーを充実させ、問いが深まる環境を用意する。']].map((r,i)=>(
-          <div key={i} className="py-3 border-t border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">{r[0]}</div><p className="text-[14px] text-ink leading-relaxed">{r[1]}</p></div>
-        ))}
-        <div className="flex gap-2 mt-4"><Btn kind="primary" icon="check">承認に回す</Btn><Btn kind="ghost" icon="edit">編集</Btn></div>
+        <div className="flex flex-wrap items-center gap-2 mb-3"><span className="font-extrabold text-ink">2026年6月2日（火）の日誌</span><Badge tone={diaryStage>=2?'green':diaryStage===1?'amber':'gray'}>{diaryStage>=2?'承認済':diaryStage===1?'主任承認待ち':'作成中'}</Badge><span className="ml-auto"><Btn kind="soft" icon="ai" onClick={aiDiary}>日々の記録からAI下書き</Btn></span></div>
+        {!drafted && <div className="bg-[#FBFAFF] border border-dashed border-[#EEE7FB] rounded-xl p-5 text-center"><Ic name="ai" className="w-8 h-8 text-purple-300 mx-auto mb-2"/><p className="text-[13px] font-bold text-muted">「日々の記録からAI下書き」を押すと、その日の記録・実践ログから日誌の3項目を自動で起草します。</p></div>}
+        {drafted && <>
+          {Object.keys(diary).map((k,i)=>(
+            <div key={i} className="py-3 border-t border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">{k}</div><textarea value={diary[k]} onChange={e=>setDiary(d=>({...d,[k]:e.target.value}))} className="w-full text-[14px] text-ink leading-relaxed bg-cream rounded-lg px-3 py-2 border border-[#F3E6D9] outline-none resize-none h-16"/></div>
+          ))}
+          <div className="flex gap-2 mt-4">
+            {diaryStage<2?<Btn kind="primary" icon="check" onClick={()=>setDiaryStage(s=>s+1)}>{diaryStage===0?'主任承認に回す':'園長が承認'}</Btn>:<Badge tone="green"><Ic name="check" className="w-3 h-3"/>承認完了</Badge>}
+            <Btn kind="ghost" icon="file" onClick={()=>mockTap('日誌をPDF出力（モック）')}>PDF</Btn>
+          </div>
+        </>}
       </Card>}
-      {tab==='月案' && <Card className="p-5"><div className="text-[13px] text-muted font-bold mb-3">6月の月案（年長）</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{[['ねらい','梅雨期の自然に親しみ、探究する姿を育てる'],['環境構成','図鑑・観察道具・雨の日コーナー'],['行事','保育参観・プール開き'],['家庭連携','成長レポートで探究の姿を共有']].map((r,i)=>(
-          <div key={i} className="bg-cream rounded-xl p-4 border border-[#F3E6D9]"><div className="text-[12px] font-bold text-brand-600 mb-1">{r[0]}</div><p className="text-[13px] text-ink">{r[1]}</p></div>
+      {tab==='月案' && <Card className="p-5"><div className="flex items-center justify-between mb-3"><div className="text-[13px] text-muted font-bold">6月の月案（年長）・各項目タップで編集</div><AIChip/></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{plan.map((r,i)=>(
+          <button key={i} onClick={()=>openPlan(i)} className="text-left bg-cream rounded-xl p-4 border border-[#F3E6D9] hover:border-brand-300 transition"><div className="flex items-center gap-1 text-[12px] font-bold text-brand-600 mb-1">{r[0]}<Ic name="edit" className="w-3 h-3 text-brand-400"/></div><p className="text-[13px] text-ink">{r[1]}</p></button>
         ))}</div>
       </Card>}
+
+      {/* 週案 日編集モーダル */}
+      <Modal open={dayEdit!==null} onClose={()=>setDayEdit(null)} icon="clipboard" title={dayEdit!==null?(week[dayEdit].d+'曜日の計画'):''} sub="あおば組（年長）・6月第1週"
+        footer={<><Btn kind="ghost" onClick={()=>setDayEdit(null)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={saveDay}>保存</Btn></>}>
+        <div className="space-y-3">
+          <div><div className="text-[12px] font-bold text-muted mb-1">主な活動</div><input value={dEAct} onChange={e=>setDEAct(e.target.value)} className="w-full text-[14px] font-bold text-ink bg-cream rounded-lg px-3 py-2 border border-[#F3E6D9] outline-none"/></div>
+          <div><div className="text-[12px] font-bold text-muted mb-1">ねらい・内容</div><textarea value={dEDet} onChange={e=>setDEDet(e.target.value)} className="w-full text-[13px] text-ink bg-cream rounded-lg px-3 py-2 border border-[#F3E6D9] outline-none resize-none h-20"/></div>
+        </div>
+      </Modal>
+
+      {/* 月案 項目編集モーダル */}
+      <Modal open={planEdit!==null} onClose={()=>setPlanEdit(null)} icon="edit" title={planEdit!==null?(plan[planEdit][0]+' を編集'):''} sub="6月の月案（年長）"
+        footer={<><Btn kind="ghost" onClick={()=>setPlanEdit(null)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={savePlan}>保存</Btn></>}>
+        <textarea value={planVal} onChange={e=>setPlanVal(e.target.value)} className="w-full text-[14px] text-ink bg-cream rounded-lg px-3 py-2 border border-[#F3E6D9] outline-none resize-none h-24"/>
+      </Modal>
     </div>
   );
 }
