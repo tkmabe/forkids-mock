@@ -1066,19 +1066,26 @@ function MonthlyEditor(){
 }
 
 function Billing(){
+  // タッチ打刻：児童をタップで 未登園→在園中→降園 を循環。在園中の人数が連動。
+  const [stamp,setStamp]=useState({}); // id -> 'in'|'out'
+  const cycle=(id)=> setStamp(s=>{ const cur=s[id]; const nx= cur===undefined?'in': cur==='in'?'out':undefined; const n={...s}; if(nx===undefined) delete n[id]; else n[id]=nx; return n; });
+  const here=Object.values(stamp).filter(v=>v==='in').length;
+  const [fixed,setFixed]=useState(false);
   return (
     <div>
       <PageHead title="登降園・精算" sub="タッチ打刻 → 時間記録 → 月次精算（無償化・全銀・インボイス対応）"/>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
-        <Card className="p-5"><h3 className="font-bold text-ink mb-3">タッチ打刻（iPad）</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{KIDS.slice(0,6).map(k=><div key={k.id} className="flex flex-col items-center bg-cream rounded-xl p-2 border border-[#F3E6D9]"><Avatar name={k.n} color={k.color} size={36}/><span className="text-[11px] font-bold mt-1">{k.n}</span></div>)}</div>
-          <div className="flex gap-2 mt-3"><Btn kind="primary" className="flex-1">登園</Btn><Btn kind="ghost" className="flex-1">降園</Btn></div>
+        <Card className="p-5"><div className="flex items-center justify-between mb-3"><h3 className="font-bold text-ink">タッチ打刻（iPad）</h3><Badge tone="green">在園中 {here}名</Badge></div>
+          <p className="text-[11px] text-muted font-bold mb-2">園児をタップ：未登園→在園中→降園</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{KIDS.slice(0,6).map(k=>{ const st=stamp[k.id];
+            return <button key={k.id} onClick={()=>cycle(k.id)} className={cx('flex flex-col items-center rounded-xl p-2 border transition', st==='in'?'bg-[#E8F5E9] border-green-200':st==='out'?'bg-cream border-[#E8D5C4] opacity-70':'bg-cream border-[#F3E6D9]')}><div className="relative"><Avatar name={k.n} color={k.color} size={36}/>{st&&<span className={cx('absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white', st==='in'?'bg-green-500':'bg-gray-400')}><Ic name={st==='in'?'check':'logout'} className="w-2.5 h-2.5"/></span>}</div><span className="text-[11px] font-bold mt-1">{k.n}</span><span className={cx('text-[10px] font-bold', st==='in'?'text-green-600':st==='out'?'text-muted':'text-brand-400')}>{st==='in'?'登園 8:'+(20+k.id):st==='out'?'降園済':'未登園'}</span></button>;
+          })}</div>
         </Card>
-        <Card className="col-span-2 p-5"><CardHead icon="money" title="6月分 精算サマリ"/>
+        <Card className="col-span-2 p-5"><CardHead icon="money" title="6月分 精算サマリ" action={fixed?<Badge tone="green"><Ic name="check" className="w-3 h-3"/>確定済</Badge>:<Badge tone="amber">未確定</Badge>}/>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-1">
-            <Stat label="請求対象" value="118名"/><Stat label="無償化適用" value="92名" tone="green"/><Stat label="請求額" value="¥1.86M" tone="orange"/><Stat label="未確定" value="6件" tone="red"/>
+            <Stat label="請求対象" value="118名"/><Stat label="無償化適用" value="92名" tone="green"/><Stat label="請求額" value="¥1.86M" tone="orange"/><Stat label="未確定" value={fixed?'0件':'6件'} tone={fixed?'green':'red'}/>
           </div>
-          <div className="mt-4 flex gap-2"><Btn kind="ghost" icon="file">全銀フォーマット出力</Btn><Btn kind="ghost" icon="file">適格請求書(インボイス)</Btn><Btn kind="primary" icon="check">精算を確定</Btn></div>
+          <div className="mt-4 flex flex-wrap gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('全銀フォーマットを出力（モック）')}>全銀フォーマット出力</Btn><Btn kind="ghost" icon="file" onClick={()=>mockTap('適格請求書(インボイス)を出力（モック）')}>適格請求書(インボイス)</Btn>{fixed? <Btn kind="soft" icon="check" onClick={()=>setFixed(false)}>確定を取消</Btn> : <Btn kind="primary" icon="check" onClick={()=>setFixed(true)}>精算を確定</Btn>}</div>
         </Card>
       </div>
       <Card className="overflow-hidden">
@@ -1101,10 +1108,13 @@ function Shift(){
   const staff = ['田中','佐々木','塚田','久保','渡辺'];
   const days = ['月','火','水','木','金','土'];
   const cellColors = ['#FDC089','#ADDABB','#AFD0F0','#C8B3ED','#FFD0D8'];
+  const role=['担任（年長）','担任（年中）','主任','担任（年少）','フリー'];
+  const sh=(si,di)=> (si+di)%4!==0 ? ['早','日','遅','日'][di%4] : '休';
+  const [sel,setSel]=useState(null); // 職員index
   return (
     <div>
-      <PageHead title="シフト・労務" sub="2026年6月 ・ 配置基準を自動チェック"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="file">給与連携CSV</Btn><Btn kind="primary" icon="plus">シフト作成</Btn></div>}/>
+      <PageHead title="シフト・労務" sub="2026年6月 ・ 配置基準を自動チェック。職員をタップで勤務詳細。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('給与連携CSVを出力（モック）')}>給与連携CSV</Btn><Btn kind="primary" icon="plus" onClick={()=>mockTap('翌月シフトをAIが下書き作成（モック）')}>シフト作成</Btn></div>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card className="p-4"><Stat label="配置基準" value="充足" tone="green"/></Card>
         <Card className="p-4"><Stat label="要注意日" value="2日" tone="red"/></Card>
@@ -1113,16 +1123,33 @@ function Shift(){
       </div>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px] text-center block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
-          <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40"><th className="px-4 py-3 text-left">職員</th>{days.map(d=><th key={d} className="px-2 py-3">{d}</th>)}</tr></thead>
+          <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40"><th className="px-4 py-3 text-left">職員</th>{days.map(d=><th key={d} className="px-2 py-3">{d}</th>)}<th className="px-2 py-3"></th></tr></thead>
           <tbody>{staff.map((s,si)=>(
-            <tr key={s} className="border-b border-[#F7EFE7]">
-              <td className="px-4 py-3 text-left font-bold text-ink">{s} 先生</td>
-              {days.map((d,di)=> <td key={di} className="px-2 py-2">{(si+di)%4!==0? <span className="inline-block px-2 py-1 rounded-lg text-[11px] font-bold text-ink/70" style={{background:cellColors[si%5]+'66'}}>{['早','日','遅','日'][di%4]}</span> : <span className="text-muted">休</span>}</td>)}
+            <tr key={s} onClick={()=>setSel(si)} className="border-b border-[#F7EFE7] hover:bg-cream/40 cursor-pointer">
+              <td className="px-4 py-3 text-left font-bold text-ink">{s} 先生<span className="ml-1 text-[11px] text-muted font-bold hidden md:inline">{role[si]}</span></td>
+              {days.map((d,di)=> <td key={di} className="px-2 py-2">{sh(si,di)!=='休'? <span className="inline-block px-2 py-1 rounded-lg text-[11px] font-bold text-ink/70" style={{background:cellColors[si%5]+'66'}}>{sh(si,di)}</span> : <span className="text-muted">休</span>}</td>)}
+              <td className="px-2 py-2 text-brand-400"><Ic name="chevron" className="w-4 h-4"/></td>
             </tr>
           ))}</tbody>
         </table>
       </Card>
       <div className="mt-4"><Card className="p-4 border-l-4 border-l-red-300"><div className="flex items-center gap-2 text-[13px]"><Badge tone="red">配置基準アラート</Badge><span className="font-bold text-ink">6/15(月) 午後 ・ 年少クラスが基準人数 -1名。早番の調整を推奨。</span></div></Card></div>
+
+      <Modal open={sel!=null} onClose={()=>setSel(null)} icon="clock" title={sel!=null&&(staff[sel]+' 先生 の勤務')} sub={sel!=null&&role[sel]}
+        footer={<><Btn kind="ghost" icon="calendar" onClick={()=>mockTap('休暇を申請（モック）')}>休暇を申請</Btn><Btn kind="soft" icon="edit" onClick={()=>mockTap(staff[sel]+' 先生のシフトを編集（モック）')}>シフトを編集</Btn></>}>
+        {sel!=null && <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[['今月勤務',(20-sel)+'日'],['総労働','152h'],['残業','4h'],['有給残',(12-sel)+'日']].map((s,i)=>(<div key={i} className="rounded-xl border border-[#F3E6D9] p-3 text-center"><div className="text-[11px] text-muted font-bold">{s[0]}</div><div className="font-extrabold text-ink mt-0.5">{s[1]}</div></div>))}
+          </div>
+          <div>
+            <div className="text-[12px] text-muted font-bold mb-2">今週のシフト</div>
+            <div className="grid grid-cols-6 gap-1.5">{days.map((d,di)=>{ const v=sh(sel,di);
+              return <div key={di} className="text-center"><div className="text-[11px] text-muted font-bold">{d}</div><div className={cx('mt-1 py-2 rounded-lg text-[12px] font-bold', v==='休'?'bg-cream text-muted':'text-ink/70')} style={v!=='休'?{background:cellColors[sel%5]+'66'}:{}}>{v}</div></div>;
+            })}</div>
+          </div>
+          <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold flex items-start gap-2"><Ic name="ai" className="w-4 h-4 text-purple-600 mt-0.5 shrink-0"/>実践ログ・研修修了が処遇に連動。{staff[sel]}先生は今月、配置基準を1度も割らずに勤務。</div>
+        </div>}
+      </Modal>
     </div>
   );
 }
