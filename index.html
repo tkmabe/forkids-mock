@@ -589,16 +589,25 @@ function TeacherHome({go}){
 }
 
 function RecordInput({go}){
-  const child = KIDS[1];
+  const aobaKids = KIDS.filter(k=>k.klass==='あおば組');
+  const [ci,setCi] = useState(aobaKids.findIndex(k=>k.n==='さくら'));
+  const child = aobaKids[ci<0?0:ci];
   const MODES=[['音声','mic'],['写真','camera'],['テキスト','edit'],['メール取込','send']];
   const [mode,setMode] = useState('音声');
   const [rec,setRec] = useState(false);
+  const [processed,setProcessed] = useState(false); // AI整文が走った後の表示
+  const [draft,setDraft] = useState('戸外あそびの時間に、だんごむしを見つけて友だち3人で観察。「あしは何本あるのかな」と自分から問いを立てて数えていた。図鑑コーナーまで自分で行き、調べた内容を友だちに説明する姿。');
+  const [photos,setPhotos] = useState(3);
+  const [text,setText] = useState('');
   const [axes,setAxes] = useState(['環境','言葉']);
   const allAxes = ['健康','人間関係','環境','言葉','表現'];
   const [skills,setSkills] = useState(['問いを引き出す関わり']);
   const allSkills = ['問いを引き出す関わり','見守りの姿勢','協同を促す','ことばかけ','環境構成'];
+  const [insight,setInsight] = useState('"答え" を言わずに待てた。次もこの間合いで。');
   const toggle = (a)=> setAxes(s=> s.includes(a)? s.filter(x=>x!==a):[...s,a]);
   const toggleSkill = (a)=> setSkills(s=> s.includes(a)? s.filter(x=>x!==a):[...s,a]);
+  const runAI = ()=>{ setRec(false); setProcessed(true); };
+  const switchChild = ()=>{ setCi(i=>(i+1)%aobaKids.length); setProcessed(false); setRec(false); };
   return (
     <div>
       <PageHead title="日常記録入力" sub="1回の記録が、要録・保護者配信・キャリア評価の3方向へ自動でつながります"/>
@@ -607,52 +616,55 @@ function RecordInput({go}){
           <Card className="p-5">
             <div className="flex items-center gap-3 mb-4">
               <Avatar name={child.n} color={child.color} size={56} ring/>
-              <div><div className="font-extrabold text-ink text-lg">{child.n} ちゃん</div><div className="text-[12px] text-muted font-bold">あおば組（年長）</div></div>
-              <button onClick={()=>mockTap('別の子に切替（モック）')} className="ml-auto text-[12px] font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-lg">別の子に切替</button>
+              <div><div className="font-extrabold text-ink text-lg">{child.n} ちゃん</div><div className="text-[12px] text-muted font-bold">あおば組（年長）・ {ci+1}/{aobaKids.length}人目</div></div>
+              <button onClick={switchChild} className="ml-auto inline-flex items-center gap-1 text-[12px] font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-lg"><Ic name="arrow" className="w-4 h-4"/>別の子に切替</button>
             </div>
             {/* 入力モード選択 */}
             <div className="flex flex-wrap gap-2 mb-4">
               {MODES.map(([m,ic])=>(
-                <button key={m} onClick={()=>setMode(m)} className={cx('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', mode===m?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4] hover:bg-brand-50')}>
+                <button key={m} onClick={()=>{setMode(m);setProcessed(false);}} className={cx('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', mode===m?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4] hover:bg-brand-50')}>
                   <Ic name={ic} className="w-4 h-4"/>{m}
                 </button>
               ))}
             </div>
             {/* モード別の入力体 */}
             {mode==='音声' && <div className="flex flex-col items-center py-6 bg-cream rounded-2xl border border-[#F3E6D9]">
-              <button onClick={()=>setRec(r=>!r)} className={cx('w-20 h-20 rounded-full text-white flex items-center justify-center shadow-soft active:scale-95 transition', rec?'bg-red-500':'bg-brand-500')}><Ic name="mic" className="w-9 h-9"/></button>
+              <button onClick={()=>setRec(r=>!r)} className={cx('w-20 h-20 rounded-full text-white flex items-center justify-center shadow-soft active:scale-95 transition', rec?'bg-red-500 animate-pulse':'bg-brand-500')}><Ic name="mic" className="w-9 h-9"/></button>
               {rec ? <>
                 <div className="mt-3 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500"/><span className="font-bold text-ink text-[14px]">録音中 00:12</span></div>
                 <div className="flex items-end gap-0.5 h-7 mt-2">{[6,12,20,10,16,24,14,8,18,22,10,14].map((h,i)=><span key={i} className="w-1 rounded-full bg-brand-400" style={{height:h}}/>)}</div>
-                <p className="text-[12px] text-muted font-bold mt-2">タップで停止 → AIが文字起こしします</p>
+                <Btn kind="primary" icon="ai" className="mt-3" onClick={runAI}>停止してAIで整文</Btn>
               </> : <>
                 <p className="mt-3 font-bold text-ink text-[14px]">タップして話すだけ</p>
                 <p className="text-[12px] text-muted font-bold">あとでAIが文字起こし・整文します</p>
               </>}
             </div>}
             {mode==='写真' && <div className="bg-cream rounded-2xl border border-[#F3E6D9] p-4">
-              <div className="border-2 border-dashed border-[#E8D5C4] rounded-xl py-6 flex flex-col items-center text-muted"><Ic name="camera" className="w-8 h-8"/><p className="text-[13px] font-bold mt-1">写真を追加（ドロップ / 撮影）</p></div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">{CAT.slice(0,5).map((c,i)=><div key={i} className="aspect-square rounded-lg" style={{background:c+'88'}}/>)}<div className="aspect-square rounded-lg border-2 border-dashed border-[#E8D5C4] flex items-center justify-center text-muted"><Ic name="plus" className="w-5 h-5"/></div></div>
-              <p className="text-[12px] text-muted font-bold mt-2">AIが写真の場面を読み取り、記録文の下書きに反映します。</p>
+              <button onClick={()=>setPhotos(p=>Math.min(p+1,6))} className="w-full border-2 border-dashed border-[#E8D5C4] rounded-xl py-6 flex flex-col items-center text-muted hover:border-brand-300 hover:text-brand-500 transition"><Ic name="camera" className="w-8 h-8"/><p className="text-[13px] font-bold mt-1">写真を追加（タップで追加・{photos}枚）</p></button>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">{CAT.slice(0,photos).map((c,i)=><div key={i} className="aspect-square rounded-lg" style={{background:c+'88'}}/>)}<button onClick={()=>setPhotos(p=>Math.min(p+1,6))} className="aspect-square rounded-lg border-2 border-dashed border-[#E8D5C4] flex items-center justify-center text-muted hover:text-brand-500"><Ic name="plus" className="w-5 h-5"/></button></div>
+              <Btn kind="primary" icon="ai" className="w-full mt-3" onClick={runAI}>写真からAIで下書き</Btn>
             </div>}
             {mode==='テキスト' && <div className="bg-cream rounded-2xl border border-[#F3E6D9] p-4">
-              <div className="bg-white rounded-xl border border-[#F3E6D9] p-3 h-28 text-[13px] text-muted font-bold">その場でメモ… 例）だんごむしを見つけて友だちと数えていた</div>
-              <p className="text-[12px] text-muted font-bold mt-2">短いメモでOK。AIが要録・配信向けに整文します。</p>
+              <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="その場でメモ… 例）だんごむしを見つけて友だちと数えていた" className="w-full bg-white rounded-xl border border-[#F3E6D9] p-3 h-28 text-[13px] text-ink font-bold outline-none resize-none placeholder:text-muted"/>
+              <Btn kind="primary" icon="ai" className="w-full mt-3" onClick={runAI}>メモをAIで整文</Btn>
             </div>}
             {mode==='メール取込' && <div className="bg-cream rounded-2xl border border-[#F3E6D9] p-4">
               <div className="flex items-center gap-2 bg-white rounded-xl border border-[#F3E6D9] px-3 py-2 text-[13px]"><Ic name="send" className="w-4 h-4 text-brand-500"/><span className="font-bold text-ink">record-aoba@for-kids.jp</span><Badge tone="blue">専用アドレス</Badge></div>
-              <div className="mt-3 bg-white rounded-xl border border-[#F3E6D9] p-3"><div className="text-[12px] font-bold text-brand-600 mb-1">受信（1件）</div><p className="text-[13px] text-ink">件名: だんごむし観察 / 本文: 自分から問いを立てて…（AIが取込済）</p></div>
-              <p className="text-[12px] text-muted font-bold mt-2">園のアドレスへメールするだけ。AIが本文・添付を記録に取り込みます。</p>
+              <button onClick={runAI} className="mt-3 w-full text-left bg-white rounded-xl border border-[#F3E6D9] p-3 hover:border-brand-300 transition"><div className="text-[12px] font-bold text-brand-600 mb-1">受信（1件）・タップで取込</div><p className="text-[13px] text-ink">件名: だんごむし観察 / 本文: 自分から問いを立てて…</p></button>
             </div>}
           </Card>
-          <Card className="p-5">
+          {!processed && <Card className="p-5 border-dashed">
+            <div className="flex flex-col items-center text-center py-4">
+              <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-400 flex items-center justify-center mb-2"><Ic name="ai" className="w-6 h-6"/></div>
+              <p className="text-[13px] font-bold text-muted">入力したら、上の「AIで整文」ボタンを押してください。<br/>AIが文字起こし・公的文書調に整え、5領域タグまで自動提案します。</p>
+            </div>
+          </Card>}
+          {processed && <Card className="p-5">
             <div className="flex items-center gap-2 mb-2"><AIChip/><span className="text-[12px] text-muted font-bold">文字起こし → 要約・公的文書調に整えました（先生は確認・編集するだけ）</span></div>
             <div className="text-[11px] text-muted font-bold mb-1">文字起こし（生）</div>
             <div className="bg-white border border-[#F3E6D9] rounded-xl p-3 text-[13px] text-gray-500 leading-relaxed mb-3">えーっと、外で、だんごむし見つけて、3人で、足何本？って数えてて、図鑑のとこ自分で行って、みんなに教えてた…</div>
-            <div className="text-[11px] text-muted font-bold mb-1">AI整文（要録・配信向け）</div>
-            <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-4 text-[14px] text-ink leading-relaxed">
-              戸外あそびの時間に、だんごむしを見つけて友だち3人で観察。「あしは何本あるのかな」と<strong className="text-brand-600">自分から問いを立てて</strong>数えていた。図鑑コーナーまで自分で行き、調べた内容を友だちに説明する姿。
-            </div>
+            <div className="flex items-center justify-between mb-1"><div className="text-[11px] text-muted font-bold">AI整文（要録・配信向け・編集可）</div><button onClick={()=>mockTap('別案を生成（モック）')} className="text-[11px] font-bold text-brand-600 inline-flex items-center gap-1"><Ic name="ai" className="w-3 h-3"/>別案</button></div>
+            <textarea value={draft} onChange={e=>setDraft(e.target.value)} className="w-full bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-4 text-[14px] text-ink leading-relaxed outline-none resize-none h-28"/>
             <div className="mt-4">
               <div className="text-[12px] text-muted font-bold mb-2">5領域タグ（AI自動提案・タップで調整）→ 要録へ</div>
               <div className="flex flex-wrap gap-2">
@@ -667,9 +679,9 @@ function RecordInput({go}){
             </div>
             <div className="mt-4">
               <div className="text-[12px] text-muted font-bold mb-2">気づき（任意・あなたの一行）</div>
-              <div className="flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><Ic name="ai" className="w-4 h-4 text-purple-600 ml-1"/><span className="flex-1 text-[12px] text-muted font-bold">"答え" を言わずに待てた。次もこの間合いで。</span></div>
+              <div className="flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><Ic name="ai" className="w-4 h-4 text-purple-600 ml-1"/><input value={insight} onChange={e=>setInsight(e.target.value)} className="flex-1 bg-transparent text-[12px] font-bold text-ink outline-none"/></div>
             </div>
-          </Card>
+          </Card>}
         </div>
         <div className="space-y-5">
           <Card className="p-5">
@@ -678,9 +690,9 @@ function RecordInput({go}){
             {[['要録','5領域「'+ (axes.join('・')||'未選択') +'」のドラフトに反映','purple','file'],
               ['保護者配信','6月の成長レポートの個人ハイライト候補','pink','heart'],
               ['キャリア評価','"'+(skills[0]||'関わり')+'" の実践ログに加算','orange','star']].map((r,i)=>(
-              <div key={i} className="flex gap-3 mb-3 last:mb-0 items-start">
+              <div key={i} className={cx('flex gap-3 mb-3 last:mb-0 items-start transition', processed?'opacity-100':'opacity-50')}>
                 <span className="w-8 h-8 rounded-lg bg-cream border border-[#F3E6D9] flex items-center justify-center text-brand-500 shrink-0"><Ic name={r[3]} className="w-4 h-4"/></span>
-                <div className="flex-1"><Badge tone={r[2]}>{r[0]}</Badge><p className="text-[12px] text-ink font-bold mt-1">{r[1]}</p></div>
+                <div className="flex-1"><div className="flex items-center gap-1.5"><Badge tone={r[2]}>{r[0]}</Badge>{processed&&<Badge tone="green"><Ic name="check" className="w-3 h-3"/>反映準備OK</Badge>}</div><p className="text-[12px] text-ink font-bold mt-1">{r[1]}</p></div>
               </div>
             ))}
           </Card>
