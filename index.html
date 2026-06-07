@@ -2795,6 +2795,7 @@ function OpHome({go, tenants, leads}){
 function OpTenants({go, tenants, approveTenant, rejectTenant, justApproved, clearApproved}){
   const TEN = tenants||TENANTS;
   const [showArchived,setShowArchived] = useState(false);
+  const [detail,setDetail] = useState(null); // 選択中テナント {t,i} or null（行→詳細モーダル）
   // 商談→申込→承認→初期登録 の現在地（承認直後＝3まで完了、次は初期登録）
   const STEPS = ['商談','申込','承認','初期登録'];
   const rejectAt = (i,name)=>{ if(window.confirm(name+' の申込を却下します。\n物理削除はせず「却下」としてアーカイブに残します（履歴保持）。よろしいですか？')) rejectTenant&&rejectTenant(i); };
@@ -2849,14 +2850,115 @@ function OpTenants({go, tenants, approveTenant, rejectTenant, justApproved, clea
           <td className="px-5 py-3 font-bold text-gray-600">{t[3]}園</td>
           <td className="px-5 py-3 font-bold text-gray-600">{t[4]}名</td>
           <td className="px-5 py-3"><Badge tone={t[6]}>{t[5]}</Badge></td>
-          <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+          <td className="px-5 py-3 text-right">{t[5]==='申込受領'
+            ? <button onClick={()=>mockTap('申込内容は上部のレビューで承認/却下できます（モック）')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button>
+            : <button onClick={()=>setDetail({t,i})} className="text-brand-500" title="テナント詳細を開く"><Ic name="chevron" className="w-4 h-4"/></button>}</td>
         </tr>
       ))}</tbody>
     </table></div></Card>
     {archivedCount>0 && <button onClick={()=>setShowArchived(v=>!v)} className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-muted hover:text-ink">
       <Ic name="file" className="w-4 h-4"/>{showArchived?'却下（アーカイブ）を隠す':'却下（アーカイブ）'+archivedCount+'件を表示'}
     </button>}
+    <OpTenantDetail detail={detail} onClose={()=>setDetail(null)} go={go}/>
   </div>);
+}
+
+/* 契約テナント詳細モーダル（マスターコンソール）。一覧行→chevron で開く。
+   すべて架空ダミー：行データ(t)と index(i) から決定的に合成し、テナントごとに一貫した値を出す。
+   課金/契約書送付/プラン変更は要承認のためトースト止まり。園・施設管理だけ読み取り遷移。 */
+function opTenantSynth(t, i){
+  const plan = t[2];
+  const baseMRR = plan==='プレミアム' ? 128000 : plan==='スタンダード' ? 72000 : 42000;
+  const parks = Number(t[3]) || 1;
+  const users = Number(t[4]) || 0;
+  const mrr = baseMRR + parks*18000 + users*120;
+  const starts = ['2024-04-01','2023-04-01','2025-04-01','2024-10-01','2022-04-01'];
+  const pays = ['口座振替','請求書(銀行振込)','クレジットカード'];
+  const billStates = [['入金済','green'],['請求中','blue'],['一部入金','amber']];
+  const bs = billStates[i % billStates.length];
+  const active = 72 + (i*7) % 24;       // 72-95%
+  const paidRate = bs[0]==='入金済' ? 100 : bs[0]==='一部入金' ? 60 + (i*5)%30 : 0;
+  const parkNames = ['さくら','あおば','ふたば','つぼみ','みどり','こすもす'];
+  const parkTypes = ['認定こども園','幼稚園','保育所'];
+  const shown = Math.min(parks, 4);
+  const facilities = Array.from({length:shown}, (_,k)=>({
+    name: parkNames[k % parkNames.length]+'園',
+    type: parkTypes[(i+k) % parkTypes.length],
+    cap: 60 + ((i+k)*15)%90,
+    status: (i+k)%5===0 ? ['準備中','amber'] : ['稼働中','green'],
+  }));
+  return { plan, parks, users, mrr, start: starts[i%starts.length], next: starts[i%starts.length].replace(/^(\d{4})/, m=>String(Number(m)+ (plan==='プレミアム'?2:1))),
+           pay: pays[i%pays.length], bill: bs, billAmt: mrr, active, paidRate, facilities, hidden: parks-shown };
+}
+function OpTenantDetail({detail, onClose, go}){
+  if(!detail) return null;
+  const { t, i } = detail;
+  const d = opTenantSynth(t, i);
+  const yen = (n)=>'¥'+Number(n).toLocaleString();
+  const Stat = ({label, value, sub})=>(
+    <div className="rounded-xl border border-[#F3E6D9] bg-cream/40 px-3 py-2">
+      <div className="text-[11px] font-bold text-muted">{label}</div>
+      <div className="text-[15px] font-extrabold text-ink leading-tight mt-0.5">{value}</div>
+      {sub && <div className="text-[11px] font-bold text-warm mt-0.5">{sub}</div>}
+    </div>
+  );
+  const footer = (<>
+    <span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="lock" className="w-3.5 h-3.5"/>課金・契約書送付・プラン変更は要承認（モックは実行しません）</span>
+    <Btn kind="ghost" icon="edit" onClick={()=>mockTap('プラン変更は要承認のためモックでは実行しません')}>プラン変更</Btn>
+    <Btn kind="ghost" icon="money" onClick={()=>mockTap('請求書発行は経理確定＝要承認（モック）')}>請求書発行</Btn>
+    <Btn kind="primary" icon="home" onClick={()=>{ onClose(); go&&go('opfacilities'); }}>園・施設管理へ</Btn>
+  </>);
+  return (
+    <Modal open={!!detail} onClose={onClose} wide icon="building"
+      title={t[0]} sub={t[1]+'・'+d.plan+'プラン'}
+      footer={footer}>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <Badge tone={t[2]==='プレミアム'?'orange':t[2]==='スタンダード'?'blue':'gray'}>{d.plan}</Badge>
+        <Badge tone={t[6]}>{t[5]}</Badge>
+        <span className="text-[12px] font-bold text-muted">契約ID OBA-{String(1000+i)}</span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+        <Stat label="園・施設" value={d.parks+'園'}/>
+        <Stat label="利用人数" value={d.users+'名'}/>
+        <Stat label="想定MRR(月額)" value={yen(d.mrr)}/>
+        <Stat label="契約開始" value={d.start} sub={'更新 '+d.next}/>
+      </div>
+
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-2"><div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5"><Ic name="home" className="w-4 h-4 text-brand-500"/>配下の園・施設</div><span className="text-[11px] font-bold text-muted">{d.parks}園</span></div>
+        <div className="space-y-2">
+          {d.facilities.map((f,k)=>(
+            <div key={k} className="flex items-center gap-3 p-2.5 rounded-xl border border-[#F3E6D9] bg-white">
+              <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"><Ic name="home" className="w-4 h-4"/></div>
+              <div className="flex-1 min-w-0"><div className="font-bold text-ink text-[13px] truncate">{f.name}</div><div className="text-[11px] font-bold text-muted">{f.type}・定員{f.cap}名</div></div>
+              <Badge tone={f.status[1]}>{f.status[0]}</Badge>
+            </div>
+          ))}
+          {d.hidden>0 && <div className="text-[12px] font-bold text-muted px-1">ほか {d.hidden} 園（園・施設管理で全件）</div>}
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-[#F3E6D9] p-4">
+          <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-3"><Ic name="money" className="w-4 h-4 text-brand-500"/>課金状況</div>
+          <div className="flex items-center justify-between text-[13px] font-bold mb-1"><span className="text-muted">直近請求</span><span className="text-ink">{yen(d.billAmt)} <Badge tone={d.bill[1]}>{d.bill[0]}</Badge></span></div>
+          <div className="flex items-center justify-between text-[12px] font-bold mb-1"><span className="text-muted">次回請求</span><span className="text-ink">{d.next.slice(0,7)}</span></div>
+          <div className="flex items-center justify-between text-[12px] font-bold mb-2"><span className="text-muted">支払方法</span><span className="text-ink">{d.pay}</span></div>
+          <div className="text-[11px] font-bold text-muted mb-1">入金率 {d.paidRate}%</div>
+          <Bar pct={d.paidRate} tone={d.paidRate===100?'green':d.paidRate===0?'red':'amber'}/>
+        </div>
+        <div className="rounded-2xl border border-[#F3E6D9] p-4">
+          <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-3"><Ic name="chart" className="w-4 h-4 text-brand-500"/>利用状況</div>
+          <div className="text-[11px] font-bold text-muted mb-1">アクティブ率（直近30日） {d.active}%</div>
+          <Bar pct={d.active} tone="brand"/>
+          <div className="flex items-center justify-between text-[12px] font-bold mt-3 mb-1"><span className="text-muted">直近ログイン</span><span className="text-ink">本日</span></div>
+          <div className="flex items-center justify-between text-[12px] font-bold mb-1"><span className="text-muted">よく使う機能</span><span className="text-ink">日常記録・れんらく帳</span></div>
+          <div className="flex items-center justify-between text-[12px] font-bold"><span className="text-muted">サポート</span><span className="text-ink">未対応 0 件</span></div>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 function OpNewTenant({go, addTenant}){
   const [f,setF] = useState({ en:'', corp:'', kind:'学校法人', addr:'', plan:'スタンダード', status:'トライアル', start:'2026-04-01', cap:'', classes:'', adminName:'', adminEmail:'', note:'' });
