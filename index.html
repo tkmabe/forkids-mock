@@ -2044,17 +2044,30 @@ function Allergy(){
 
 function MediaMgmt(){
   const [tab,setTab]=useState('写真・動画');
+  const photos=CAT.concat(CAT).concat(CAT.slice(0,6));
+  const [picked,setPicked]=useState({}); // 販売選択
+  const toggle=(i)=> setPicked(p=>{ const n={...p}; if(n[i]) delete n[i]; else n[i]=true; return n; });
+  const pickedN=Object.keys(picked).length;
+  const albums=[['6月 保育参観','#FDC089',24],['5月 親子遠足','#ADDABB',58],['4月 入園式','#C8B3ED',42]];
+  const [album,setAlbum]=useState(null);
   return (
     <div>
       <PageHead title="メディア管理" sub="写真・動画の整理→販売、クラスアルバム編集、行事のライブ配信まで。"
         action={<Tabs tabs={['写真・動画','アルバム','ライブ配信']} active={tab} onChange={setTab}/>}/>
       {tab==='写真・動画' && <div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5"><Card className="p-4"><Stat label="今月の写真" value="312枚" tone="orange"/></Card><Card className="p-4"><Stat label="販売中" value="180枚" tone="ink"/></Card><Card className="p-4"><Stat label="売上(今月)" value="¥86,400" tone="green"/></Card></div>
-        <Card className="p-4"><div className="grid grid-cols-3 sm:grid-cols-6 gap-2">{CAT.concat(CAT).concat(CAT.slice(0,6)).map((c,i)=>(<div key={i} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}><span className="absolute bottom-1 right-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span>{i%5===0&&<div className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-6 h-6 text-white"/></div>}</div>))}</div></Card>
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3"><span className="text-[12px] text-muted font-bold">タップで販売選択　選択中 {pickedN}枚</span>{pickedN>0 && <Btn kind="soft" icon="shop" onClick={()=>{mockTap(pickedN+'枚を販売リストに公開（モック）');setPicked({});}}>選択を販売公開</Btn>}</div>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">{photos.map((c,i)=>(<button key={i} onClick={()=>toggle(i)} className={cx('aspect-square rounded-xl relative overflow-hidden transition', picked[i]&&'ring-2 ring-brand-500 ring-offset-1')} style={{background:c+'88'}}><span className="absolute bottom-1 right-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span>{i%5===0&&<div className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-6 h-6 text-white"/></div>}{picked[i]&&<span className="absolute top-1 left-1 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center"><Ic name="check" className="w-3 h-3"/></span>}</button>))}</div>
+        </Card>
       </div>}
-      {tab==='アルバム' && <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">{[['6月 保育参観','#FDC089',24],['5月 親子遠足','#ADDABB',58],['4月 入園式','#C8B3ED',42]].map((a,i)=>(
-        <Card key={i} className="overflow-hidden"><div className="h-32" style={{background:`linear-gradient(135deg,${a[1]},${a[1]}99)`}}/><div className="p-4"><div className="font-bold text-ink">{a[0]}</div><div className="flex items-center justify-between mt-1"><span className="text-[12px] text-muted font-bold">{a[2]}枚</span><Badge tone="green">公開中</Badge></div></div></Card>
+      {tab==='アルバム' && <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">{albums.map((a,i)=>(
+        <button key={i} onClick={()=>setAlbum(a)} className="text-left"><Card className="overflow-hidden hover:shadow-lg transition"><div className="h-32" style={{background:`linear-gradient(135deg,${a[1]},${a[1]}99)`}}/><div className="p-4"><div className="font-bold text-ink">{a[0]}</div><div className="flex items-center justify-between mt-1"><span className="text-[12px] text-muted font-bold">{a[2]}枚</span><Badge tone="green">公開中</Badge></div></div></Card></button>
       ))}</div>}
+      <Modal open={!!album} onClose={()=>setAlbum(null)} wide icon="photo" title={album&&album[0]} sub={album&&(album[2]+'枚 ・ 公開中')}
+        footer={<><Btn kind="ghost" icon="edit" onClick={()=>mockTap('アルバムの並び替え・キャプション編集（モック）')}>編集</Btn><Btn kind="soft" icon="send" onClick={()=>mockTap(album[0]+' を保護者へ公開通知（モック）')}>公開を通知</Btn></>}>
+        {album && <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">{Array.from({length:12}).map((_,i)=>(<div key={i} className="aspect-square rounded-lg" style={{background:CAT[i%6]+'88'}}/>))}</div>}
+      </Modal>
       {tab==='ライブ配信' && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="p-5"><CardHead icon="video" title="配信枠"/><div className="px-5 pb-5 space-y-2">{[['保育参観','6/3 10:00','本日配信','green'],['運動会','10/12 9:00','予約受付中','blue'],['発表会','12/7 10:00','準備中','amber']].map((r,i)=>(<div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]"><div className="flex-1"><div className="font-bold text-ink">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[1]}</div></div><Badge tone={r[3]}>{r[2]}</Badge></div>))}</div></Card>
         <Card className="p-5"><h3 className="font-bold text-ink mb-3">配信設定</h3><div className="space-y-3 text-[13px]">{[['視聴URLの限定共有','ON'],['アーカイブ保存（30日）','ON'],['同時視聴上限','200'],['写真NG家庭の配慮','自動マスク']].map((r,i)=>(<div key={i} className="flex items-center justify-between"><span className="text-muted font-bold">{r[0]}</span><span className="font-bold text-ink">{r[1]}</span></div>))}</div><Btn kind="primary" icon="video" className="w-full mt-4">配信を開始する</Btn></Card>
@@ -2074,11 +2087,14 @@ function NoticeBoard(){
   ];
   const cats=['すべて','行事','おたより','連絡','募集'];
   const [c,setC]=useState('すべて');
+  const [sel,setSel]=useState(null); // 既読状況モーダル対象
   const rows = items.filter(n=> c==='すべて'||n.cat===c);
+  // クラス別既読（架空）。配信済のみ意味を持つ。
+  const klassRead=[['あおば組',40,38],['ふたば組',40,37],['つぼみ組',40,33]];
   return (
     <div>
       <PageHead title="お知らせ・お便り" sub="園だより・行事連絡をテンプレから作成。既読率も家庭ごとに追える。"
-        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">AIで園だより生成</Btn><Btn kind="primary" icon="plus">新規作成</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai" onClick={()=>mockTap('AIが園だよりの下書きを生成（モック）')}>AIで園だより生成</Btn><Btn kind="primary" icon="plus" onClick={()=>mockTap('お知らせを新規作成（モック）')}>新規作成</Btn></div>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         {[['配信済','4','green'],['予約・下書き','2','amber'],['平均既読率','92%','orange'],['未読家庭','9','red']].map((s,i)=>(
           <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='green'?'green':s[2]==='orange'?'orange':s[2]==='red'?'red':'ink'}/></Card>
@@ -2087,9 +2103,21 @@ function NoticeBoard(){
       <Card className="p-3 mb-4"><div className="flex flex-wrap gap-2">{cats.map(x=><button key={x} onClick={()=>setC(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', c===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
       <Card><CardHead icon="bell" title={'お知らせ一覧（'+rows.length+'件）'}/>
         <div className="px-5 pb-5 space-y-2">{rows.map((n,i)=>(
-          <button key={i} onClick={()=>mockTap(n.title+' の既読状況を表示（モック）')} className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40 transition"><span className="shrink-0"><Badge tone={n.cat==='行事'?'orange':n.cat==='おたより'?'purple':n.cat==='募集'?'blue':'gray'}>{n.cat}</Badge></span><div className="flex-1 font-bold text-ink text-[14px]">{n.title}</div><Badge tone={n.tone}>{n.state}</Badge>{n.read!=='—'&&<span className="text-[12px] text-muted font-bold w-16 text-right">既読 {n.read}</span>}<Ic name="chevron" className="w-4 h-4 text-brand-300 shrink-0"/></button>
+          <button key={i} onClick={()=>setSel(n)} className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40 transition"><span className="shrink-0"><Badge tone={n.cat==='行事'?'orange':n.cat==='おたより'?'purple':n.cat==='募集'?'blue':'gray'}>{n.cat}</Badge></span><div className="flex-1 font-bold text-ink text-[14px]">{n.title}</div><Badge tone={n.tone}>{n.state}</Badge>{n.read!=='—'&&<span className="text-[12px] text-muted font-bold w-16 text-right">既読 {n.read}</span>}<Ic name="chevron" className="w-4 h-4 text-brand-300 shrink-0"/></button>
         ))}</div>
       </Card>
+
+      <Modal open={!!sel} onClose={()=>setSel(null)} icon="bell" title={sel&&sel.title} sub={sel&&(sel.cat+' ・ '+sel.state)}
+        footer={sel&&sel.read!=='—'? <><Btn kind="ghost" icon="send" onClick={()=>mockTap('未読家庭へリマインド送信（モック）')}>未読家庭へ催促</Btn><Btn kind="soft" icon="edit" onClick={()=>mockTap('この配信を再編集（モック）')}>編集</Btn></> : <Btn kind="primary" icon="send" onClick={()=>{mockTap(sel.title+' を配信（モック）');setSel(null);}}>今すぐ配信</Btn>}>
+        {sel && (sel.read!=='—'
+          ? <div className="space-y-3">
+              <div className="flex items-center justify-between"><span className="text-[13px] font-bold text-ink">全体既読率</span><Badge tone="green">{sel.read}</Badge></div>
+              <div className="text-[12px] text-muted font-bold">クラス別の既読状況</div>
+              {klassRead.map((k,i)=>(<div key={i}><div className="flex items-center justify-between text-[12px] mb-1"><span className="font-bold text-ink">{k[0]}</span><span className="text-muted font-bold">{k[2]}/{k[1]}世帯</span></div><Bar pct={Math.round(k[2]/k[1]*100)} tone="green"/></div>))}
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-[12px] text-amber-700 font-bold flex items-start gap-2"><Ic name="bell" className="w-4 h-4 mt-0.5 shrink-0"/>未読 9世帯。前回未読と重複する家庭が4件。電話での個別連絡を推奨。</div>
+            </div>
+          : <div className="text-[13px] text-ink font-bold">この{sel.cat==='募集'?'募集':'お知らせ'}は{sel.state}です。配信するとクラス別の既読状況がここに表示されます。</div>)}
+      </Modal>
     </div>
   );
 }
@@ -2113,17 +2141,47 @@ function FileBox(){
 }
 
 function Feedback(){
+  const summary=[
+    {k:'ポジティブ',tone:'green',pct:'68%',text:'成長レポートが嬉しい・先生の対応が丁寧という声が多数',voices:['毎月の成長レポートが楽しみです。写真が増えて家族で見ています。','連絡帳の返信が丁寧で安心して預けられます。','行事の様子が動画で見られるのが本当に嬉しい。']},
+    {k:'改善要望',tone:'amber',pct:'12件',text:'送迎時の駐車場が混雑。時間分散の案内を希望',voices:['朝の送りの時間帯、駐車場が混むので時間を分けてほしい。','お迎えの列が長くなることがあります。','雨の日の動線が分かりにくいです。']},
+    {k:'要フォロー',tone:'red',pct:'3件',text:'アレルギー対応の確認連絡を増やしてほしい',voices:['アレルギーの代替食、当日の確認連絡があると安心です。','除去食の内容を事前に共有してほしい。','念のため配膳の写真があると嬉しいです。']},
+  ];
+  const surveys=[
+    {t:'6月 保育満足度アンケート',state:'実施中',tone:'green',rate:78,n:92},
+    {t:'夏祭りボランティア希望調査',state:'実施中',tone:'green',rate:54,n:64},
+    {t:'5月 行事アンケート（運動会）',state:'集計済',tone:'gray',rate:88,n:104},
+  ];
+  const [sel,setSel]=useState(null);
   return (
     <div>
-      <PageHead title="ご意見・アンケート" sub="保護者アンケートを配信→AIが自由記述を要約。満足度の推移も。"
-        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">回答をAI要約</Btn><Btn kind="primary" icon="plus">アンケート作成</Btn></div>}/>
+      <PageHead title="ご意見・アンケート" sub="保護者アンケートを配信→AIが自由記述を要約。満足度の推移も。AI要約をタップで実際の声へ。"
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai" onClick={()=>mockTap('全回答をAIが再要約（モック）')}>回答をAI要約</Btn><Btn kind="primary" icon="plus" onClick={()=>mockTap('アンケートを新規作成（モック）')}>アンケート作成</Btn></div>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">{[['実施中','2件','ink'],['回答率','78%','orange'],['総合満足度','4.6','green'],['要対応の声','3件','red']].map((s,i)=>(<Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]}/></Card>))}</div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Card className="col-span-2 p-5"><CardHead icon="ai" title="自由記述のAI要約"/>
-          <div className="px-5 pb-5 space-y-3">{[['ポジティブ','green','成長レポートが嬉しい・先生の対応が丁寧という声が多数（68%）'],['改善要望','amber','送迎時の駐車場が混雑。時間分散の案内を希望（12件）'],['要フォロー','red','アレルギー対応の確認連絡を増やしてほしい（3件）']].map((r,i)=>(<div key={i} className="rounded-xl p-3 border border-[#F3E6D9]"><Badge tone={r[1]}>{r[0]}</Badge><p className="text-[13px] text-ink mt-1">{r[2]}</p></div>))}</div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+        <Card className="col-span-2 p-5"><CardHead icon="ai" title="自由記述のAI要約" action={<span className="text-[11px] text-muted font-bold">タップで実際の声</span>}/>
+          <div className="px-5 pb-5 space-y-3">{summary.map((r,i)=>(<button key={i} onClick={()=>setSel(r)} className="w-full text-left rounded-xl p-3 border border-[#F3E6D9] hover:bg-cream/40 transition flex items-start gap-2"><Badge tone={r.tone}>{r.k} {r.pct}</Badge><p className="flex-1 text-[13px] text-ink">{r.text}</p><Ic name="chevron" className="w-4 h-4 text-brand-300 mt-0.5"/></button>))}</div>
         </Card>
         <Card className="p-5"><h3 className="font-bold text-ink mb-3">満足度の推移</h3><div className="flex items-end gap-2 h-32">{[4.2,4.3,4.4,4.5,4.6].map((v,i)=>(<div key={i} className="flex-1 flex flex-col items-center gap-1"><div className="w-full bg-green-300 rounded-t-lg" style={{height:`${(v-4)*120}px`}}/><span className="text-[10px] text-muted font-bold">{['2月','3月','4月','5月','6月'][i]}</span></div>))}</div></Card>
       </div>
+      <Card><CardHead icon="heart" title="アンケート一覧"/>
+        <div className="px-5 pb-5 space-y-2">{surveys.map((s,i)=>(
+          <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]">
+            <div className="flex-1 min-w-0"><div className="font-bold text-ink text-[14px]">{s.t}</div><div className="mt-1"><Bar pct={s.rate} tone={s.state==='実施中'?'brand':'gray'}/></div></div>
+            <div className="text-[12px] text-muted font-bold shrink-0 hidden sm:block">回答 {s.rate}%・{s.n}件</div>
+            <Badge tone={s.tone}>{s.state}</Badge>
+            <Btn kind="ghost" onClick={()=>mockTap(s.t+' の結果を表示（モック）')}>結果</Btn>
+          </div>
+        ))}</div>
+      </Card>
+
+      <Modal open={!!sel} onClose={()=>setSel(null)} icon="ai" title={sel&&(sel.k+'の声')} sub={sel&&('AI抽出 ・ '+sel.pct)}
+        footer={<Btn kind="soft" icon="send" onClick={()=>mockTap('この声を職員会議の議題に追加（モック）')}>会議の議題に追加</Btn>}>
+        {sel && <div className="space-y-2">
+          <div className={cx('rounded-xl p-3 text-[13px] font-bold flex items-start gap-2', sel.tone==='green'?'bg-[#E8F5E9] text-green-700':sel.tone==='amber'?'bg-amber-50 text-amber-700':'bg-red-50 text-red-600')}><Ic name="ai" className="w-4 h-4 mt-0.5 shrink-0"/>{sel.text}</div>
+          <div className="text-[12px] text-muted font-bold pt-1">代表的な回答（原文・匿名）</div>
+          {sel.voices.map((v,i)=>(<div key={i} className="rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-ink">「{v}」</div>))}
+        </div>}
+      </Modal>
     </div>
   );
 }
