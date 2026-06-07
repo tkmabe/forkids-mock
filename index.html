@@ -866,9 +866,45 @@ function OutputPreview({go}){
   );
 }
 
+/* 園児の緊急連絡先（架空・id から決定的）。園児カルテ・名簿センターで共用。 */
+function kidFamily(i){
+  return {nm:['佐藤','鈴木','高橋','田村','小林','加藤'][i%6], gv:['花子','美咲','恵','彩','真由','香'][i%6], rel:['母','父','祖母'][i%3], tel:'090-xxxx-'+(1000+i), pick:['母・祖母','父・母','母・祖父'][i%3]};
+}
+/* 園児の統合個票モーダル（基本/身体測定/緊急連絡/健康特記）。園児カルテ・名簿センターの行から共用。 */
+function KidProfileModal({child, onClose}){
+  if(!child) return null;
+  const fm = kidFamily(child.id);
+  return (
+    <Modal open={!!child} onClose={onClose} wide icon="book" title={child.n+' の個票'} sub={child.klass+'（'+child.age+'）'}
+      footer={<><Btn kind="ghost" icon="file" onClick={()=>mockTap('カルテをPDF出力（モック）')}>PDF出力</Btn><Btn kind="soft" icon="star" onClick={()=>mockTap(child.n+' のポートフォリオへ（モック）')}>成長の記録を見る</Btn></>}>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3"><Avatar name={child.n} color={child.color} size={56} ring/><div><div className="font-extrabold text-ink text-lg">{child.n}</div><div className="text-[12px] text-muted font-bold">2020/{(child.id%12)+1}/{(child.id*2)%28+1} 生まれ・{['1号','2号'][child.id%2]}認定</div></div></div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[['身長','114cm'],['体重','19.8kg'],['カウプ','標準'],['出席率','97%']].map((s,i)=>(<div key={i} className="rounded-xl border border-[#F3E6D9] p-3 text-center"><div className="text-[11px] text-muted font-bold">{s[0]}</div><div className="font-extrabold text-ink mt-0.5">{s[1]}</div></div>))}
+        </div>
+        <div>
+          <div className="text-[12px] text-muted font-bold mb-2">緊急連絡先</div>
+          <div className="space-y-1.5 text-[13px]">
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="font-bold text-ink">{fm.nm} {fm.gv}（{fm.rel}）</span><span className="text-gray-600 font-bold">{fm.tel}</span></div>
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="text-muted font-bold">お迎え可能者</span><span className="font-bold text-ink">{fm.pick}</span></div>
+          </div>
+        </div>
+        <div>
+          <div className="text-[12px] text-muted font-bold mb-2">健康・特記</div>
+          <div className="flex flex-wrap gap-1.5">
+            {(child.id%3===0? ['卵アレルギー','代替食']: child.id%3===1? ['熱性けいれん既往']: ['特記なし']).map((t,i)=>(<Badge key={i} tone={t==='特記なし'?'gray':'red'}>{t}</Badge>))}
+            <Badge tone="green">内科健診 6/10予定</Badge>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function Roster(){
   // klass は KIDS（単一情報源）を参照。cert は年長児のため3号認定は付かない（1号／2号のみ・施設サマリと整合）。
   const all = KIDS.map((k,i)=>({...k, cert:['1号','2号'][i%2], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
+  const [sel,setSel] = useState(null); // 園児詳細モーダル対象id（行→統合個票）
   const filters = ['全クラス','あおば組','ふたば組','つぼみ組','1号認定','2号認定'];
   const [f,setF] = useState('全クラス');
   const rows = all.filter(r=>{
@@ -902,12 +938,13 @@ function Roster(){
                 <td className="px-5 py-3"><Badge tone="blue">{r.cert}認定</Badge></td>
                 <td className="px-5 py-3 font-bold text-gray-600">{r.guardian}家</td>
                 <td className="px-5 py-3">{r.id%2===0? <Badge tone="red">アレルギー</Badge> : <Badge tone="green">兄弟あり</Badge>}</td>
-                <td className="px-5 py-3 text-right"><button onClick={()=>mockTap('園児の詳細はモック範囲外です')} className="text-brand-500"><Ic name="chevron" className="w-4 h-4"/></button></td>
+                <td className="px-5 py-3 text-right"><button onClick={()=>setSel(r.id)} className="text-brand-500" title="園児の個票を開く"><Ic name="chevron" className="w-4 h-4"/></button></td>
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
+      <KidProfileModal child={sel!=null?all.find(k=>k.id===sel):null} onClose={()=>setSel(null)}/>
     </div>
   );
 }
@@ -1923,7 +1960,7 @@ function KidsInfo(){
   const [kf,setKf]=useState('すべて'); // 組フィルタ
   const [sel,setSel]=useState(null);   // カルテモーダル対象の園児id
   const KLASSES=['すべて','あおば組','ふたば組','つぼみ組'];
-  const fam=(i)=>({nm:['佐藤','鈴木','高橋','田村','小林','加藤'][i%6], gv:['花子','美咲','恵','彩','真由','香'][i%6], rel:['母','父','祖母'][i%3], tel:'090-xxxx-'+(1000+i), pick:['母・祖母','父・母','母・祖父'][i%3]});
+  const fam=kidFamily; // 緊急連絡タブで使用（個票モーダルは共用 KidProfileModal に集約）
   const list=KIDS.filter(k=>kf==='すべて'||k.klass===kf);
   const child=sel!=null?KIDS.find(k=>k.id===sel):null;
   return (
@@ -1953,29 +1990,7 @@ function KidsInfo(){
         <tbody>{list.map((k,i)=>{const fm=fam(k.id);return(<tr key={k.id} onClick={()=>setSel(k.id)} className="border-b border-[#F7EFE7] hover:bg-cream/40 cursor-pointer"><td className="px-5 py-3 font-bold text-ink">{k.n}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.nm} {fm.gv}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.rel}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.tel}</td><td className="px-5 py-3 text-gray-600 font-bold">{fm.pick}</td></tr>);})}</tbody>
       </table></Card>}
 
-      <Modal open={child!=null} onClose={()=>setSel(null)} wide icon="book" title={child&&(child.n+' の個票')} sub={child&&(child.klass+'（'+child.age+'）')}
-        footer={<><Btn kind="ghost" icon="file" onClick={()=>mockTap('カルテをPDF出力（モック）')}>PDF出力</Btn><Btn kind="soft" icon="star" onClick={()=>mockTap(child.n+' のポートフォリオへ（モック）')}>成長の記録を見る</Btn></>}>
-        {child && <div className="space-y-4">
-          <div className="flex items-center gap-3"><Avatar name={child.n} color={child.color} size={56} ring/><div><div className="font-extrabold text-ink text-lg">{child.n}</div><div className="text-[12px] text-muted font-bold">2020/{(child.id%12)+1}/{(child.id*2)%28+1} 生まれ・{['1号','2号'][child.id%2]}認定</div></div></div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[['身長','114cm'],['体重','19.8kg'],['カウプ','標準'],['出席率','97%']].map((s,i)=>(<div key={i} className="rounded-xl border border-[#F3E6D9] p-3 text-center"><div className="text-[11px] text-muted font-bold">{s[0]}</div><div className="font-extrabold text-ink mt-0.5">{s[1]}</div></div>))}
-          </div>
-          <div>
-            <div className="text-[12px] text-muted font-bold mb-2">緊急連絡先</div>
-            {(()=>{const fm=fam(child.id);return(<div className="space-y-1.5 text-[13px]">
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="font-bold text-ink">{fm.nm} {fm.gv}（{fm.rel}）</span><span className="text-gray-600 font-bold">{fm.tel}</span></div>
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-[#F3E6D9]"><span className="text-muted font-bold">お迎え可能者</span><span className="font-bold text-ink">{fm.pick}</span></div>
-            </div>);})()}
-          </div>
-          <div>
-            <div className="text-[12px] text-muted font-bold mb-2">健康・特記</div>
-            <div className="flex flex-wrap gap-1.5">
-              {(child.id%3===0? ['卵アレルギー','代替食']: child.id%3===1? ['熱性けいれん既往']: ['特記なし']).map((t,i)=>(<Badge key={i} tone={t==='特記なし'?'gray':'red'}>{t}</Badge>))}
-              <Badge tone="green">内科健診 6/10予定</Badge>
-            </div>
-          </div>
-        </div>}
-      </Modal>
+      <KidProfileModal child={child} onClose={()=>setSel(null)}/>
     </div>
   );
 }
