@@ -2076,6 +2076,9 @@ function ParentReport({setTab}){
   </div>);
 }
 function ParentNotice(){
+  const [msgs,setMsgs] = useState([]);   // 自分が送った追加メッセージ
+  const [val,setVal] = useState('');
+  const send = ()=>{ if(!val.trim()) return; setMsgs(m=>[...m,{body:val.trim(),t:'たった今'}]); setVal(''); };
   return (<div><PTitle sub="先生とのやりとり（健康・連絡）">れんらく帳</PTitle>
     <div className="px-5 space-y-3">
       <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月6日（金）</span></div>
@@ -2084,8 +2087,9 @@ function ParentNotice(){
       <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし ・ 19:02</div>ずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
       <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月5日（木）</span></div>
       <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:10</div>給食をおかわりしました。最近よく食べています🍚</div></div>
-      <div className="flex flex-wrap gap-2 pt-1">{['ありがとうございます','承知しました','お迎えを変更します'].map((q,i)=><button key={i} onClick={()=>mockTap('定型文を入力（モック）：'+q)} className="px-3 py-1.5 rounded-full text-[12px] font-bold border bg-white text-gray-600 border-[#E8D5C4]">{q}</button>)}</div>
-      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>mockTap('写真を添付（モック）')} className="text-muted"><Ic name="camera" className="w-5 h-5 ml-1"/></button><span className="flex-1 text-[12px] text-muted font-bold">メッセージ…</span><button onClick={()=>mockTap('メッセージを送信しました（モック）')} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
+      {msgs.map((m,i)=>(<div key={i} className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし ・ {m.t}</div>{m.body}</div></div>))}
+      <div className="flex flex-wrap gap-2 pt-1">{['ありがとうございます','承知しました','お迎えを変更します'].map((q,i)=><button key={i} onClick={()=>setVal(q)} className="px-3 py-1.5 rounded-full text-[12px] font-bold border bg-white text-gray-600 border-[#E8D5C4] hover:border-brand-300">{q}</button>)}</div>
+      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>mockTap('写真を添付（モック）')} className="text-muted"><Ic name="camera" className="w-5 h-5 ml-1"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="メッセージ…" className="flex-1 bg-transparent text-[12px] font-bold text-ink outline-none placeholder:text-muted"/><button onClick={send} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
     </div></div>);
 }
 function ParentPhoto({setTab}){
@@ -2097,14 +2101,27 @@ function ParentPhoto({setTab}){
   </div>);
 }
 function ParentAttend(){
+  const types=['欠席','遅刻','早退','朝フレンド','午後フレンド','連絡'];
+  const [type,setType] = useState('欠席');
+  const [reason,setReason] = useState('発熱のためお休みします');
+  const [sent,setSent] = useState(false);
+  if(sent) return (<div><PTitle sub="送信が完了しました">出欠の申請</PTitle>
+    <div className="px-5 space-y-3">
+      <Card className="p-6 text-center"><div className="w-14 h-14 rounded-2xl bg-[#E8F5E9] text-green-600 mx-auto flex items-center justify-center mb-3"><Ic name="check" className="w-7 h-7"/></div>
+        <div className="font-extrabold text-ink text-lg">申請しました</div>
+        <p className="text-[13px] text-muted font-bold mt-1">6月3日（水）・ {type}<br/>担任の先生に通知されました。</p>
+        <div className="mt-3"><Badge tone="amber">先生の確認待ち</Badge></div>
+      </Card>
+      <Btn kind="ghost" className="w-full" onClick={()=>setSent(false)}>続けて申請する</Btn>
+    </div></div>);
   return (<div><PTitle sub="欠席・遅刻・お迎え時間など">出欠の申請</PTitle>
     <div className="px-5 space-y-3">
       <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-2">申請の種類</div>
-        <div className="grid grid-cols-3 gap-2">{['欠席','遅刻','早退','朝フレンド','午後フレンド','連絡'].map((t,i)=><button key={i} onClick={()=>mockTap('（モック）'+t+'を選択')} className={cx('py-2 rounded-xl text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+        <div className="grid grid-cols-3 gap-2">{types.map((t,i)=><button key={i} onClick={()=>setType(t)} className={cx('py-2 rounded-xl text-[12px] font-bold border transition', type===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
       </Card>
-      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">日付</div><div className="font-bold text-ink">2026年6月3日（水）</div></Card>
-      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">理由</div><div className="text-[13px] text-ink">発熱のためお休みします</div></Card>
-      <Btn kind="primary" icon="check" className="w-full py-3">この内容で申請する</Btn>
+      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">日付</div><div className="font-bold text-ink flex items-center gap-2"><Ic name="calendar" className="w-4 h-4 text-brand-500"/>2026年6月3日（水）</div></Card>
+      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">{type==='欠席'?'理由':'連絡事項'}</div><input value={reason} onChange={e=>setReason(e.target.value)} className="w-full text-[13px] text-ink font-bold bg-cream rounded-lg px-3 py-2 border border-[#F3E6D9] outline-none"/></Card>
+      <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>setSent(true)}>この内容で申請する</Btn>
       <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[12px] text-muted font-bold">兄弟がいる場合はまとめて申請できます。オフラインでも送信予約されます。</div>
     </div></div>);
 }
@@ -2128,21 +2145,28 @@ function ParentShop({setTab}){
 }
 function ParentNotices({setTab}){
   const items = [
-    ['保育参観のお知らせ','あおば組','07:30','未読','orange'],
-    ['6月の献立変更について','全体','昨日','既読','gray'],
-    ['プール開きと持ち物','年長','2日前','既読','gray'],
-    ['写真販売を開始しました','全体','3日前','未読','pink'],
-    ['夏祭りボランティア募集','全体','5日前','既読','gray'],
+    ['保育参観のお知らせ','あおば組','07:30','orange','6月20日（金）10:00より保育参観を行います。スリッパをご持参ください。'],
+    ['6月の献立変更について','全体','昨日','gray','6/12の献立を一部変更します。アレルギー対象のご家庭へは個別連絡済みです。'],
+    ['プール開きと持ち物','年長','2日前','gray','6/24よりプール活動を開始します。水着・タオル・水泳帽の準備をお願いします。'],
+    ['写真販売を開始しました','全体','3日前','pink','春の遠足の写真販売を開始しました。写真タブからご購入いただけます。'],
+    ['夏祭りボランティア募集','全体','5日前','gray','7月の夏祭りの運営ボランティアを募集します。ご協力いただける方は担任まで。'],
   ];
+  const [read,setRead] = useState({1:true,2:true,4:true});  // 既読index
+  const [open,setOpen] = useState(null);
+  const markRead = (i)=> setRead(r=>({...r,[i]:true}));
+  const unread = items.filter((_,i)=>!read[i]).length;
   return (<div>
-    <PSubHead setTab={setTab}>お知らせ</PSubHead>
+    <PSubHead setTab={setTab}>お知らせ{unread>0&&<span className="ml-2 text-[12px] font-bold text-white bg-brand-500 rounded-full px-2 py-0.5">未読{unread}</span>}</PSubHead>
     <div className="px-5 space-y-2">
-      {items.map((n,i)=>(
-        <Card key={i} className="p-4">
-          <div className="flex items-center gap-2 mb-1"><Badge tone={n[4]}>{n[1]}</Badge>{n[3]==='未読'&&<span className="w-2 h-2 rounded-full bg-brand-500"/>}<span className="ml-auto text-[11px] text-muted font-bold">{n[2]}</span></div>
-          <div className={cx('text-[14px]', n[3]==='未読'?'font-extrabold text-ink':'font-bold text-gray-600')}>{n[0]}</div>
+      {items.map((n,i)=>{ const isRead=!!read[i], isOpen=open===i; return (
+        <Card key={i} className="p-4 cursor-pointer" >
+          <div onClick={()=>{ setOpen(isOpen?null:i); markRead(i); }}>
+            <div className="flex items-center gap-2 mb-1"><Badge tone={n[3]}>{n[1]}</Badge>{!isRead&&<span className="w-2 h-2 rounded-full bg-brand-500"/>}<span className="ml-auto text-[11px] text-muted font-bold">{n[2]}</span></div>
+            <div className={cx('text-[14px]', !isRead?'font-extrabold text-ink':'font-bold text-gray-600')}>{n[0]}</div>
+          </div>
+          {isOpen && <p className="text-[13px] text-ink leading-relaxed mt-2 pt-2 border-t border-[#F3E6D9]">{n[4]}</p>}
         </Card>
-      ))}
+      );})}
     </div>
   </div>);
 }
@@ -2162,11 +2186,15 @@ function ParentGrowth({setTab}){
   </div>);
 }
 function ParentMedia({setTab}){
+  const [fil,setFil] = useState('すべて');
+  const [cart,setCart] = useState({});  // index→selected
+  const toggle = (i)=> setCart(c=>{ const n={...c}; if(n[i]) delete n[i]; else n[i]=true; return n; });
+  const count = Object.keys(cart).length;
   return (<div>
     <PSubHead setTab={setTab}>写真・動画の購入</PSubHead>
-    <div className="px-5 mb-3 flex gap-2">{['すべて','保育参観','遠足','日常'].map((t,i)=><button key={i} onClick={()=>mockTap('（モック）絞り込み：'+t)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border',i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
-    <div className="px-5 grid grid-cols-3 gap-2">{CAT.concat(CAT).map((c,i)=>(<div key={i} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}><span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white/80 flex items-center justify-center text-brand-600"><Ic name="plus" className="w-3 h-3"/></span><span className="absolute bottom-1 left-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span></div>))}</div>
-    <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3">カート（4点・¥600）で購入</Btn></div>
+    <div className="px-5 mb-3 flex gap-2">{['すべて','保育参観','遠足','日常'].map((t,i)=><button key={i} onClick={()=>setFil(t)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border',fil===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+    <div className="px-5 grid grid-cols-3 gap-2">{CAT.concat(CAT).map((c,i)=>{ const on=!!cart[i]; return (<button key={i} onClick={()=>toggle(i)} className={cx('aspect-square rounded-xl relative overflow-hidden transition', on&&'ring-2 ring-brand-500')} style={{background:c+'88'}}><span className={cx('absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center', on?'bg-brand-500 text-white':'bg-white/80 text-brand-600')}><Ic name={on?'check':'plus'} className="w-3 h-3"/></span><span className="absolute bottom-1 left-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span></button>); })}</div>
+    <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3" onClick={()=>count?mockTap(count+'点（¥'+(count*150).toLocaleString()+'）を購入手続きへ（モック）'):mockTap('写真を選んでください')}>{count?('カート（'+count+'点・¥'+(count*150).toLocaleString()+'）で購入'):'写真を選択してください'}</Btn></div>
   </div>);
 }
 function ParentLive({setTab}){
@@ -2180,14 +2208,20 @@ function ParentLive({setTab}){
   </div>);
 }
 function ParentSurvey({setTab}){
+  const [rate,setRate] = useState(4);
+  const [comment,setComment] = useState('');
+  const [anon,setAnon] = useState(false);
+  const [sent,setSent] = useState(false);
   return (<div>
     <PSubHead setTab={setTab}>アンケート・ご意見</PSubHead>
     <div className="px-5 space-y-3">
-      <Card className="p-4"><div className="flex items-center gap-2 mb-2"><Badge tone="orange">回答受付中</Badge><span className="text-[11px] text-muted font-bold">〜6/10</span></div><div className="font-bold text-ink mb-3">保育参観についてのアンケート</div>
-        <div className="text-[12px] text-muted font-bold mb-1">満足度</div><div className="flex gap-1 mb-3">{[1,2,3,4,5].map(s=><span key={s} className={cx(s<=4?'text-brand-400':'text-gray-300')}><Ic name="star" className="w-7 h-7"/></span>)}</div>
-        <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-muted font-bold h-20">ご意見・ご感想をご記入ください…</div>
-        <Btn kind="primary" icon="send" className="w-full mt-3">回答を送信</Btn>
-      </Card>
+      {sent ? <Card className="p-6 text-center"><div className="w-14 h-14 rounded-2xl bg-[#FFE4EA] text-pink-500 mx-auto flex items-center justify-center mb-3"><Ic name="heart" className="w-7 h-7"/></div><div className="font-extrabold text-ink text-lg">ご回答ありがとうございました</div><p className="text-[13px] text-muted font-bold mt-1">満足度 {rate}/5{anon?' ・ 匿名':''}で送信しました。<br/>園運営の改善に活用させていただきます。</p></Card>
+      : <Card className="p-4"><div className="flex items-center gap-2 mb-2"><Badge tone="orange">回答受付中</Badge><span className="text-[11px] text-muted font-bold">〜6/10</span></div><div className="font-bold text-ink mb-3">保育参観についてのアンケート</div>
+        <div className="text-[12px] text-muted font-bold mb-1">満足度（タップで選択）</div><div className="flex gap-1 mb-3">{[1,2,3,4,5].map(s=><button key={s} onClick={()=>setRate(s)} className={cx(s<=rate?'text-brand-400':'text-gray-300','transition active:scale-90')}><Ic name="star" className="w-7 h-7"/></button>)}</div>
+        <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder="ご意見・ご感想をご記入ください…" className="w-full bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-ink font-bold h-20 outline-none resize-none placeholder:text-muted"/>
+        <div className="mt-3"><Toggle on={anon} onToggle={()=>setAnon(v=>!v)} label="匿名で送信する"/></div>
+        <Btn kind="primary" icon="send" className="w-full mt-3" onClick={()=>setSent(true)}>回答を送信</Btn>
+      </Card>}
       <Card className="p-4"><div className="text-[12px] font-bold text-brand-600 mb-1">園からのお願い</div><p className="text-[13px] text-ink">いただいたご意見はAIが整理し、園運営の改善に活用します。匿名での送信も可能です。</p></Card>
     </div>
   </div>);
