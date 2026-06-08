@@ -247,37 +247,48 @@ const SCREEN_TITLES = {};
 NAV.forEach(g=>g.items.forEach(i=>SCREEN_TITLES[i.id]=i.label));
 
 /* ============================== RBAC（役割×機能アクセス） ============================== */
-// 役割の定義（園内・3ロール）。admin=管理職(園長)は全権。office=事務(旧 主任＋事務を統合)。
+// 役割の定義（園内・3ロール）。2026-06-08方針：管理職・事務は「担任から上がる確認＋園全体＋クラス/生徒
+// 管理＋承認型」に絞り、自分の記録/育成ページ（先生マイページ・日常記録入力）は持たない。担任は現場中心。
 const ROLES = {
-  admin:   { label:'管理職', desc:'園長。全機能＋設定＋権限管理（園のトップ）', color:'#E07B4A' },
-  office:  { label:'事務',  desc:'主任＋事務を統合。記録〜承認・育成・台帳・お便り＋精算/注文/労務', color:'#C8B3ED' },
-  teacher: { label:'担任',  desc:'日々の記録・保育中心。精算/注文/労務/承認/設定/権限管理は既定非表示', color:'#FDC089' },
+  admin:   { label:'管理職', desc:'園長。園全体の確認・クラス/生徒情報管理・承認・設定/権限管理（自分の記録/育成ページは持たない）', color:'#E07B4A' },
+  office:  { label:'事務',  desc:'担任から上がる確認・園全体・クラス/生徒情報管理・承認（精算/注文/労務）（記録/育成ページは持たない）', color:'#C8B3ED' },
+  teacher: { label:'担任',  desc:'現場。日々の記録・育成・3方向出力(作成)・自分の受け持ちクラス/生徒が中心', color:'#FDC089' },
 };
 const ROLE_ORDER = ['admin','office','teacher'];
-// 機能（画面id）→ 既定で閲覧できるロール。admin は常に全許可（canAccessで担保）。未掲載は全ロール可。
-// office = 旧 主任(manager) ∪ 旧 事務(jimu) の権限を継承。
+// 機能（画面id）→ 閲覧できるロール（明示列挙）。未掲載は全ロール可。
+// ※ admin の「常に全許可」は撤廃。admin もこの表に従い、先生マイページ/日常記録入力はロックされる。
 const SCREEN_ROLES = {
-  teacher:['office','teacher'], exec:['office'],
-  record:['office','teacher'], output:['office','teacher'],
-  renraku:['office','teacher'], check:['office','teacher'],
-  docs:['office','teacher'], lesson:['office','teacher'],
-  portfolio:['office','teacher'], youroku:['office','teacher'],
-  filebox:['office','teacher'],
-  monthly:['office','teacher'], broadcast:['office','teacher'],
-  notices:['office','teacher'], media:['office','teacher'],
-  attendance:['office','teacher'], feedback:['office'],
-  roster:['office','teacher'], kids:['office','teacher'],
-  allergy:['office','teacher'], calendar:['office','teacher'],
-  bus:['office'],
-  // 精算・注文管理・労務・承認は事務まで。設定・権限管理は管理職(園長)のみ。
-  billing:['office'], shop:['office'], shift:['office'],
-  approve:['office'], settings:['admin'], roles:['admin'], org:['office'],
-  help:['office','teacher'],
+  // 担任の現場ページ（管理職・事務は持たない）
+  teacher:['teacher'],
+  record:['teacher'],
+  // 管理職の園全体ページ（事務・担任は持たない）
+  exec:['admin'],
+  // 記録：担任が作成し、管理職・事務は確認（3ロール）
+  output:['admin','office','teacher'], renraku:['admin','office','teacher'],
+  check:['admin','office','teacher'], docs:['admin','office','teacher'],
+  lesson:['admin','office','teacher'], portfolio:['admin','office','teacher'],
+  youroku:['admin','office','teacher'], filebox:['admin','office','teacher'],
+  // 保護者とつながる（担任の連携＋園全体配信／出欠確認）
+  monthly:['admin','office','teacher'], broadcast:['admin','office','teacher'],
+  notices:['admin','office','teacher'], media:['admin','office','teacher'],
+  attendance:['admin','office','teacher'], feedback:['admin','office'],
+  // 台帳・生徒情報・クラス管理（担任は自クラス）
+  roster:['admin','office','teacher'], kids:['admin','office','teacher'],
+  allergy:['admin','office','teacher'], calendar:['admin','office','teacher'],
+  bus:['admin','office'],
+  // 精算・注文管理・労務・承認は事務以上（管理職・事務）
+  billing:['admin','office'], shop:['admin','office'], shift:['admin','office'],
+  approve:['admin','office'],
+  // 園全体の確認
+  org:['admin','office'],
+  // 設定・権限管理は管理職(園長)のみ
+  settings:['admin'], roles:['admin'],
+  help:['admin','office','teacher'],
 };
-// 合成判定：ロール既定 ＋ 個別カスタム上書き（ov: {screenId:'grant'|'deny'}）。
-// admin(管理職)は常に全許可・剥奪不可（ロックアウト防止）。第3引数は任意（シェルのロール既定判定は従来どおり）。
+// 各ロールの着地ホーム（ログイン時・ロール切替で不可画面に居る時の誘導先）。
+const ROLE_HOME = { admin:'exec', office:'approve', teacher:'teacher' };
+// 合成判定：ロール既定 ＋ 個別カスタム上書き（ov: {screenId:'grant'|'deny'}）。第3引数は任意。
 const canAccess = (role, id, ov) => {
-  if(role==='admin') return true;
   const o = ov && ov[id];
   if(o==='grant') return true;
   if(o==='deny') return false;
@@ -2269,7 +2280,7 @@ function Roles(){
           <span className="inline-flex items-center gap-1"><span className="inline-flex w-5 h-5 items-center justify-center rounded bg-gray-50 text-gray-300"><Ic name="lock" className="w-3 h-3"/></span>非表示</span>
           <span className="inline-flex items-center gap-1"><Badge tone="green">個</Badge>個別付与</span>
           <span className="inline-flex items-center gap-1"><Badge tone="red">除</Badge>個別剥奪</span>
-          <span className="ml-auto">管理職の列は固定（剥奪不可）</span>
+          <span className="ml-auto">管理職の列はロール既定で固定（個別変更不可）</span>
         </div>
         <div className="overflow-x-auto"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
           <thead><tr className="text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">
@@ -2297,7 +2308,7 @@ function Roles(){
                       const cell = eff
                         ? <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-green-50 text-green-600"><Ic name="check" className="w-4 h-4"/></span>
                         : <span className="inline-flex w-6 h-6 items-center justify-center rounded-md bg-gray-50 text-gray-300"><Ic name="lock" className="w-3.5 h-3.5"/></span>;
-                      if(m.role==='admin') return <td key={mi} className="px-3 py-2 text-center" title="管理職は全機能固定">{cell}</td>;
+                      if(m.role==='admin') return <td key={mi} className="px-3 py-2 text-center" title="管理職はロール既定で固定（個別変更不可）">{cell}</td>;
                       return (
                         <td key={mi} className="px-3 py-2 text-center">
                           <button onClick={()=>toggle(mi,it.id)} className="inline-flex flex-col items-center gap-0.5 hover:scale-110 transition" title="タップで個別ON/OFF">
@@ -2397,19 +2408,22 @@ function Sidebar({screen, go, role, setRole, navOpen, setNavOpen}){
 function StaffApp({screen, go}){
   const [role,setRole]=useState('admin');
   const [navOpen,setNavOpen]=useState(false);
-  const allowed = canAccess(role, screen);
-  const Screen = STAFF_SCREENS[screen] || TeacherHome;
+  // 現在のロールでアクセス不可の画面に居る場合は、そのロールの既定ホームへ誘導（ログイン直後／ロール切替時）。
+  // これにより「そのロールに無い画面」に着地せず、AccessDenied は防御用の保険として残す。
+  const view = canAccess(role, screen) ? screen : (ROLE_HOME[role] || 'teacher');
+  React.useEffect(()=>{ if(view!==screen) go(view); }, [view, screen]);
+  const Screen = STAFF_SCREENS[view] || TeacherHome;
   return (
     <div className="flex h-full">
       {navOpen && <div className="md:hidden fixed inset-0 bg-black/40 z-30" onClick={()=>setNavOpen(false)}/>}
-      <Sidebar screen={screen} go={go} role={role} setRole={setRole} navOpen={navOpen} setNavOpen={setNavOpen}/>
+      <Sidebar screen={view} go={go} role={role} setRole={setRole} navOpen={navOpen} setNavOpen={setNavOpen}/>
       <main className="flex-1 min-w-0 overflow-y-auto" style={{background:'#FFF7F1'}}>
         <div className="md:hidden sticky top-0 z-20 flex items-center gap-2 bg-cream border-b border-[#F0E2D5] px-3 h-12">
           <button onClick={()=>setNavOpen(true)} className="p-1 text-ink"><Ic name="list" className="w-6 h-6"/></button>
           <div className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center text-white"><Ic name="leaf" className="w-4 h-4"/></div>
           <span className="font-extrabold text-ink">for Kids ・ 園ポータル</span>
         </div>
-        <div className="px-4 sm:px-6 md:px-8 py-5 md:py-7 max-w-6xl">{allowed ? <Screen go={go}/> : <AccessDenied label={SCREEN_TITLES[screen]||screen} role={role}/>}</div>
+        <div className="px-4 sm:px-6 md:px-8 py-5 md:py-7 max-w-6xl">{canAccess(role, view) ? <Screen go={go}/> : <AccessDenied label={SCREEN_TITLES[view]||view} role={role}/>}</div>
       </main>
     </div>
   );
