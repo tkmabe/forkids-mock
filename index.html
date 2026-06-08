@@ -1664,14 +1664,22 @@ function OrgScreen(){
 function BusScreen(){
   const stops = ['みどり公園前','さくら団地','駅前ロータリー','本町三丁目','ひがし台'];
   const courses = [['Aコース（北回り）','大型バス','8:05',KIDS.slice(0,5)],['Bコース（南回り）','中型バス','8:20',KIDS.slice(5,9)],['Cコース（駅前）','中型バス','8:35',KIDS.slice(9,12)]];
+  // 乗降確認：在園児(rec)は タップで 乗車待ち→乗車→降車 を循環。欠席児は対象外。
+  const initial = {}; KIDS.forEach(k=>{ if(k.rec) initial[k.id]='待ち'; });
+  const [status,setStatus] = useState(initial);
+  const NEXT = {'待ち':'乗車','乗車':'降車','降車':'待ち'};
+  const cycle = (id)=> setStatus(s=> ({...s, [id]: NEXT[s[id]||'待ち']}) );
+  const boarded = Object.values(status).filter(v=>v==='乗車'||v==='降車').length;
+  const absent = KIDS.filter(k=>!k.rec).length;
+  const ST = {'待ち':['乗車待ち','gray'],'乗車':['乗車','green'],'降車':['降車','blue']};
   return (
     <div>
-      <PageHead title="バスなび" sub="運行ルート・乗降確認・お迎え時刻を保護者と共有。欠席連絡は乗車予定から自動で除外。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="bell">遅延を一斉連絡</Btn><Btn kind="primary" icon="plus">コースを編集</Btn></div>}/>
+      <PageHead title="バスなび" sub="運行ルート・乗降確認・お迎え時刻を保護者と共有。欠席連絡は乗車予定から自動で除外。園児をタップで乗降を記録。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="bell" onClick={()=>mockTap('遅延を保護者へ一斉連絡（モック）')}>遅延を一斉連絡</Btn><Btn kind="primary" icon="plus" onClick={()=>mockTap('コースの編集はモック範囲外です')}>コースを編集</Btn></div>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card className="p-4"><Stat label="運行コース" value="3" tone="ink"/></Card>
-        <Card className="p-4"><Stat label="本日の乗車" value="10名" tone="orange"/></Card>
-        <Card className="p-4"><Stat label="欠席で除外" value="2名" tone="red"/></Card>
+        <Card className="p-4"><Stat label="本日の乗車" value={boarded+'名'} tone="orange"/></Card>
+        <Card className="p-4"><Stat label="欠席で除外" value={absent+'名'} tone="red"/></Card>
         <Card className="p-4"><Stat label="運行状況" value="定刻" tone="green"/></Card>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -1682,13 +1690,19 @@ function BusScreen(){
               <div><div className="font-bold text-ink text-[14px]">{c[0]}</div><div className="text-[11px] text-muted font-bold">{c[1]}・出発 {c[2]}</div></div>
             </div>
             <div className="space-y-2">
-              {c[3].map((k,ki)=>(
-                <div key={k.id} className="flex items-center gap-2 p-2 rounded-xl border border-[#F3E6D9]">
-                  <Avatar name={k.n} color={k.color} size={30}/>
-                  <div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{stops[ki%stops.length]}</div></div>
-                  {k.rec? <Badge tone="green"><Ic name="check" className="w-3 h-3"/>乗車</Badge> : <Badge tone="red">欠席</Badge>}
-                </div>
-              ))}
+              {c[3].map((k,ki)=>{ const st=ST[status[k.id]]||null; return (
+                k.rec
+                ? <button key={k.id} onClick={()=>cycle(k.id)} className="w-full text-left flex items-center gap-2 p-2 rounded-xl border border-[#F3E6D9] hover:border-brand-300 hover:bg-cream/40 transition" title="タップで 乗車待ち→乗車→降車">
+                    <Avatar name={k.n} color={k.color} size={30}/>
+                    <div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{stops[ki%stops.length]}</div></div>
+                    <Badge tone={st[1]}>{st[0]==='乗車'?<><Ic name="check" className="w-3 h-3"/>乗車</>:st[0]}</Badge>
+                  </button>
+                : <div key={k.id} className="flex items-center gap-2 p-2 rounded-xl border border-[#F3E6D9] opacity-70">
+                    <Avatar name={k.n} color={k.color} size={30}/>
+                    <div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{stops[ki%stops.length]}</div></div>
+                    <Badge tone="red">欠席</Badge>
+                  </div>
+              );})}
             </div>
           </Card>
         ))}
@@ -2630,18 +2644,27 @@ function PSubHead({children, setTab}){
   return <div className="px-5 pt-2 pb-3 flex items-center gap-2"><button onClick={()=>setTab('home')} className="text-brand-500"><Ic name="chevron" className="w-5 h-5 rotate-180"/></button><h2 className="text-xl font-extrabold text-ink">{children}</h2></div>;
 }
 function ParentShop({setTab}){
-  const goods = [['通園帽子','¥2,200','#FDC089'],['体操服セット','¥4,800','#AFD0F0'],['上履き','¥1,600','#ADDABB'],['お道具箱','¥3,200','#C8B3ED'],['名札','¥600','#FFD0D8'],['絵本バッグ','¥2,900','#F4C6A6']];
+  const goods = [['通園帽子',2200,'#FDC089'],['体操服セット',4800,'#AFD0F0'],['上履き',1600,'#ADDABB'],['お道具箱',3200,'#C8B3ED'],['名札',600,'#FFD0D8'],['絵本バッグ',2900,'#F4C6A6']];
+  const [cart,setCart] = useState({});       // index→数量
+  const add = (i)=> setCart(c=>({...c,[i]:(c[i]||0)+1}));
+  const sub = (i)=> setCart(c=>{ const n={...c}; if(!n[i]) return n; n[i]-=1; if(n[i]<=0) delete n[i]; return n; });
+  const count = Object.values(cart).reduce((a,b)=>a+b,0);
+  const total = Object.entries(cart).reduce((s,[i,q])=> s + q*goods[i][1], 0);
   return (<div>
     <PSubHead setTab={setTab}>物販ショップ</PSubHead>
     <div className="px-5 grid grid-cols-2 gap-3">
-      {goods.map((g,i)=>(
-        <div key={i} className="bg-white rounded-2xl border border-[#F3E6D9] overflow-hidden shadow-card">
-          <div className="h-24 flex items-center justify-center" style={{background:g[2]+'55'}}><Ic name="shop" className="w-8 h-8 text-ink/30"/></div>
-          <div className="p-3"><div className="font-bold text-[13px] text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600 text-[13px]">{g[1]}</span><button onClick={()=>mockTap('カートに追加しました（モック）')} className="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></div></div>
+      {goods.map((g,i)=>{ const q=cart[i]||0; return (
+        <div key={i} className={cx('bg-white rounded-2xl border overflow-hidden shadow-card', q>0?'border-brand-300':'border-[#F3E6D9]')}>
+          <div className="h-24 flex items-center justify-center relative" style={{background:g[2]+'55'}}><Ic name="shop" className="w-8 h-8 text-ink/30"/>{q>0&&<span className="absolute top-1 right-1 bg-brand-500 text-white text-[11px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{q}</span>}</div>
+          <div className="p-3"><div className="font-bold text-[13px] text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600 text-[13px]">¥{g[1].toLocaleString()}</span>
+            {q>0
+              ? <span className="flex items-center gap-1.5"><button onClick={()=>sub(i)} className="w-7 h-7 rounded-lg bg-cream text-ink border border-[#E8D5C4] flex items-center justify-center font-extrabold">−</button><span className="text-[13px] font-bold text-ink w-4 text-center">{q}</span><button onClick={()=>add(i)} className="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button></span>
+              : <button onClick={()=>add(i)} className="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="plus" className="w-4 h-4"/></button>}
+          </div></div>
         </div>
-      ))}
+      );})}
     </div>
-    <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3">カート（2点・¥7,000）へ進む</Btn></div>
+    <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3" onClick={()=>count?mockTap('カート（'+count+'点・¥'+total.toLocaleString()+'）の購入手続きへ（モック）'):mockTap('商品を選んでください')}>{count?('カート（'+count+'点・¥'+total.toLocaleString()+'）へ進む'):'商品を選んでください'}</Btn></div>
   </div>);
 }
 function ParentNotices({setTab}){
