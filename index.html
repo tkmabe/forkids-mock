@@ -1211,10 +1211,29 @@ function Shift(){
   const [leaveOk,setLeaveOk]=useState(false);
   const openLeave=(si)=>{ setSel(null); setLeaveFor(si); setLform({date:'6/18（水）', type:'有給休暇', reason:''}); setLeaveOk(false); };
   const applyLeave=()=>{ setLeaves(l=>l+1); setLeaveOk(true); };
+  const [draft,setDraft]=useState(false);   // 翌月シフトのAI下書き
   return (
     <div>
       <PageHead title="シフト・労務" sub="2026年6月 ・ 配置基準を自動チェック。職員をタップで勤務詳細。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('給与連携CSVを出力（モック）')}>給与連携CSV</Btn><Btn kind="primary" icon="plus" onClick={()=>mockTap('翌月シフトをAIが下書き作成（モック）')}>シフト作成</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('給与連携CSVを出力（モック）')}>給与連携CSV</Btn><Btn kind="primary" icon="plus" onClick={()=>setDraft(true)}>シフト作成</Btn></div>}/>
+      {draft && <Card className="p-4 mb-5 border-2 border-[#EEE7FB] bg-[#FBFAFF]">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0"><Ic name="ai" className="w-6 h-6"/></div>
+          <div className="flex-1">
+            <div className="font-extrabold text-ink">翌月（7月）シフトの下書きをAIが作成しました</div>
+            <div className="text-[12px] text-muted font-bold mt-0.5">希望休・配置基準・前月の勤務バランスを考慮した案。全日程で基準を満たし、残業は前月比 −6h の見込み。</div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {[['基準充足','全22日','green'],['希望休 反映','5/5件','green'],['夜間・延長','調整済','blue'],['要調整','0日','green']].map((s,i)=>(<span key={i} className="inline-flex items-center gap-1 text-[11px] font-bold"><Badge tone={s[2]}>{s[0]}</Badge><span className="text-ink">{s[1]}</span></span>))}
+            </div>
+          </div>
+          <button onClick={()=>setDraft(false)} className="text-muted hover:text-ink shrink-0"><Ic name="plus" className="w-4 h-4 rotate-45"/></button>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-3 justify-end">
+          <Btn kind="ghost" onClick={()=>setDraft(false)}>破棄</Btn>
+          <Btn kind="soft" icon="edit" onClick={()=>mockTap('下書きを編集（モック）')}>下書きを編集</Btn>
+          <Btn kind="primary" icon="check" onClick={()=>{ setDraft(false); mockTap('翌月シフトを適用しました（モック）'); }}>このシフトを適用</Btn>
+        </div>
+      </Card>}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card className="p-4"><Stat label="配置基準" value="充足" tone="green"/></Card>
         <Card className="p-4"><Stat label="要注意日" value="2日" tone="red"/></Card>
