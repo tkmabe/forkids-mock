@@ -914,27 +914,40 @@ function KidProfileModal({child, onClose}){
 
 function Roster(){
   // klass は KIDS（単一情報源）を参照。cert は年長児のため3号認定は付かない（1号／2号のみ・施設サマリと整合）。
-  const all = KIDS.map((k,i)=>({...k, cert:['1号','2号'][i%2], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
+  const base = KIDS.map((k,i)=>({...k, cert:['1号','2号'][i%2], guardian:['佐藤','鈴木','高橋','田中'][i%4]}));
+  const [extra,setExtra] = useState([]); // 追加した園児（操作で名簿に反映）
+  const all = [...extra, ...base];
   const [sel,setSel] = useState(null); // 園児詳細モーダル対象id（行→統合個票）
+  const [q,setQ] = useState('');        // 検索（名前・保護者）
   const filters = ['全クラス','あおば組','ふたば組','つぼみ組','1号認定','2号認定'];
   const [f,setF] = useState('全クラス');
+  const [adding,setAdding] = useState(false);
+  const [form,setForm] = useState({n:'', klass:'あおば組', cert:'1号', guardian:''});
   const rows = all.filter(r=>{
+    if(q && !((r.n||'').includes(q) || (r.guardian||'').includes(q))) return false;
     if(f==='全クラス') return true;
     if(f==='1号認定') return r.cert==='1号';
     if(f==='2号認定') return r.cert==='2号';
     return r.klass===f;
-  }).slice(0,10);
+  }).slice(0,12);
+  const KLASS_COLORS={'あおば組':'#FDC089','ふたば組':'#C8B3ED','つぼみ組':'#ADDABB'};
+  const addKid = ()=>{
+    if(!form.n.trim()) return;
+    const id = 900 + extra.length;
+    setExtra(e=>[{n:form.n.trim(), klass:form.klass, color:KLASS_COLORS[form.klass]||'#AFD0F0', age:'年長', id, rec:true, cert:form.cert, guardian:(form.guardian.trim()||'—')}, ...e]);
+    setAdding(false); setForm({n:'', klass:'あおば組', cert:'1号', guardian:''});
+  };
   return (
     <div>
       <PageHead title="名簿センター" sub="在園児・未就園児・職員を一元管理。すべての機能のハブ。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="file">CSV入出力</Btn><Btn kind="primary" icon="plus">園児を追加</Btn></div>} />
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('名簿をCSVで入出力（モック）')}>CSV入出力</Btn><Btn kind="primary" icon="plus" onClick={()=>setAdding(true)}>園児を追加</Btn></div>} />
       <Card className="p-3 mb-4">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 bg-cream rounded-xl px-3 py-2 flex-1 min-w-[180px] border border-[#F3E6D9]"><Ic name="search" className="w-4 h-4 text-muted"/><span className="text-[13px] text-muted font-bold">名前・ふりがな・保護者で検索</span></div>
+          <div className="flex items-center gap-2 bg-cream rounded-xl px-3 py-2 flex-1 min-w-[180px] border border-[#F3E6D9]"><Ic name="search" className="w-4 h-4 text-muted"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="名前・保護者で検索" className="flex-1 bg-transparent text-[13px] font-bold text-ink outline-none placeholder:text-muted"/>{q&&<button onClick={()=>setQ('')} className="text-muted"><Ic name="plus" className="w-4 h-4 rotate-45"/></button>}</div>
           {filters.map((x,i)=><button key={i} onClick={()=>setF(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border', f===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}
         </div>
       </Card>
-      <div className="text-[12px] text-muted font-bold mb-2 px-1">{rows.length}名を表示中（絞り込み：{f}）</div>
+      <div className="text-[12px] text-muted font-bold mb-2 px-1">{rows.length}名を表示中（絞り込み：{f}{q&&'・「'+q+'」'}）</div>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
           <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">
@@ -944,7 +957,7 @@ function Roster(){
             {rows.length===0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-muted font-bold">該当する園児はいません</td></tr>}
             {rows.map(r=>(
               <tr key={r.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
-                <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={r.n} color={r.color} size={32}/><span className="font-bold text-ink">{r.n}</span></div></td>
+                <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={r.n} color={r.color} size={32}/><span className="font-bold text-ink">{r.n}</span>{r.id>=900&&<Badge tone="orange">新規</Badge>}</div></td>
                 <td className="px-5 py-3 font-bold text-gray-600">{r.klass}</td>
                 <td className="px-5 py-3"><Badge tone="blue">{r.cert}認定</Badge></td>
                 <td className="px-5 py-3 font-bold text-gray-600">{r.guardian}家</td>
@@ -956,6 +969,16 @@ function Roster(){
         </table>
       </Card>
       <KidProfileModal child={sel!=null?all.find(k=>k.id===sel):null} onClose={()=>setSel(null)}/>
+      <Modal open={adding} onClose={()=>setAdding(false)} icon="users" title="園児を追加" sub="名簿に新しい園児を登録します（モック）"
+        footer={<><Btn kind="ghost" onClick={()=>setAdding(false)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={addKid}>この内容で追加</Btn></>}>
+        <div className="space-y-3">
+          <div><div className="text-[12px] text-muted font-bold mb-1">園児の名前</div><input value={form.n} onChange={e=>setForm(f=>({...f,n:e.target.value}))} placeholder="例）あおい" className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[14px] font-bold text-ink outline-none placeholder:text-muted"/></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">クラス</div><div className="flex flex-wrap gap-2">{['あおば組','ふたば組','つぼみ組'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,klass:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.klass===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">認定区分</div><div className="flex gap-2">{['1号','2号','3号'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,cert:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.cert===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}認定</button>)}</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">保護者の姓</div><input value={form.guardian} onChange={e=>setForm(f=>({...f,guardian:e.target.value}))} placeholder="例）山田" className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[14px] font-bold text-ink outline-none placeholder:text-muted"/></div>
+          <div className="text-[11px] font-bold text-warm flex items-start gap-1.5"><Ic name="lock" className="w-3.5 h-3.5 mt-0.5 shrink-0"/>本デモは架空データです。実運用では重複チェック・必須項目の検証を行います。</div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1119,6 +1142,9 @@ function Billing(){
   const cycle=(id)=> setStamp(s=>{ const cur=s[id]; const nx= cur===undefined?'in': cur==='in'?'out':undefined; const n={...s}; if(nx===undefined) delete n[id]; else n[id]=nx; return n; });
   const here=Object.values(stamp).filter(v=>v==='in').length;
   const [fixed,setFixed]=useState(false);
+  const [inv,setInv]=useState(null);     // 請求書プレビュー対象index
+  const [sent,setSent]=useState({});     // 送付済の請求書index
+  const bill=(i)=>({ base:27000, ext:i*1500, meal:4500+i*300, free:25700, total:5800+i*1800 });
   return (
     <div>
       <PageHead title="登降園・精算" sub="タッチ打刻 → 時間記録 → 月次精算（無償化・全銀・インボイス対応）"/>
@@ -1137,17 +1163,37 @@ function Billing(){
         </Card>
       </div>
       <Card className="overflow-hidden">
+        <CardHead icon="money" title="園児別 請求明細" action={<span className="text-[12px] text-muted font-bold">行をタップで請求書プレビュー</span>}/>
         <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
-          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','基本料','延長','給食・物販','無償化','請求額'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-          <tbody>{KIDS.slice(0,5).map((k,i)=>(
-            <tr key={k.id} className="border-b border-[#F7EFE7]">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','基本料','延長','給食・物販','無償化','請求額','状態',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+          <tbody>{KIDS.slice(0,5).map((k,i)=>{ const b=bill(i); return (
+            <tr key={k.id} onClick={()=>setInv(i)} className="border-b border-[#F7EFE7] hover:bg-cream/40 cursor-pointer">
               <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={k.n} color={k.color} size={28}/><span className="font-bold text-ink">{k.n}</span></div></td>
-              <td className="px-5 py-3 font-bold">¥27,000</td><td className="px-5 py-3">¥{(i*1500).toLocaleString()}</td><td className="px-5 py-3">¥{(4500+i*300).toLocaleString()}</td>
-              <td className="px-5 py-3"><Badge tone="green">-¥25,700</Badge></td><td className="px-5 py-3 font-extrabold text-ink">¥{(5800+i*1800).toLocaleString()}</td>
+              <td className="px-5 py-3 font-bold">¥{b.base.toLocaleString()}</td><td className="px-5 py-3">¥{b.ext.toLocaleString()}</td><td className="px-5 py-3">¥{b.meal.toLocaleString()}</td>
+              <td className="px-5 py-3"><Badge tone="green">-¥{b.free.toLocaleString()}</Badge></td><td className="px-5 py-3 font-extrabold text-ink">¥{b.total.toLocaleString()}</td>
+              <td className="px-5 py-3">{sent[i]? <Badge tone="green">送付済</Badge> : fixed? <Badge tone="amber">未送付</Badge> : <Badge tone="gray">未確定</Badge>}</td>
+              <td className="px-5 py-3 text-right"><span className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></span></td>
             </tr>
-          ))}</tbody>
+          );})}</tbody>
         </table>
       </Card>
+
+      <Modal open={inv!=null} onClose={()=>setInv(null)} icon="money" title={inv!=null&&(KIDS[inv].n+' の請求書（6月分）')} sub={fixed?'精算確定済':'精算が未確定です'}
+        footer={inv!=null && (sent[inv]
+          ? <Badge tone="green"><Ic name="check" className="w-3 h-3"/>送付済</Badge>
+          : <><Btn kind="ghost" icon="file" onClick={()=>mockTap('この請求書をPDF出力（モック）')}>PDF出力</Btn><Btn kind="primary" icon="send" disabled={!fixed} onClick={()=>{ if(fixed){ setSent(s=>({...s,[inv]:true})); } else { mockTap('精算を確定してから送付できます'); } }}>{fixed?'保護者へ送付':'確定後に送付可'}</Btn></>)}>
+        {inv!=null && (()=>{ const b=bill(inv); return <div className="space-y-3">
+          <div className="rounded-2xl border border-[#F3E6D9] p-4">
+            {[['基本料','¥'+b.base.toLocaleString()],['延長保育','¥'+b.ext.toLocaleString()],['給食・物販','¥'+b.meal.toLocaleString()],['幼児教育無償化','-¥'+b.free.toLocaleString()]].map((r,i)=>(
+              <div key={i} className="flex items-center justify-between text-[13px] font-bold py-1.5 border-b border-[#F7EFE7] last:border-0"><span className="text-muted">{r[0]}</span><span className={cx(r[0].includes('無償化')?'text-green-600':'text-ink')}>{r[1]}</span></div>
+            ))}
+            <div className="flex items-center justify-between pt-2 mt-1"><span className="font-extrabold text-ink">請求額</span><span className="text-xl font-extrabold text-brand-600">¥{b.total.toLocaleString()}</span></div>
+          </div>
+          <div className="flex items-center justify-between text-[12px] font-bold"><span className="text-muted">支払方法</span><span className="text-ink">口座振替（毎月27日）</span></div>
+          <div className="flex items-center justify-between text-[12px] font-bold"><span className="text-muted">送付状態</span>{sent[inv]? <Badge tone="green">送付済</Badge>:fixed?<Badge tone="amber">未送付</Badge>:<Badge tone="gray">精算未確定</Badge>}</div>
+          {!fixed && <div className="text-[11px] font-bold text-amber-600 flex items-center gap-1"><Ic name="bell" className="w-3.5 h-3.5"/>送付するには上部の「精算を確定」を先に行ってください。</div>}
+        </div>; })()}
+      </Modal>
     </div>
   );
 }
@@ -1159,6 +1205,12 @@ function Shift(){
   const role=['担任（年長）','担任（年中）','主任','担任（年少）','フリー'];
   const sh=(si,di)=> (si+di)%4!==0 ? ['早','日','遅','日'][di%4] : '休';
   const [sel,setSel]=useState(null); // 職員index
+  const [leaves,setLeaves]=useState(3);     // 休暇申請件数（申請で連動）
+  const [leaveFor,setLeaveFor]=useState(null); // 休暇申請モーダル対象の職員index
+  const [lform,setLform]=useState({date:'6/18（水）', type:'有給休暇', reason:''});
+  const [leaveOk,setLeaveOk]=useState(false);
+  const openLeave=(si)=>{ setSel(null); setLeaveFor(si); setLform({date:'6/18（水）', type:'有給休暇', reason:''}); setLeaveOk(false); };
+  const applyLeave=()=>{ setLeaves(l=>l+1); setLeaveOk(true); };
   return (
     <div>
       <PageHead title="シフト・労務" sub="2026年6月 ・ 配置基準を自動チェック。職員をタップで勤務詳細。"
@@ -1166,7 +1218,7 @@ function Shift(){
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card className="p-4"><Stat label="配置基準" value="充足" tone="green"/></Card>
         <Card className="p-4"><Stat label="要注意日" value="2日" tone="red"/></Card>
-        <Card className="p-4"><Stat label="休暇申請" value="3件" tone="ink"/></Card>
+        <Card className="p-4"><Stat label="休暇申請" value={leaves+'件'} tone="ink"/></Card>
         <Card className="p-4"><Stat label="時間有給" value="可" tone="green"/></Card>
       </div>
       <Card className="overflow-hidden">
@@ -1184,7 +1236,7 @@ function Shift(){
       <div className="mt-4"><Card className="p-4 border-l-4 border-l-red-300"><div className="flex items-center gap-2 text-[13px]"><Badge tone="red">配置基準アラート</Badge><span className="font-bold text-ink">6/15(月) 午後 ・ 年少クラスが基準人数 -1名。早番の調整を推奨。</span></div></Card></div>
 
       <Modal open={sel!=null} onClose={()=>setSel(null)} icon="clock" title={sel!=null&&(staff[sel]+' 先生 の勤務')} sub={sel!=null&&role[sel]}
-        footer={<><Btn kind="ghost" icon="calendar" onClick={()=>mockTap('休暇を申請（モック）')}>休暇を申請</Btn><Btn kind="soft" icon="edit" onClick={()=>mockTap(staff[sel]+' 先生のシフトを編集（モック）')}>シフトを編集</Btn></>}>
+        footer={<><Btn kind="ghost" icon="calendar" onClick={()=>openLeave(sel)}>休暇を申請</Btn><Btn kind="soft" icon="edit" onClick={()=>mockTap(staff[sel]+' 先生のシフトを編集（モック）')}>シフトを編集</Btn></>}>
         {sel!=null && <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[['今月勤務',(20-sel)+'日'],['総労働','152h'],['残業','4h'],['有給残',(12-sel)+'日']].map((s,i)=>(<div key={i} className="rounded-xl border border-[#F3E6D9] p-3 text-center"><div className="text-[11px] text-muted font-bold">{s[0]}</div><div className="font-extrabold text-ink mt-0.5">{s[1]}</div></div>))}
@@ -1197,6 +1249,24 @@ function Shift(){
           </div>
           <div className="bg-[#FBFAFF] border border-[#EEE7FB] rounded-xl p-3 text-[12px] text-ink font-bold flex items-start gap-2"><Ic name="ai" className="w-4 h-4 text-purple-600 mt-0.5 shrink-0"/>実践ログ・研修修了が処遇に連動。{staff[sel]}先生は今月、配置基準を1度も割らずに勤務。</div>
         </div>}
+      </Modal>
+
+      <Modal open={leaveFor!=null} onClose={()=>setLeaveFor(null)} icon="calendar" title={leaveFor!=null&&(staff[leaveFor]+' 先生 の休暇申請')} sub={leaveFor!=null&&role[leaveFor]}
+        footer={leaveOk
+          ? <Btn kind="primary" icon="check" onClick={()=>setLeaveFor(null)}>閉じる</Btn>
+          : <><Btn kind="ghost" onClick={()=>setLeaveFor(null)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={applyLeave}>申請する</Btn></>}>
+        {leaveFor!=null && (leaveOk
+          ? <div className="text-center py-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#E8F5E9] text-green-600 mx-auto flex items-center justify-center mb-3"><Ic name="check" className="w-7 h-7"/></div>
+              <div className="font-extrabold text-ink text-lg">休暇を申請しました</div>
+              <p className="text-[13px] text-muted font-bold mt-1">{lform.date}・{lform.type}<br/>主任承認に回りました（承認待ち {leaves} 件）。配置基準は充足を確認済み。</p>
+            </div>
+          : <div className="space-y-3">
+              <div><div className="text-[12px] text-muted font-bold mb-1">希望日</div><div className="flex flex-wrap gap-2">{['6/18（水）','6/24（火）','6/30（月）'].map(d=><button key={d} onClick={()=>setLform(f=>({...f,date:d}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', lform.date===d?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{d}</button>)}</div></div>
+              <div><div className="text-[12px] text-muted font-bold mb-1">種別</div><div className="flex flex-wrap gap-2">{['有給休暇','時間有給','特別休暇'].map(c=><button key={c} onClick={()=>setLform(f=>({...f,type:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', lform.type===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
+              <div><div className="text-[12px] text-muted font-bold mb-1">理由・申し送り（任意）</div><input value={lform.reason} onChange={e=>setLform(f=>({...f,reason:e.target.value}))} placeholder="例）通院のため" className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[14px] font-bold text-ink outline-none placeholder:text-muted"/></div>
+              <div className="bg-cream/50 border border-[#F3E6D9] rounded-xl p-3 text-[12px] text-ink font-bold flex items-start gap-2"><Ic name="ai" className="w-4 h-4 text-purple-600 mt-0.5 shrink-0"/>この日の配置基準は充足。代替候補として渡辺先生が提案されています。</div>
+            </div>)}
       </Modal>
     </div>
   );
@@ -2306,19 +2376,38 @@ function NoticeBoard(){
 }
 
 function FileBox(){
-  const files=[['入園のしおり2026.pdf','PDF','2.4MB','全体'],['年間行事予定.pdf','PDF','0.8MB','全体'],['給食だより6月.pdf','PDF','1.1MB','全体'],['保健だより6月.pdf','PDF','0.9MB','全体'],['制服・用品リスト.pdf','PDF','1.6MB','新入園'],['運動会プログラム.pdf','PDF','3.2MB','年長'],['プール開きのしおり.pdf','PDF','1.0MB','年中'],['夏祭りのご案内.pdf','PDF','1.4MB','全体']];
+  const initial=[['入園のしおり2026.pdf','PDF','2.4MB','全体'],['年間行事予定.pdf','PDF','0.8MB','全体'],['給食だより6月.pdf','PDF','1.1MB','全体'],['保健だより6月.pdf','PDF','0.9MB','全体'],['制服・用品リスト.pdf','PDF','1.6MB','新入園'],['運動会プログラム.pdf','PDF','3.2MB','年長'],['プール開きのしおり.pdf','PDF','1.0MB','年中'],['夏祭りのご案内.pdf','PDF','1.4MB','全体']];
   const targets=['すべて','全体','新入園','年中','年長'];
   const [t,setT]=useState('すべて');
+  const [files,setFiles]=useState(initial);
+  const [up,setUp]=useState(false);
+  const [form,setForm]=useState({name:'', kind:'PDF', target:'全体'});
   const rows = files.filter(f=> t==='すべて'||f[3]===t);
+  const upload = ()=>{
+    const nm = form.name.trim(); if(!nm) return;
+    const fname = /\.[a-zA-Z0-9]+$/.test(nm)? nm : nm+(form.kind==='PDF'?'.pdf':form.kind==='画像'?'.jpg':'.xlsx');
+    const size = (Math.floor((nm.length%30+8))/10+0.5).toFixed(1)+'MB';
+    setFiles(fs=>[[fname, form.kind, size, form.target], ...fs]);
+    setUp(false); setForm({name:'', kind:'PDF', target:'全体'});
+  };
   return (
     <div>
       <PageHead title="資料・ファイルBOX" sub="園からの配布資料を保護者へ。クラス・対象で出し分け。"
-        action={<Btn kind="primary" icon="plus">資料をアップロード</Btn>}/>
-      <Card className="p-3 mb-4"><div className="flex flex-wrap items-center gap-2"><span className="text-[12px] text-muted font-bold px-1">公開対象で絞り込み：</span>{targets.map(x=><button key={x} onClick={()=>setT(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', t===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
+        action={<Btn kind="primary" icon="plus" onClick={()=>setUp(true)}>資料をアップロード</Btn>}/>
+      <Card className="p-3 mb-4"><div className="flex flex-wrap items-center gap-2"><span className="text-[12px] text-muted font-bold px-1">公開対象で絞り込み：</span>{targets.map(x=>{ const n=x==='すべて'?files.length:files.filter(f=>f[3]===x).length; return <button key={x} onClick={()=>setT(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', t===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}<span className={cx('ml-1.5 px-1.5 rounded-full text-[11px]', t===x?'bg-white/25':'bg-cream')}>{n}</span></button>; })}</div></Card>
       <Card className="overflow-hidden"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['ファイル','種別','サイズ','公開対象','DL'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
         <tbody>{rows.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button onClick={()=>mockTap(f[0]+'を開く（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
       </table></Card>
+      <Modal open={up} onClose={()=>setUp(false)} icon="folder" title="資料をアップロード" sub="配布資料を追加し、公開対象を選びます（モック）"
+        footer={<><Btn kind="ghost" onClick={()=>setUp(false)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={upload}>アップロード</Btn></>}>
+        <div className="space-y-3">
+          <button onClick={()=>mockTap('端末から PDF/画像 を選択（モック）')} className="w-full h-24 rounded-2xl border-2 border-dashed border-[#E8D5C4] flex flex-col items-center justify-center text-muted hover:border-brand-300 hover:text-brand-500 transition"><Ic name="folder" className="w-7 h-7 mb-1"/><span className="text-[12px] font-bold">ファイルをドラッグ＆ドロップ／タップで選択</span></button>
+          <div><div className="text-[12px] text-muted font-bold mb-1">ファイル名</div><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="例）7月の園だより" className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[14px] font-bold text-ink outline-none placeholder:text-muted"/></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">種別</div><div className="flex gap-2">{['PDF','画像','Excel'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,kind:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.kind===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">公開対象</div><div className="flex flex-wrap gap-2">{['全体','新入園','年中','年長'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,target:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.target===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
+        </div>
+      </Modal>
     </div>
   );
 }
