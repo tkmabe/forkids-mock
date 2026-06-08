@@ -2699,13 +2699,29 @@ function ParentMedia({setTab}){
   </div>);
 }
 function ParentLive({setTab}){
+  const [live,setLive] = useState(false); // ライブ視聴モーダル
   return (<div>
     <PSubHead setTab={setTab}>ライブ配信</PSubHead>
     <div className="px-5 space-y-3">
-      <Card className="p-0 overflow-hidden"><div className="h-40 bg-ink flex items-center justify-center relative"><Ic name="play" className="w-12 h-12 text-white"/><span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">● LIVE</span></div><div className="p-4"><div className="font-bold text-ink">保育参観（あおば組）</div><div className="text-[12px] text-muted font-bold">6月3日 10:00〜 ・ 視聴中 142名</div></div></Card>
+      <Card className="p-0 overflow-hidden"><button onClick={()=>setLive(true)} className="w-full h-40 bg-ink flex items-center justify-center relative hover:opacity-90 transition"><Ic name="play" className="w-12 h-12 text-white"/><span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">● LIVE</span><span className="absolute bottom-2 right-3 text-white text-[11px] font-bold bg-black/40 px-2 py-0.5 rounded-full">タップで視聴</span></button><div className="p-4"><div className="font-bold text-ink">保育参観（あおば組）</div><div className="text-[12px] text-muted font-bold">6月3日 10:00〜 ・ 視聴中 142名</div></div></Card>
       <div className="text-[13px] font-bold text-muted">配信予定</div>
-      {[['運動会','10月12日 9:00','#FDC089'],['発表会','12月7日 10:00','#C8B3ED']].map((r,i)=>(<Card key={i} className="p-3 flex items-center gap-3"><div className="w-12 h-12 rounded-xl flex items-center justify-center text-ink/60" style={{background:r[2]+'66'}}><Ic name="video" className="w-6 h-6"/></div><div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[1]}</div></div><Btn kind="ghost" icon="bell">通知ON</Btn></Card>))}
+      {[['運動会','10月12日 9:00','#FDC089'],['発表会','12月7日 10:00','#C8B3ED']].map((r,i)=>(<Card key={i} className="p-3 flex items-center gap-3"><div className="w-12 h-12 rounded-xl flex items-center justify-center text-ink/60" style={{background:r[2]+'66'}}><Ic name="video" className="w-6 h-6"/></div><div className="flex-1"><div className="font-bold text-ink text-[14px]">{r[0]}</div><div className="text-[12px] text-muted font-bold">{r[1]}</div></div><Btn kind="ghost" icon="bell" onClick={()=>mockTap(r[0]+'の配信通知をONにしました（モック）')}>通知ON</Btn></Card>))}
     </div>
+    <Modal open={live} onClose={()=>setLive(false)} icon="play" title="保育参観（あおば組）" sub="● LIVE ・ 視聴中 142名"
+      footer={<><Btn kind="ghost" icon="bell" onClick={()=>mockTap('このライブの通知をONにしました（モック）')}>通知ON</Btn><Btn kind="primary" icon="heart" onClick={()=>mockTap('応援スタンプを送りました（モック）')}>応援を送る</Btn></>}>
+      <div className="rounded-2xl overflow-hidden bg-ink h-52 flex items-center justify-center relative mb-3">
+        <button onClick={()=>mockTap('ライブを再生（モック）')} className="w-16 h-16 rounded-full bg-white/85 flex items-center justify-center hover:bg-white"><Ic name="play" className="w-8 h-8 text-ink"/></button>
+        <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">● LIVE</span>
+        <span className="absolute bottom-2 right-3 text-white text-[11px] font-bold bg-black/40 px-2 py-0.5 rounded-full">10:24 経過</span>
+      </div>
+      <div className="text-[12px] font-bold text-muted mb-1">ライブコメント</div>
+      <div className="space-y-1.5">
+        {[['さくらの保護者','がんばれー！'],['ひなたの保護者','上手にできてますね😊'],['りくの保護者','見られて嬉しいです']].map((c,i)=>(
+          <div key={i} className="flex items-start gap-2 text-[13px]"><span className="font-bold text-brand-600 shrink-0">{c[0]}</span><span className="text-ink">{c[1]}</span></div>
+        ))}
+      </div>
+      <div className="mt-2 text-[11px] font-bold text-warm">※ コメントは園が承認した保護者のみ表示（架空のサンプルです）</div>
+    </Modal>
   </div>);
 }
 function ParentSurvey({setTab}){
@@ -2734,13 +2750,31 @@ function ParentResources({setTab}){
     <div className="px-5 grid grid-cols-2 gap-3">{files.map((f,i)=>(<button key={i} onClick={()=>mockTap(f[0]+' を開く（モック）')} className="bg-white rounded-2xl border border-[#F3E6D9] p-4 flex flex-col items-start gap-2 shadow-card text-left"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-ink/70" style={{background:f[2]+'66'}}><Ic name="folder" className="w-5 h-5"/></div><span className="font-bold text-[13px] text-ink">{f[0]}</span><Badge tone="blue">{f[1]}</Badge></button>))}</div>
   </div>);
 }
+const PARENT_HELP = [
+  {t:'出欠の申請方法', icon:'mic', steps:['下のメニューで「出欠」を開く','欠席／遅刻／早退／預かり を選ぶ','理由と時間を入力して「申請」','先生の確認後に園へ反映されます']},
+  {t:'写真の購入方法', icon:'photo', steps:['「写真」タブで気に入った写真を選ぶ','カートに追加し、点数・金額を確認','購入手続きへ進む','ダウンロード／プリント注文ができます']},
+  {t:'成長レポートの見かた', icon:'heart', steps:['「成長レポート」タブを開く','今月のダイジェスト動画・写真を見る','「ありがとう」で先生へ気持ちを送れます','過去分は「成長アルバム」からいつでも']},
+  {t:'通知設定の変更', icon:'bell', steps:['メニューから「通知設定」を開く','お知らせ／配信／出欠 の通知をON/OFF','静音にする時間帯を設定できます','変更は即時に反映されます']},
+];
 function ParentHelp({setTab}){
+  const [help,setHelp] = useState(null); // 使い方の詳細モーダル
   return (<div>
     <PSubHead setTab={setTab}>使い方・サポート</PSubHead>
     <div className="px-5 space-y-3">
-      {[['出欠の申請方法','mic'],['写真の購入方法','photo'],['成長レポートの見かた','heart'],['通知設定の変更','bell']].map((g,i)=>(<Card key={i} className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={g[1]} className="w-5 h-5"/></div><span className="flex-1 font-bold text-[14px] text-ink">{g[0]}</span><span className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></span></Card>))}
-      <Btn kind="primary" icon="ai" className="w-full py-3">AIサポートに質問する</Btn>
+      {PARENT_HELP.map((g,i)=>(<button key={i} onClick={()=>setHelp(g)} className="w-full text-left" title={g.t+'の手順を開く'}><Card className="p-4 flex items-center gap-3 hover:bg-cream/40 transition"><div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-500"><Ic name={g.icon} className="w-5 h-5"/></div><span className="flex-1 font-bold text-[14px] text-ink">{g.t}</span><span className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></span></Card></button>))}
+      <Btn kind="primary" icon="ai" className="w-full py-3" onClick={()=>mockTap('AIサポートに質問する（モック）')}>AIサポートに質問する</Btn>
     </div>
+    <Modal open={!!help} onClose={()=>setHelp(null)} icon={help&&help.icon} title={help&&help.t} sub="かんたん手順"
+      footer={<><Btn kind="ghost" icon="ai" onClick={()=>mockTap('AIサポートに質問する（モック）')}>解決しない</Btn><Btn kind="primary" icon="check" onClick={()=>setHelp(null)}>わかった</Btn></>}>
+      {help && <div className="space-y-2">
+        {help.steps.map((s,i)=>(
+          <div key={i} className="flex items-start gap-3 p-2.5 rounded-xl border border-[#F3E6D9] bg-white">
+            <span className="w-6 h-6 rounded-full bg-brand-500 text-white text-[12px] font-extrabold flex items-center justify-center shrink-0">{i+1}</span>
+            <span className="text-[13px] font-bold text-ink leading-relaxed">{s}</span>
+          </div>
+        ))}
+      </div>}
+    </Modal>
   </div>);
 }
 const PARENT_SCREENS = { home:ParentHome, report:ParentReport, notice:ParentNotice, photo:ParentPhoto, attend:ParentAttend, shop:ParentShop, notices:ParentNotices, growth:ParentGrowth, media:ParentMedia, live:ParentLive, survey:ParentSurvey, resources:ParentResources, help:ParentHelp };
