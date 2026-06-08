@@ -2644,26 +2644,73 @@ function ParentReport({setTab}){
 function ParentNotice(){
   const [msgs,setMsgs] = useState([]);   // 自分が送った追加メッセージ
   const [val,setVal] = useState('');
+  const [pv,setPv] = useState(null);     // れんらく帳の写真ビューア
   const send = ()=>{ if(!val.trim()) return; setMsgs(m=>[...m,{body:val.trim(),t:'たった今'}]); setVal(''); };
   return (<div><PTitle sub="先生とのやりとり（健康・連絡）">れんらく帳</PTitle>
     <div className="px-5 space-y-3">
       <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月6日（金）</span></div>
       <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:20</div>今日は戸外でだんごむしを観察していました🐛「あしは何本？」と自分から数えていましたよ。
-        <div className="mt-2 h-20 rounded-xl bg-cat-green/40 flex items-center justify-center"><Ic name="photo" className="w-7 h-7 text-white"/></div></div></div>
+        <button onClick={()=>setPv(0)} className="mt-2 w-full h-20 rounded-xl bg-cat-green/40 flex items-center justify-center hover:bg-cat-green/50 transition" title="写真を見る"><Ic name="photo" className="w-7 h-7 text-white"/></button></div></div>
       <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし ・ 19:02</div>ずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
       <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月5日（木）</span></div>
       <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:10</div>給食をおかわりしました。最近よく食べています🍚</div></div>
       {msgs.map((m,i)=>(<div key={i} className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし ・ {m.t}</div>{m.body}</div></div>))}
       <div className="flex flex-wrap gap-2 pt-1">{['ありがとうございます','承知しました','お迎えを変更します'].map((q,i)=><button key={i} onClick={()=>setVal(q)} className="px-3 py-1.5 rounded-full text-[12px] font-bold border bg-white text-gray-600 border-[#E8D5C4] hover:border-brand-300">{q}</button>)}</div>
-      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>mockTap('写真を添付（モック）')} className="text-muted"><Ic name="camera" className="w-5 h-5 ml-1"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="メッセージ…" className="flex-1 bg-transparent text-[12px] font-bold text-ink outline-none placeholder:text-muted"/><button onClick={send} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
-    </div></div>);
+      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>mockTap('写真を選択して添付（モック）')} className="text-muted"><Ic name="camera" className="w-5 h-5 ml-1"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="メッセージ…" className="flex-1 bg-transparent text-[12px] font-bold text-ink outline-none placeholder:text-muted"/><button onClick={send} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
+    </div>
+    <ParentPhotoViewer list={NOTE_PHOTO} idx={pv} setIdx={setPv}/>
+  </div>);
+}
+// 写真ギャラリー（架空）。[色, カテゴリ, キャプション, 動画?, NEW?]。れんらく帳の写真にも流用。
+const GALLERY = [
+  ['#FDC089','行事','6/3 保育参観', false, true],
+  ['#C8B3ED','日常','6/5 戸外あそび', false, false],
+  ['#ADDABB','最近','6/6 だんごむし観察', false, true],
+  ['#FFD0D8','日常','6/6 給食の時間', false, false],
+  ['#AFD0F0','最近','6/6 みんなで体操', true, true],
+  ['#F4C6A6','日常','6/4 製作あそび', false, false],
+  ['#FDC089','行事','5/20 親子遠足', false, false],
+  ['#C8B3ED','行事','5/12 こどもの日', true, false],
+  ['#ADDABB','日常','6/2 絵本の時間', false, false],
+  ['#AFD0F0','最近','6/5 プール準備', false, false],
+];
+const NOTE_PHOTO = [['#ADDABB','れんらく帳','6/6 だんごむし観察のようす', false, false]];
+// 写真ビューア（拡大・前後巡回・カテゴリ・動画/NEW・購入導線）。ギャラリー／れんらく帳で共用。
+function ParentPhotoViewer({list, idx, setIdx, setTab}){
+  if(idx==null || !list[idx]) return null;
+  const ph = list[idx]; const total = list.length;
+  const nav = (d)=> setIdx((idx+d+total)%total);
+  return (
+    <Modal open={idx!=null} onClose={()=>setIdx(null)} icon={ph[3]?'play':'photo'} title={ph[3]?'動画':'写真'} sub={(idx+1)+' / '+total}
+      footer={<><Btn kind="ghost" icon="heart" onClick={()=>mockTap('「いいね」を送りました（モック）')}>いいね</Btn><Btn kind="primary" icon="shop" onClick={()=>{ setIdx(null); setTab&&setTab('media'); }}>購入ページへ</Btn></>}>
+      <div className="space-y-3">
+        <div className="rounded-2xl h-56 flex items-end p-4 relative overflow-hidden" style={{background:ph[0]}}>
+          {ph[3] && <span className="absolute inset-0 flex items-center justify-center"><button onClick={()=>mockTap('動画を再生（モック）')} className="w-14 h-14 rounded-full bg-white/85 flex items-center justify-center hover:bg-white"><Ic name="play" className="w-7 h-7 text-ink"/></button></span>}
+          <span className="text-ink/80 text-[12px] font-bold bg-white/70 px-2 py-1 rounded-lg">{ph[2]}</span>
+          {ph[4] && <span className="absolute top-2 left-2 bg-brand-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">NEW</span>}
+        </div>
+        <div className="flex items-center justify-between">
+          <button onClick={()=>nav(-1)} className="px-3 py-2 rounded-xl border border-[#E8D5C4] bg-white text-[12px] font-bold text-gray-600 hover:border-brand-300">← 前</button>
+          <Badge tone="gray">{ph[1]}</Badge>
+          <button onClick={()=>nav(1)} className="px-3 py-2 rounded-xl border border-[#E8D5C4] bg-white text-[12px] font-bold text-gray-600 hover:border-brand-300">次 →</button>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 function ParentPhoto({setTab}){
   const cats=['すべて','最近','行事','日常'];
+  const [fil,setFil] = useState('すべて');
+  const [vi,setVi] = useState(null);
+  const shown = GALLERY.filter(p=> fil==='すべて' || p[1]===fil);
   return (<div><PTitle sub="クラスの思い出（販売中の写真も）">写真・動画</PTitle>
-    <div className="px-5 mb-3 flex flex-wrap gap-2">{cats.map((t,i)=><button key={i} onClick={()=>mockTap('（モック）絞り込み：'+t)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border', i===0?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
-    <div className="px-5 grid grid-cols-2 gap-2">{CAT.concat(CAT).map((c,i)=>(<button key={i} onClick={()=>mockTap('写真を拡大（モック）')} className="aspect-square rounded-xl relative overflow-hidden" style={{background:c+'88'}}>{i%4===0&&<span className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-8 h-8 text-white"/></span>}{i%5===0&&<span className="absolute top-1 left-1 bg-brand-500 text-white text-[9px] font-bold px-1.5 rounded-full">NEW</span>}</button>))}</div>
+    <div className="px-5 mb-2 flex flex-wrap gap-2">{cats.map((t,i)=><button key={i} onClick={()=>{ setFil(t); setVi(null); }} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border', fil===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+    <div className="px-5 text-[11px] font-bold text-muted mb-2">{shown.length}枚（{fil}）</div>
+    <div className="px-5 grid grid-cols-2 gap-2">{shown.length
+      ? shown.map((p,i)=>(<button key={i} onClick={()=>setVi(i)} className="aspect-square rounded-xl relative overflow-hidden hover:opacity-80 transition" style={{background:p[0]+'cc'}}>{p[3]&&<span className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-8 h-8 text-white"/></span>}{p[4]&&<span className="absolute top-1 left-1 bg-brand-500 text-white text-[9px] font-bold px-1.5 rounded-full">NEW</span>}<span className="absolute bottom-1 left-1 right-1 text-[9px] font-bold text-ink/70 bg-white/70 rounded px-0.5 truncate text-left">{p[2]}</span></button>))
+      : <div className="col-span-2 text-center text-[13px] font-bold text-muted py-10">この絞り込みの写真はありません</div>}</div>
     <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3" onClick={()=>setTab&&setTab('media')}>気に入った写真・動画を購入する</Btn></div>
+    <ParentPhotoViewer list={shown} idx={vi} setIdx={setVi} setTab={setTab}/>
   </div>);
 }
 function ParentAttend(){
@@ -2760,15 +2807,21 @@ function ParentGrowth({setTab}){
     </div>
   </div>);
 }
+// 購入用の写真（架空）。[色, カテゴリ]。フィルタで実際に絞り込む。
+const MEDIA_ITEMS = [['#FDC089','保育参観'],['#C8B3ED','遠足'],['#ADDABB','日常'],['#FFD0D8','保育参観'],['#AFD0F0','遠足'],['#F4C6A6','日常'],['#FDC089','日常'],['#C8B3ED','保育参観'],['#ADDABB','遠足'],['#FFD0D8','日常'],['#AFD0F0','保育参観'],['#F4C6A6','遠足']];
 function ParentMedia({setTab}){
   const [fil,setFil] = useState('すべて');
-  const [cart,setCart] = useState({});  // index→selected
+  const [cart,setCart] = useState({});  // 元配列index→selected
   const toggle = (i)=> setCart(c=>{ const n={...c}; if(n[i]) delete n[i]; else n[i]=true; return n; });
   const count = Object.keys(cart).length;
+  const shown = MEDIA_ITEMS.map((m,i)=>({m,i})).filter(x=> fil==='すべて' || x.m[1]===fil);
   return (<div>
     <PSubHead setTab={setTab}>写真・動画の購入</PSubHead>
-    <div className="px-5 mb-3 flex gap-2">{['すべて','保育参観','遠足','日常'].map((t,i)=><button key={i} onClick={()=>setFil(t)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border',fil===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
-    <div className="px-5 grid grid-cols-3 gap-2">{CAT.concat(CAT).map((c,i)=>{ const on=!!cart[i]; return (<button key={i} onClick={()=>toggle(i)} className={cx('aspect-square rounded-xl relative overflow-hidden transition', on&&'ring-2 ring-brand-500')} style={{background:c+'88'}}><span className={cx('absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center', on?'bg-brand-500 text-white':'bg-white/80 text-brand-600')}><Ic name={on?'check':'plus'} className="w-3 h-3"/></span><span className="absolute bottom-1 left-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span></button>); })}</div>
+    <div className="px-5 mb-2 flex gap-2">{['すべて','保育参観','遠足','日常'].map((t,i)=><button key={i} onClick={()=>setFil(t)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border',fil===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+    <div className="px-5 text-[11px] font-bold text-muted mb-2">{shown.length}点（{fil}）・選択中 {count}点</div>
+    <div className="px-5 grid grid-cols-3 gap-2">{shown.length
+      ? shown.map(({m,i})=>{ const on=!!cart[i]; return (<button key={i} onClick={()=>toggle(i)} className={cx('aspect-square rounded-xl relative overflow-hidden transition', on&&'ring-2 ring-brand-500')} style={{background:m[0]+'cc'}}><span className={cx('absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center', on?'bg-brand-500 text-white':'bg-white/80 text-brand-600')}><Ic name={on?'check':'plus'} className="w-3 h-3"/></span><span className="absolute bottom-1 left-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span></button>); })
+      : <div className="col-span-3 text-center text-[13px] font-bold text-muted py-10">この絞り込みの写真はありません</div>}</div>
     <div className="px-5 mt-4"><Btn kind="primary" icon="shop" className="w-full py-3" onClick={()=>count?mockTap(count+'点（¥'+(count*150).toLocaleString()+'）を購入手続きへ（モック）'):mockTap('写真を選んでください')}>{count?('カート（'+count+'点・¥'+(count*150).toLocaleString()+'）で購入'):'写真を選択してください'}</Btn></div>
   </div>);
 }
