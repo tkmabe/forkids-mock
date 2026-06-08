@@ -1525,9 +1525,58 @@ function ExecHome({go}){
   );
 }
 
+// 行事の詳細（架空）。年間カレンダーの行→詳細モーダルで使用。
+const CAL_EVENTS = [
+  {date:'6/3（火）', name:'保育参観', target:'あおば組・ふたば組', kind:['行事','orange'], time:'9:30〜11:30', place:'各保育室・園庭', staff:'担任・主任',
+   items:['上履き（保護者用スリッパ）','名札','筆記用具'], shared:'配信済',
+   prep:[['しおりPDFを作成','済'],['保護者へ案内を配信','済'],['駐車場の割当を周知','未']]},
+  {date:'6/10（火）', name:'内科健診', target:'全園児', kind:['保健','blue'], time:'13:30〜15:00', place:'遊戯室', staff:'嘱託医・看護担当',
+   items:['健康カード','母子手帳の写し'], shared:'未共有',
+   prep:[['対象児リストを出力','済'],['アレルギー・既往の申し送り','未'],['保護者へ事前周知','未']]},
+  {date:'6/20（金）', name:'プール開き', target:'年中・年長', kind:['行事','green'], time:'10:00〜11:30', place:'屋上プール', staff:'体育担当・担任',
+   items:['水着','水泳帽','タオル','ビニール袋'], shared:'配信済',
+   prep:[['水質・気温の確認手順を共有','済'],['見学児の対応を確認','済'],['保護者の同意書を回収','未']]},
+  {date:'6/27（金）', name:'誕生会（6月生まれ）', target:'全園児', kind:['お祝い','purple'], time:'10:30〜11:15', place:'遊戯室', staff:'各クラス担任',
+   items:['誕生カード','飾り付け一式'], shared:'未共有',
+   prep:[['誕生児の写真を準備','済'],['出し物の役割分担','未'],['アレルギー対応おやつの確認','未']]},
+  {date:'7/18（金）', name:'夏祭り', target:'全園・保護者', kind:['行事','orange'], time:'16:30〜19:00', place:'園庭・ホール', staff:'全職員・保護者会',
+   items:['うちわ','タオル','飲み物'], shared:'準備中',
+   prep:[['出店・ブースの割当','未'],['雨天時の代替案を確定','未'],['保護者ボランティアの募集','未']]},
+];
+function CalEventDetail({ev, onClose}){
+  if(!ev) return null;
+  const sharedTone = ev.shared==='配信済'?'green':ev.shared==='準備中'?'amber':'gray';
+  const Row = ({label, value})=>(<div className="flex items-center justify-between text-[13px] font-bold py-1.5 border-b border-[#F7EFE7] last:border-0"><span className="text-muted">{label}</span><span className="text-ink text-right">{value}</span></div>);
+  return (
+    <Modal open={!!ev} onClose={onClose} icon="calendar" title={ev.name} sub={ev.date+'・'+ev.time}
+      footer={<><span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="send" className="w-3.5 h-3.5"/>保護者への配信は要承認（モックは実行しません）</span><Btn kind="ghost" icon="file" onClick={()=>mockTap(ev.name+' のしおりPDFを出力（モック）')}>しおりPDF</Btn><Btn kind="primary" icon="send" onClick={()=>mockTap(ev.name+' を保護者へ一斉共有（モック・要承認）')}>保護者へ共有</Btn></>}>
+      <div className="flex flex-wrap items-center gap-2 mb-3"><Badge tone={ev.kind[1]}>{ev.kind[0]}</Badge><Badge tone={sharedTone}>保護者共有：{ev.shared}</Badge></div>
+      <div className="rounded-xl border border-[#F3E6D9] px-4 py-2 mb-4">
+        <Row label="対象" value={ev.target}/>
+        <Row label="場所" value={ev.place}/>
+        <Row label="担当" value={ev.staff}/>
+      </div>
+      <div className="mb-4">
+        <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-2"><Ic name="check" className="w-4 h-4 text-brand-500"/>持ち物・しおり</div>
+        <div className="flex flex-wrap gap-1.5">{ev.items.map((t,i)=><Badge key={i} tone="gray">{t}</Badge>)}</div>
+      </div>
+      <div>
+        <div className="text-[13px] font-extrabold text-ink flex items-center gap-1.5 mb-2"><Ic name="clipboard" className="w-4 h-4 text-brand-500"/>準備チェック</div>
+        <div className="space-y-1.5">{ev.prep.map((p,i)=>(
+          <div key={i} className="flex items-center gap-2 text-[13px] font-bold">
+            <span className={cx('w-5 h-5 rounded-full flex items-center justify-center', p[1]==='済'?'bg-green-500 text-white':'bg-cream text-muted border border-[#F3E6D9]')}>{p[1]==='済'?'✓':''}</span>
+            <span className={cx('flex-1', p[1]==='済'?'text-muted line-through':'text-ink')}>{p[0]}</span>
+            <Badge tone={p[1]==='済'?'green':'amber'}>{p[1]==='済'?'完了':'未'}</Badge>
+          </div>
+        ))}</div>
+      </div>
+    </Modal>
+  );
+}
 function CalendarScreen(){
   const months = ['4月','5月','6月','7月','8月','9月','10月','11月','12月','1月','2月','3月'];
   const events = {1:'親子遠足',2:'保育参観',3:'プール開き',5:'夏祭り',7:'運動会',8:'発表会',11:'卒園式'};
+  const [sel,setSel] = useState(null); // 行事詳細モーダル対象
   return (
     <div>
       <PageHead title="年間カレンダー" sub="「今ここ」マーカーで、1年の見通しと残り時間が見える"/>
@@ -1552,22 +1601,19 @@ function CalendarScreen(){
           ))}
         </div>
       </Card>
-      <Card className="mt-5"><CardHead icon="calendar" title="行事予定（6月〜7月）" action={<Btn kind="ghost" icon="send">保護者へ一斉共有</Btn>}/>
+      <Card className="mt-5"><CardHead icon="calendar" title="行事予定（6月〜7月）" action={<Btn kind="ghost" icon="send" onClick={()=>mockTap('行事予定を保護者へ一斉共有（モック・要承認）')}>保護者へ一斉共有</Btn>}/>
         <div className="px-5 pb-5 space-y-2">
-          {[['6/3（火）','保育参観','あおば組・ふたば組','行事','orange'],
-            ['6/10（火）','内科健診','全園児','保健','blue'],
-            ['6/20（金）','プール開き','年中・年長','行事','green'],
-            ['6/27（金）','誕生会（6月生まれ）','全園児','お祝い','purple'],
-            ['7/18（金）','夏祭り','全園・保護者','行事','orange']].map((e,i)=>(
-            <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40">
-              <div className="w-16 shrink-0 text-[12px] font-extrabold text-brand-600">{e[0]}</div>
-              <div className="flex-1"><div className="font-bold text-ink text-[14px]">{e[1]}</div><div className="text-[12px] text-muted font-bold">{e[2]}</div></div>
-              <Badge tone={e[4]}>{e[3]}</Badge>
-              <button onClick={()=>mockTap(e[1]+' のしおり・持ち物を表示（モック）')} className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></button>
-            </div>
+          {CAL_EVENTS.map((e,i)=>(
+            <button key={i} onClick={()=>setSel(e)} className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9] hover:bg-cream/40 transition" title="行事の詳細を開く">
+              <div className="w-16 shrink-0 text-[12px] font-extrabold text-brand-600">{e.date}</div>
+              <div className="flex-1"><div className="font-bold text-ink text-[14px]">{e.name}</div><div className="text-[12px] text-muted font-bold">{e.target}</div></div>
+              <Badge tone={e.kind[1]}>{e.kind[0]}</Badge>
+              <span className="text-brand-400"><Ic name="chevron" className="w-4 h-4"/></span>
+            </button>
           ))}
         </div>
       </Card>
+      <CalEventDetail ev={sel} onClose={()=>setSel(null)}/>
     </div>
   );
 }
