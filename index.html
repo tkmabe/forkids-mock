@@ -743,6 +743,7 @@ function OutputPreview({go}){
   const [editBody,setEditBody] = useState('');
   const [sent,setSent] = useState(false);           // 保護者配信プレビュー
   const [optBros,setOptBros] = useState(true);
+  const [preview,setPreview] = useState(null);      // 帳票プレビュー（要録/出席簿/健康記録/月次レポート）
   const openEdit = (i)=>{ setEdit(i); setEditBody(rows[i].body); };
   const saveEdit = ()=>{ setRows(rs=>rs.map((r,i)=>i===edit?{...r,body:editBody}:r)); setEdit(null); };
   const advance = ()=> setStage(s=>Math.min(s+1,3));
@@ -798,8 +799,7 @@ function OutputPreview({go}){
           {stage<3
             ? <Btn kind="primary" icon="check" onClick={advance}>{stage===0?'主任承認に回す':stage===1?'園長承認に回す':'園長が承認して確定'}</Btn>
             : <Btn kind="dark" icon="check" onClick={()=>mockTap('確定済の要録を市へ提出（モック）')}>市へ提出</Btn>}
-          <Btn kind="ghost" icon="file" onClick={()=>mockTap('PDF出力（モック）')}>PDF 出力</Btn>
-          <Btn kind="ghost" icon="file" onClick={()=>mockTap('Excel出力（モック）')}>Excel 出力</Btn>
+          <Btn kind="ghost" icon="file" onClick={()=>setPreview('要録')}>出力プレビュー</Btn>
         </div>
         {stage>=3 && <div className="mt-3 bg-[#E8F5E9]/50 border border-[#E8F5E9] rounded-xl p-3 text-[13px] font-bold text-green-700 flex items-center gap-1.5"><Ic name="check" className="w-4 h-4"/>担任→主任→園長の3者承認が完了。市提出用PDF/Excelを出力できます。</div>}
       </Card>}
@@ -875,6 +875,20 @@ function OutputPreview({go}){
         <p className="text-[12px] text-muted font-bold mt-4">※ ストライド思想：結果の大小ではなく、取り組みのプロセスを評価し、研修・処遇につなげます。</p>
       </Card>}
 
+      {/* 帳票出力センター（要録タブ） */}
+      {tab==='要録' && <Card className="p-5 mt-5 max-w-3xl">
+        <CardHead icon="file" title="帳票の出力プレビュー" action={<span className="text-[12px] text-muted font-bold">印刷／PDFと同じ体裁</span>}/>
+        <div className="px-5 pb-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[['要録','file','市提出様式'],['出席簿','calendar','月次'],['健康記録','heart','検温・食事'],['月次レポート','photo','保護者配布']].map((b,i)=>(
+            <button key={i} onClick={()=>setPreview(b[0])} className="rounded-xl border border-[#F3E6D9] p-4 text-left hover:border-brand-300 hover:bg-cream/40 transition">
+              <span className="w-9 h-9 rounded-lg bg-brand-50 text-brand-500 flex items-center justify-center mb-2"><Ic name={b[1]} className="w-5 h-5"/></span>
+              <div className="font-bold text-ink text-[13px]">{b[0]}</div>
+              <div className="text-[11px] text-muted font-bold">{b[2]}</div>
+            </button>
+          ))}
+        </div>
+      </Card>}
+
       {/* 要録 領域編集モーダル */}
       <Modal open={edit!==null} onClose={()=>setEdit(null)} icon="edit"
         title={edit!==null?(rows[edit].k+' の所見を編集'):''} sub="AI下書きを先生が仕上げます"
@@ -882,7 +896,73 @@ function OutputPreview({go}){
         <textarea value={editBody} onChange={e=>setEditBody(e.target.value)} className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[14px] text-ink leading-relaxed outline-none resize-none h-32"/>
         <button onClick={()=>setEditBody(YOROKU_ROWS[edit]?YOROKU_ROWS[edit].body:editBody)} className="mt-2 text-[12px] font-bold text-brand-600 inline-flex items-center gap-1"><Ic name="ai" className="w-3.5 h-3.5"/>AI下書きに戻す</button>
       </Modal>
+
+      <FormPreview form={preview} rows={rows} stage={stage} onClose={()=>setPreview(null)}/>
     </div>
+  );
+}
+
+// 帳票の印刷／PDFプレビュー（紙面体裁）。要録／出席簿／健康記録／月次レポートを A4縦想定で表示。
+function FormPreview({form, rows, stage, onClose}){
+  if(!form) return null;
+  const TITLES={要録:'幼稚園幼児指導要録（学籍・指導の記録）', 出席簿:'出席簿', 健康記録:'健康記録カード', 月次レポート:'成長レポート'};
+  const aoba = KIDS.filter(k=>k.klass==='あおば組').slice(0,6);
+  const seals=[['担任','田中',true],['主任','佐々木',stage>=2],['園長','塚田',stage>=3]];
+  const cell='border border-[#D8C8B6] px-2 py-1.5';
+  return (
+    <Modal open={!!form} onClose={onClose} wide icon="file" title={TITLES[form]+' の出力プレビュー'} sub="印刷／PDFと同じ体裁で確認できます（モック）"
+      footer={<><span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="file" className="w-3.5 h-3.5"/>A4縦・余白20mm想定</span><Btn kind="ghost" icon="file" onClick={()=>mockTap(form+'をExcelで出力（モック）')}>Excel</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap(form+'をPDF出力／印刷（モック）')}>PDF・印刷</Btn></>}>
+      <div className="bg-white rounded-lg border border-[#E8D5C4] shadow-card mx-auto" style={{maxWidth:560}}>
+        <div className="p-5 sm:p-7 text-ink">
+          {/* 共通ヘッダ */}
+          <div className="text-center border-b-2 border-ink/80 pb-2 mb-3">
+            {form==='要録' && <div className="text-[10px] text-muted font-bold tracking-widest">守谷市様式 v2025</div>}
+            <div className="text-[17px] font-extrabold tracking-wide">{TITLES[form]}</div>
+            <div className="text-[11px] text-muted font-bold mt-0.5">あおば幼稚園 ・ {form==='出席簿'||form==='健康記録'?'2026年6月 あおば組':'2026年度 あおば組（年長）'}</div>
+          </div>
+
+          {form==='要録' && <>
+            <table className="w-full text-[11px] mb-3"><tbody>
+              {[['氏名','さくら','性別','女'],['生年月日','2020年7月15日','学級','あおば組（年長）'],['在籍期間','2023.4.1〜','園名','あおば幼稚園']].map((r,i)=>(
+                <tr key={i}>{[0,2].map(c=><React.Fragment key={c}><td className={cx(cell,'bg-cream/50 font-bold w-20')}>{r[c]}</td><td className={cx(cell,'font-bold')}>{r[c+1]}</td></React.Fragment>)}</tr>
+              ))}
+            </tbody></table>
+            <div className="text-[12px] font-extrabold mb-1">指導上参考となる事項（5領域）</div>
+            <table className="w-full text-[11px] mb-3"><tbody>
+              {rows.map((r,i)=>(<tr key={i}><td className={cx(cell,r.care?'bg-red-50':'bg-cream/50','font-bold w-24 align-top')}>{r.k}</td><td className={cx(cell,'leading-relaxed')}>{r.body}</td></tr>))}
+            </tbody></table>
+            <div className="flex justify-end gap-3 mt-4">
+              {seals.map((s,i)=>(
+                <div key={i} className="text-center">
+                  <div className="text-[10px] font-bold text-muted mb-1">{s[0]}</div>
+                  <div className={cx('w-12 h-12 rounded-full flex items-center justify-center text-[11px] font-extrabold', s[2]?'border-2 border-red-400 text-red-500':'border border-dashed border-[#D8C8B6] text-muted')}>{s[2]?s[1]:'印'}</div>
+                </div>
+              ))}
+            </div>
+          </>}
+
+          {form==='出席簿' && (()=>{ const days=Array.from({length:10},(_,i)=>i+1); return <>
+            <table className="w-full text-[10px] text-center"><thead><tr><th className={cx(cell,'bg-cream/50 text-left')}>園児＼日</th>{days.map(d=><th key={d} className={cx(cell,'bg-cream/50 w-6')}>{d}</th>)}<th className={cx(cell,'bg-cream/50')}>出席</th></tr></thead>
+            <tbody>{aoba.map((k,ri)=>{ let present=0; const marks=days.map((d,di)=>{ const v=(ri+di)%7===0?'欠':(ri+di)%11===0?'遅':'○'; if(v!=='欠')present++; return v; }); return (
+              <tr key={k.id}><td className={cx(cell,'text-left font-bold')}>{k.n}</td>{marks.map((m,mi)=><td key={mi} className={cx(cell, m==='欠'?'text-red-500':m==='遅'?'text-amber-500':'text-ink')}>{m}</td>)}<td className={cx(cell,'font-extrabold')}>{present}/10</td></tr>
+            );})}</tbody></table>
+            <div className="text-[11px] font-bold text-muted mt-2">○＝出席 ・ 欠＝欠席 ・ 遅＝遅刻 ／ まいにちチェックの出欠から自動集計（モック）</div>
+          </>; })()}
+
+          {form==='健康記録' && <table className="w-full text-[11px] text-center"><thead><tr>{['園児','検温(平均)','食事','排便','午睡','服薬'].map((h,i)=><th key={i} className={cx(cell,'bg-cream/50',i===0&&'text-left')}>{h}</th>)}</tr></thead>
+            <tbody>{aoba.map((k,ri)=>{ const t=(36.4+(ri%4)/10).toFixed(1); const hot=Number(t)>=36.8; return (
+              <tr key={k.id}><td className={cx(cell,'text-left font-bold')}>{k.n}</td><td className={cx(cell,hot&&'text-red-500 font-bold')}>{t}℃</td><td className={cell}>{['完食','半分','少し'][ri%3]}</td><td className={cell}>{ri%2?'○':'—'}</td><td className={cell}>{ri%3?'60分':'—'}</td><td className={cell}>{ri%4===0?'あり':'—'}</td></tr>
+            );})}</tbody></table>}
+
+          {form==='月次レポート' && <>
+            <div className="rounded-lg overflow-hidden border border-[#F3E6D9] mb-3"><div className="h-20 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-3"><div className="text-white"><div className="text-[10px] font-bold opacity-90">2026年6月</div><div className="text-lg font-extrabold">さくらの ひとつき</div></div></div></div>
+            <p className="text-[12px] leading-relaxed mb-3">今月のさくらちゃんは、だんごむしの観察に夢中でした。「あしは何本？」と自分から問いを立て、図鑑で調べてお友だちに教えてあげる姿が印象的でした。</p>
+            <div className="grid grid-cols-3 gap-1.5 mb-3">{['#FDC089','#C8B3ED','#ADDABB','#FFD0D8','#AFD0F0','#F4C6A6'].map((c,i)=><div key={i} className="aspect-square rounded" style={{background:c}}/>)}</div>
+            <div className="bg-cream/60 rounded-lg p-2.5 text-[12px] font-bold border border-[#F3E6D9]"><span className="text-brand-600">担任より：</span>ご家庭でも「なんでだろうね？」と一緒に考えてみてください。</div>
+          </>}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
