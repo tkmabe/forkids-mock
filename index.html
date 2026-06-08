@@ -1429,10 +1429,38 @@ function ExecHome({go}){
   ];
   const [done,setDone] = useState({});
   const remain = QUEUE.filter(q=>!done[q.id]).reduce((s,q)=>s+q.n,0);
+  // 本日の運営状況KPI（出席率／在園児数／承認待ち件数）。タップで園別内訳＋AIの気づき。承認待ちは承認ボックスへ。
+  const OPS = [
+    {key:'attend', label:'本日の出席率', value:'94.0%', tone:'green', icon:'check', delta:'252 / 268名 出席', deltaTone:'green',
+      rows:[['あおば幼稚園','95.8%（113/118）',96],['ふたば幼稚園','93.0%（80/86）',93],['つぼみ保育園','92.2%（59/64）',92]],
+      ai:'本日の欠席12名・遅刻3名・早退1名。発熱による欠席が6名でやや多め。感染症の広がりは現時点で確認されていません。'},
+    {key:'kids', label:'在園児数', value:'268名', tone:'ink', icon:'users', delta:'3園・定員340', deltaTone:'gray',
+      rows:[['あおば幼稚園','118名／定員120',98],['ふたば幼稚園','86名／定員100',86],['つぼみ保育園','64名／定員120',53]],
+      ai:'認定区分は1号148名・2号92名・3号28名。つぼみ保育園の0-2歳に空きがあり、次年度の受け入れ余地が最も大きい。'},
+    {key:'pending', label:'承認待ち件数', value:remain+'件', tone:'orange', icon:'check', delta:remain===0?'すべて処理済':'要録12・配信3・労務2', deltaTone:remain===0?'green':'amber', link:'approve',
+      rows: QUEUE.filter(q=>!done[q.id]).map(q=>[q.label, q.n+'件', Math.round(q.n/(remain||1)*100)]),
+      ai: remain===0?'本日の承認待ちはすべて処理済みです。':'要録（あおば組）12件が最多。就学先送付の締切が近く、主任承認で滞留している分から優先的に。'},
+  ];
   return (
     <div>
       <PageHead title="管理職マイページ" sub="あおばグループ 経営ダッシュボード ・ 教育・育成の質を中心に"
         action={<Btn kind="ghost" icon="org" onClick={()=>go&&go('org')}>組織図を見る</Btn>}/>
+      <div className="text-[13px] font-extrabold text-ink mb-2 flex items-center gap-1.5"><Ic name="check" className="w-4 h-4 text-brand-500"/>本日の運営状況</div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+        {OPS.map((s)=>(
+          <button key={s.key} onClick={()=>setKpi(s)} className="text-left">
+            <Card className={cx('p-5 hover:bg-cream/30 transition h-full', s.key==='pending'&&remain>0&&'border-2 border-[#F3D9C9]')}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[12px] text-muted font-bold flex items-center gap-1.5"><Ic name={s.icon} className="w-4 h-4 text-brand-400"/>{s.label}</div>
+                <span className="text-brand-300"><Ic name="chevron" className="w-4 h-4"/></span>
+              </div>
+              <div className={cx('text-3xl font-extrabold', s.tone==='green'?'text-green-600':s.tone==='orange'?'text-brand-500':'text-ink')}>{s.value}</div>
+              <div className="mt-1"><Badge tone={s.deltaTone}>{s.delta}</Badge></div>
+            </Card>
+          </button>
+        ))}
+      </div>
+      <div className="text-[13px] font-extrabold text-ink mb-2 flex items-center gap-1.5"><Ic name="chart" className="w-4 h-4 text-brand-500"/>経営指標（前月比）</div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         {KPI.map((s)=>(
           <button key={s.key} onClick={()=>setKpi(s)} className="text-left">
@@ -1499,9 +1527,10 @@ function ExecHome({go}){
       </div>
 
       <Modal open={!!kpi} onClose={()=>setKpi(null)} icon={kpi&&kpi.icon} title={kpi&&(kpi.label+'：'+kpi.value)} sub="園別の内訳とAIの気づき"
-        footer={<Btn kind="soft" icon="ai" onClick={()=>mockTap('この指標の詳細レポートをAIが作成（モック）')}>詳細レポートをAIで作成</Btn>}>
+        footer={<>{kpi&&kpi.link && <Btn kind="primary" icon="check" onClick={()=>{ setKpi(null); go&&go(kpi.link); }}>承認ボックスへ</Btn>}<Btn kind="soft" icon="ai" onClick={()=>mockTap('この指標の詳細レポートをAIが作成（モック）')}>詳細レポートをAIで作成</Btn></>}>
         {kpi && <div className="space-y-3">
-          <div className="flex items-center gap-2"><Badge tone={kpi.deltaTone}>前月比 {kpi.delta}</Badge><span className="text-[12px] text-muted font-bold">3園の内訳</span></div>
+          <div className="flex items-center gap-2"><Badge tone={kpi.deltaTone}>{kpi.delta}</Badge><span className="text-[12px] text-muted font-bold">{kpi.link?'カテゴリ別の内訳':'3園の内訳'}</span></div>
+          {kpi.rows.length===0 && <div className="text-[13px] font-bold text-muted py-2">内訳はありません（すべて処理済み）。</div>}
           {kpi.rows.map((r,i)=>(
             <div key={i}>
               <div className="flex items-center justify-between text-[13px] mb-1"><span className="font-bold text-ink">{r[0]}</span><span className="font-extrabold text-brand-600">{r[1]}</span></div>
@@ -1729,14 +1758,25 @@ function ApproveBox(){
     {kind:'物販価格', cat:'物販', who:'ROHACHI', target:'体操服セット ¥4,800', tone:'orange', note:'仕入改定にともなう価格変更の承認依頼', t:'2日前', stage:2,
       detail:'仕入改定にともなう体操服セットの価格変更（¥4,500→¥4,800）。',
       checks:[['仕入根拠の添付',true],['保護者への周知文',false],['既存注文への影響',true],['販売開始日',true]]},
+    {kind:'指導計画', cat:'計画', who:'田中先生', target:'あおば組 6月 週案', tone:'blue', note:'梅雨期のねらい・環境構成。AIが先月の記録から下書き', t:'30分前', stage:1,
+      detail:'6月第3週の週案。ねらい・主な活動・環境構成・配慮事項を、先月の実践ログからAIが下書き。',
+      checks:[['ねらいが発達段階に適合',true],['天候別の代替案あり',true],['アレルギー児への配慮',true],['行事との整合',false]]},
+    {kind:'写真販売', cat:'配信', who:'ROHACHI', target:'春の遠足アルバム 公開', tone:'pink', note:'販売48枚・写真NG家庭は非表示。公開で保護者購入が可能に', t:'3時間前', stage:2,
+      detail:'春の遠足の写真48枚を販売用に公開する申請。1枚¥150。写真NG家庭の児童は自動で非表示。',
+      checks:[['写真NG家庭の除外',true],['顔写りの確認',true],['価格・販売期間の設定',true],['見本（無料）の選定',false]]},
+    {kind:'お便り', cat:'配信', who:'佐々木先生', target:'保健だより 7月号', tone:'gray', note:'熱中症・プール時の健康管理。看護担当が作成', t:'昨日', stage:1,
+      detail:'7月の保健だより。熱中症予防・プール前の健康チェック・夏の感染症についての家庭向け案内。',
+      checks:[['医療的記載の根拠',true],['個人が特定される情報なし',true],['配信対象（全園）',true],['誤字・体裁',true]]},
   ];
   const STAGES = ['担任申請','主任確認','園長承認'];
-  const CATS = ['すべて','要録','配信','労務','物販'];
+  const CATS = ['すべて','要録','計画','配信','労務','物販'];
   // 承認/差戻しを状態化：操作した項目は結果バッジに変わり、承認待ち件数・承認済が連動して動く。
   const [acted,setActed] = useState({});
   const [cat,setCat] = useState('すべて');
   const [sel,setSel] = useState(null); // 個別審査モーダルの対象index
-  const act = (i,v)=> { setActed(a=>({...a,[i]:v})); setSel(null); };
+  const [comment,setComment] = useState(''); // 差戻し時の申し送りコメント
+  const act = (i,v)=> { setActed(a=>({...a,[i]:v})); setSel(null); setComment(''); };
+  const openSel = (i)=> { setSel(i); setComment(''); };
   const visIdx = items.map((it,i)=>i).filter(i=> cat==='すべて'||items[i].cat===cat);
   const approveAll = ()=> setActed(a=>{ const n={...a}; visIdx.forEach(i=>{ if(!n[i]) n[i]='ok'; }); return n; });
   const remain = items.filter((_,i)=>!acted[i]).length;
@@ -1763,7 +1803,7 @@ function ApproveBox(){
           {visIdx.map((i)=>{ const it=items[i]; return (
             <div key={i} className={cx('flex items-center gap-3 p-3 rounded-xl border transition', acted[i]==='ok'?'border-[#E8F5E9] bg-[#E8F5E9]/40':acted[i]==='ng'?'border-red-100 bg-red-50/40':'border-[#F3E6D9] hover:bg-cream/40')}>
               <span className="shrink-0"><Badge tone={it.tone}>{it.kind}</Badge></span>
-              <button onClick={()=>setSel(i)} className="flex-1 min-w-0 text-left">
+              <button onClick={()=>openSel(i)} className="flex-1 min-w-0 text-left">
                 <div className="font-bold text-ink text-[14px]">{it.target} <span className="text-muted font-bold text-[12px]">／ {it.who}</span></div>
                 <div className="text-[12px] text-muted font-bold truncate">{it.note}</div>
               </button>
@@ -1781,7 +1821,7 @@ function ApproveBox(){
       <Modal open={s!=null} onClose={()=>setSel(null)} icon="check" title={s&&(s.kind+'：'+s.target)} sub={s&&('申請者 '+s.who+' ・ '+s.t)}
         footer={s && (acted[sel]
           ? <Badge tone={acted[sel]==='ok'?'green':'red'}>{acted[sel]==='ok'?'承認済':'差戻し済'}</Badge>
-          : <React.Fragment><Btn kind="ghost" onClick={()=>act(sel,'ng')}>差戻し（コメント付）</Btn><Btn kind="primary" icon="check" onClick={()=>act(sel,'ok')}>承認する</Btn></React.Fragment>)}>
+          : <React.Fragment><Btn kind="ghost" icon="arrow" onClick={()=>act(sel,'ng')}>差戻し</Btn><Btn kind="primary" icon="check" onClick={()=>act(sel,'ok')}>承認する</Btn></React.Fragment>)}>
         {s && <div className="space-y-4">
           <p className="text-[13px] text-ink font-bold">{s.detail}</p>
           <div>
@@ -1809,7 +1849,13 @@ function ApproveBox(){
                 </div>
               ))}
             </div>
+            {s.checks.some(c=>!c[1]) && <div className="mt-2 text-[11px] font-bold text-amber-600 flex items-center gap-1"><Ic name="bell" className="w-3.5 h-3.5"/>要確認の項目があります。承認前にご確認ください。</div>}
           </div>
+          {!acted[sel] && <div>
+            <div className="text-[12px] text-muted font-bold mb-1.5">差戻し・申し送りコメント（任意）</div>
+            <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder="例）固有名詞の表記をご確認ください。修正後に再申請をお願いします。" className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[13px] text-ink font-bold h-20 outline-none resize-none placeholder:text-muted"/>
+            <div className="flex flex-wrap gap-1.5 mt-2">{['誤字を確認してください','写真の選定をご確認ください','このまま承認可','再申請をお願いします'].map((q,qi)=><button key={qi} onClick={()=>setComment(q)} className="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-white text-gray-600 border-[#E8D5C4] hover:border-brand-300">{q}</button>)}</div>
+          </div>}
         </div>}
       </Modal>
     </div>
