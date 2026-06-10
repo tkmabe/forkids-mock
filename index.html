@@ -4397,7 +4397,7 @@ const OP_FACILITIES=[
 const FACILITY_KINDS=['幼稚園','認定こども園','保育所型','保育園'];
 const FACILITY_STATUSES=['準備中','導入中','移行中','稼働中'];
 const FAC_STATUS_TONE={'準備中':'gray','導入中':'amber','移行中':'blue','稼働中':'green'};
-function OpFacilities({go, facilities}){
+function OpFacilities({go, facilities, updateFacility}){
   const facs = facilities||OP_FACILITIES;
   const [detail,setDetail] = useState(null); // 選択中施設 {f,i} or null（行→詳細モーダル）
   return (<div>
@@ -4425,7 +4425,7 @@ function OpFacilities({go, facilities}){
         ))}</tbody>
       </table></div>
     </Card>
-    <OpFacilityDetail detail={detail} onClose={()=>setDetail(null)} go={go}/>
+    <OpFacilityDetail detail={detail} onClose={()=>setDetail(null)} go={go} updateFacility={updateFacility}/>
   </div>);
 }
 
@@ -4449,10 +4449,22 @@ function opFacilitySynth(f, i){
            hiddenClasses: classCount - classes.length,
            active: 68 + (i*9)%28, lastLogin: stIdx>=5 ? '本日' : '導入支援中' };
 }
-function OpFacilityDetail({detail, onClose, go}){
+function OpFacilityDetail({detail, onClose, go, updateFacility}){
+  // 編集モーダル：基本情報(施設名/種別/定員/在籍/稼働状態)を修正→保存で一覧に反映。
+  // プラン・所属テナントは契約事項のため編集対象外(要承認)。Hooksは早期returnより前に置く。
+  const [editing,setEditing] = useState(false);
+  const [draft,setDraft] = useState(null);
   if(!detail) return null;
   const { f, i } = detail;
   const d = opFacilitySynth(f, i);
+  const openEdit = ()=> { setDraft({name:f[0], kind:f[2], cap:parseInt(f[3])||0, enr:parseInt(f[4])||0, status:f[6]}); setEditing(true); };
+  const saveEdit = ()=>{
+    if(!draft.name.trim()){ mockTap('施設名を入力してください'); return; }
+    if(draft.enr>draft.cap){ mockTap('在籍が定員を超えています。値を確認してください'); return; }
+    updateFacility && updateFacility(i, [draft.name.trim(), f[1], draft.kind, draft.cap+'名', draft.enr+'名', f[5], draft.status, FAC_STATUS_TONE[draft.status]||'gray']);
+    setEditing(false); onClose();
+    mockTap('施設情報を保存しました（モック・本番は監査ログに記録しテナントへ通知）');
+  };
   const Stat = ({label, value, sub})=>(
     <div className="rounded-xl border border-[#F3E6D9] bg-cream/40 px-3 py-2">
       <div className="text-[11px] font-bold text-muted">{label}</div>
@@ -4463,10 +4475,10 @@ function OpFacilityDetail({detail, onClose, go}){
   const footer = (<>
     <span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="lock" className="w-3.5 h-3.5"/>プラン変更・施設削除は要承認（モックは実行しません）</span>
     <Btn kind="ghost" icon="building" onClick={()=>{ onClose(); go&&go('optenants'); }}>所属テナントへ</Btn>
-    <Btn kind="ghost" icon="edit" onClick={()=>mockTap('施設情報の編集はモック範囲外です')}>施設情報を編集</Btn>
+    <Btn kind="ghost" icon="edit" onClick={openEdit}>施設情報を編集</Btn>
   </>);
-  return (
-    <Modal open={!!detail} onClose={onClose} wide icon="home"
+  return (<>
+    <Modal open={!!detail && !editing} onClose={onClose} wide icon="home"
       title={f[0]} sub={f[1]+'・'+f[2]}
       footer={footer}>
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -4523,7 +4535,34 @@ function OpFacilityDetail({detail, onClose, go}){
         </div>
       </div>
     </Modal>
-  );
+
+    <Modal open={editing} onClose={()=>setEditing(false)} icon="edit" title="施設情報を編集" sub={f[0]+'（'+f[1]+'）の基本情報を修正します'}
+      footer={<><Btn kind="ghost" onClick={()=>setEditing(false)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={saveEdit}>この内容で保存</Btn></>}>
+      {draft && <div className="space-y-3">
+        <div><div className="text-[12px] text-muted font-bold mb-1">施設名</div>
+          <input value={draft.name} onChange={e=>setDraft(d2=>({...d2,name:e.target.value}))} className="w-full bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300"/></div>
+        <div><div className="text-[12px] text-muted font-bold mb-1">施設種別</div>
+          <div className="flex flex-wrap gap-2">{FACILITY_KINDS.map(k=>(
+            <button key={k} onClick={()=>setDraft(d2=>({...d2,kind:k}))} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', draft.kind===k?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{k}</button>
+          ))}</div></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><div className="text-[12px] text-muted font-bold mb-1">定員</div>
+            <div className="flex items-center gap-2"><button onClick={()=>setDraft(d2=>({...d2,cap:Math.max(10,d2.cap-10)}))} className="w-9 h-9 rounded-xl border border-[#E8D5C4] font-extrabold text-gray-500 hover:border-brand-300">−</button><span className="flex-1 text-center font-extrabold text-ink text-[15px]">{draft.cap}名</span><button onClick={()=>setDraft(d2=>({...d2,cap:d2.cap+10}))} className="w-9 h-9 rounded-xl border border-[#E8D5C4] font-extrabold text-gray-500 hover:border-brand-300">＋</button></div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">在籍</div>
+            <div className="flex items-center gap-2"><button onClick={()=>setDraft(d2=>({...d2,enr:Math.max(0,d2.enr-2)}))} className="w-9 h-9 rounded-xl border border-[#E8D5C4] font-extrabold text-gray-500 hover:border-brand-300">−</button><span className="flex-1 text-center font-extrabold text-ink text-[15px]">{draft.enr}名</span><button onClick={()=>setDraft(d2=>({...d2,enr:d2.enr+2}))} className="w-9 h-9 rounded-xl border border-[#E8D5C4] font-extrabold text-gray-500 hover:border-brand-300">＋</button></div></div>
+        </div>
+        {draft.enr>draft.cap && <div className="text-[12px] font-bold text-red-500">在籍が定員を超えています</div>}
+        <div><div className="text-[12px] text-muted font-bold mb-1">稼働状態</div>
+          <div className="flex flex-wrap gap-2">{FACILITY_STATUSES.map(s=>(
+            <button key={s} onClick={()=>setDraft(d2=>({...d2,status:s}))} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', draft.status===s?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{s}</button>
+          ))}</div></div>
+        <div className="flex items-start gap-2 text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2 border border-[#F3E6D9]">
+          <Ic name="lock" className="w-3.5 h-3.5 shrink-0 mt-0.5"/>
+          <span>所属テナント・契約プランは契約事項のため、ここでは変更できません（プラン変更は要承認）。本番では変更を監査ログに記録し、テナントへ通知します。</span>
+        </div>
+      </div>}
+    </Modal>
+  </>);
 }
 function OpNewFacility({go, addFacility, tenants}){
   const TEN = tenants||TENANTS;
@@ -4935,6 +4974,7 @@ function OperatorApp({go, leads, addLead}){
   const clearApproved=()=> setJustApproved(null);
   const [facilities,setFacilities]=useState(OP_FACILITIES);
   const addFacility=(row)=> setFacilities(s=>[...s, row]);
+  const updateFacility=(i,row)=> setFacilities(s=> s.map((r,j)=> j===i? row : r));
   const LD = leads||OP_LEADS;
   const Screen=OP_SCREENS[screen]||OpHome;
   const opgo=(t)=>{ if(OP_SCREENS[t]) setScreen(t); };
@@ -4975,7 +5015,7 @@ function OperatorApp({go, leads, addLead}){
           <button onClick={()=>setNavOpen(true)} className="p-1"><Ic name="list" className="w-6 h-6"/></button>
           <span className="font-extrabold">for Kids 外販管理</span>
         </div>
-        <div className="px-4 sm:px-6 md:px-8 py-5 md:py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} justApproved={justApproved} clearApproved={clearApproved} facilities={facilities} addFacility={addFacility} leads={LD} addLead={addLead}/></div>
+        <div className="px-4 sm:px-6 md:px-8 py-5 md:py-7 max-w-6xl"><Screen go={opgo} tenants={tenants} addTenant={addTenant} approveTenant={approveTenant} rejectTenant={rejectTenant} justApproved={justApproved} clearApproved={clearApproved} facilities={facilities} addFacility={addFacility} updateFacility={updateFacility} leads={LD} addLead={addLead}/></div>
       </main>
     </div>
   );
