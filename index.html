@@ -1469,6 +1469,11 @@ function Shift(){
 function Shop(){
   const goods = [['通園帽子',2200,'#FDC089',38],['体操服セット',4800,'#AFD0F0',31],['上履き',1600,'#ADDABB',27],['お道具箱',3200,'#C8B3ED',22],['名札',600,'#FFD0D8',15],['絵本バッグ',2900,'#F4C6A6',10]];
   const [tab,setTab] = useState('商品一覧');
+  const [orders,setOrders] = useState(null);   // 注文者一覧モーダル対象（goods行）
+  // 注文者リスト（架空・園児idから決定的に生成）
+  const orderRows = (g)=> KIDS.slice(0, Math.min(8, g[3])).map((k,i)=>({
+    n:k.n, klass:k.klass, size:['S','M','L'][ (k.id+i)%3 ], qty:1+(k.id%2), paid:(k.id+i)%4!==1,
+  }));
   return (
     <div>
       <PageHead title="物販（注文管理）" sub="2026年11月の受付開始に向けた最小フロー ・ 注文 → 集計 → 帳票"
@@ -1483,7 +1488,7 @@ function Shop(){
           <Card key={i} className="overflow-hidden">
             <div className="h-28 flex items-center justify-center" style={{background:g[2]+'55'}}><Ic name="shop" className="w-10 h-10 text-ink/30"/></div>
             <div className="p-4"><div className="font-bold text-ink">{g[0]}</div><div className="flex items-center justify-between mt-1"><span className="font-extrabold text-brand-600">¥{g[1].toLocaleString()}</span><Badge tone="green">受付中</Badge></div>
-              <button onClick={()=>mockTap(g[0]+'の注文者一覧（モック）')} className="mt-2 text-[12px] font-bold text-brand-600">注文 {g[3]}件 を見る →</button></div>
+              <button onClick={()=>setOrders(g)} className="mt-2 text-[12px] font-bold text-brand-600">注文 {g[3]}件 を見る →</button></div>
           </Card>
         ))}
       </div>}
@@ -1506,6 +1511,32 @@ function Shop(){
           <tfoot><tr className="bg-cream/40"><td className="px-5 py-3 font-extrabold text-ink" colSpan={3}>合計</td><td className="px-5 py-3 font-extrabold text-brand-600" colSpan={2}>¥412,800</td></tr></tfoot>
         </table>
       </Card>}
+
+      <Modal open={!!orders} onClose={()=>setOrders(null)} icon="shop" title={orders&&(orders[0]+' の注文者一覧')} sub={orders&&('注文 '+orders[3]+'件 ・ 単価 ¥'+orders[1].toLocaleString())}
+        footer={<><Btn kind="ghost" icon="file" onClick={()=>mockTap('注文者一覧をCSVで出力（モック）')}>CSV出力</Btn><Btn kind="soft" icon="bell" onClick={()=>mockTap('未払いの家庭へ案内を送信（モック・要承認）')}>未払いへ案内</Btn></>}>
+        {orders && (()=>{ const rows=orderRows(orders); const paid=rows.filter(r=>r.paid).length; return (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-cream/60 px-2 py-2"><div className="text-[11px] text-muted font-bold">注文数</div><div className="font-extrabold text-ink">{orders[3]}件</div></div>
+              <div className="rounded-xl bg-cream/60 px-2 py-2"><div className="text-[11px] text-muted font-bold">小計</div><div className="font-extrabold text-brand-600">¥{(orders[1]*orders[3]).toLocaleString()}</div></div>
+              <div className="rounded-xl bg-cream/60 px-2 py-2"><div className="text-[11px] text-muted font-bold">支払済（表示分）</div><div className="font-extrabold text-green-600">{paid}/{rows.length}</div></div>
+            </div>
+            <div className="rounded-xl border border-[#F3E6D9] divide-y divide-[#F7EFE7]">
+              {rows.map((r,i)=>(
+                <div key={i} className="flex items-center gap-3 px-3 py-2">
+                  <Avatar name={r.n} color={CAT[i%CAT.length]} size={28}/>
+                  <div className="flex-1"><div className="font-bold text-ink text-[13px]">{r.n}</div><div className="text-[11px] text-muted font-bold">{r.klass}</div></div>
+                  <Badge tone="gray">サイズ {r.size}</Badge>
+                  <span className="text-[12px] font-bold text-ink w-10 text-right">×{r.qty}</span>
+                  {r.paid? <Badge tone="green">支払済</Badge> : <Badge tone="amber">未払い</Badge>}
+                </div>
+              ))}
+            </div>
+            {orders[3]>rows.length && <div className="text-[12px] text-muted font-bold text-center">ほか {orders[3]-rows.length} 件（モックでは先頭{rows.length}件を表示）</div>}
+            <div className="text-[11px] font-bold text-warm">支払いは登降園・精算の月次請求に合算されます。</div>
+          </div>
+        ); })()}
+      </Modal>
     </div>
   );
 }
@@ -2648,26 +2679,38 @@ function MediaMgmt(){
 }
 
 function NoticeBoard(){
-  const items=[
+  const [items,setItems]=useState([
     {title:'6月の保育参観のお知らせ', cat:'行事', state:'配信済', read:'98%', tone:'green'},
     {title:'園だより 6月号', cat:'おたより', state:'配信済', read:'91%', tone:'green'},
     {title:'プール開きと持ち物', cat:'連絡', state:'予約 6/10', read:'—', tone:'amber'},
     {title:'夏祭りボランティア募集', cat:'募集', state:'下書き', read:'—', tone:'gray'},
     {title:'献立変更のお知らせ（6/5）', cat:'連絡', state:'配信済', read:'86%', tone:'green'},
     {title:'園だより 5月号', cat:'おたより', state:'配信済', read:'94%', tone:'green'},
-  ];
+  ]);
   const cats=['すべて','行事','おたより','連絡','募集'];
   const [c,setC]=useState('すべて');
   const [sel,setSel]=useState(null); // 既読状況モーダル対象
+  // 新規作成フロー：下書き保存 or 承認に回す で一覧・KPIに連動。
+  const [creating,setCreating]=useState(false);
+  const [nt,setNt]=useState('');
+  const [ncat,setNcat]=useState('連絡');
+  const [nbody,setNbody]=useState('');
+  const addNotice = (state,tone)=>{
+    if(!nt.trim()){ mockTap('タイトルを入力してください'); return; }
+    setItems(l=>[{title:nt.trim(), cat:ncat, state, read:'—', tone},...l]);
+    setCreating(false); setNt(''); setNbody('');
+    mockTap(state==='下書き'?'下書きを保存しました':'園長の承認に回しました（モック・承認後に配信されます）');
+  };
   const rows = items.filter(n=> c==='すべて'||n.cat===c);
+  const sent = items.filter(n=>n.state==='配信済').length;
   // クラス別既読（架空）。配信済のみ意味を持つ。
   const klassRead=[['あおば組',40,38],['ふたば組',40,37],['つぼみ組',40,33]];
   return (
     <div>
       <PageHead title="お知らせ・お便り" sub="園だより・行事連絡をテンプレから作成。既読率も家庭ごとに追える。"
-        action={<div className="flex gap-2"><Btn kind="soft" icon="ai" onClick={()=>mockTap('AIが園だよりの下書きを生成（モック）')}>AIで園だより生成</Btn><Btn kind="primary" icon="plus" onClick={()=>mockTap('お知らせを新規作成（モック）')}>新規作成</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai" onClick={()=>mockTap('AIが園だよりの下書きを生成（モック）')}>AIで園だより生成</Btn><Btn kind="primary" icon="plus" onClick={()=>setCreating(true)}>新規作成</Btn></div>}/>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        {[['配信済','4','green'],['予約・下書き','2','amber'],['平均既読率','92%','orange'],['未読家庭','9','red']].map((s,i)=>(
+        {[['配信済',String(sent),'green'],['予約・下書き',String(items.length-sent),'amber'],['平均既読率','92%','orange'],['未読家庭','9','red']].map((s,i)=>(
           <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='green'?'green':s[2]==='orange'?'orange':s[2]==='red'?'red':'ink'}/></Card>
         ))}
       </div>
@@ -2689,6 +2732,24 @@ function NoticeBoard(){
             </div>
           : <div className="text-[13px] text-ink font-bold">この{sel.cat==='募集'?'募集':'お知らせ'}は{sel.state}です。配信するとクラス別の既読状況がここに表示されます。</div>)}
       </Modal>
+
+      <Modal open={creating} onClose={()=>setCreating(false)} icon="bell" title="お知らせを新規作成" sub="テンプレ・AI下書きから始めることもできます"
+        footer={<><Btn kind="ghost" onClick={()=>addNotice('下書き','gray')}>下書き保存</Btn><Btn kind="primary" icon="send" onClick={()=>addNotice('承認待ち','amber')}>承認に回す</Btn></>}>
+        <div className="space-y-3">
+          <div><div className="text-[12px] text-muted font-bold mb-1">タイトル</div>
+            <input value={nt} onChange={e=>setNt(e.target.value)} placeholder="例：7月の保育参観のお知らせ" className="w-full bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300"/></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">カテゴリ</div>
+            <div className="flex flex-wrap gap-2">{['行事','おたより','連絡','募集'].map(x=>(
+              <button key={x} onClick={()=>setNcat(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', ncat===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+            ))}</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">本文</div>
+            <textarea value={nbody} onChange={e=>setNbody(e.target.value)} placeholder="本文を入力（テンプレ・AI下書きの貼り込みも可）" className="w-full bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] leading-relaxed h-24 resize-none focus:outline-none focus:border-brand-300"/></div>
+          <div className="flex items-start gap-2 text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2 border border-[#F3E6D9]">
+            <Ic name="shield" className="w-3.5 h-3.5 shrink-0 mt-0.5"/>
+            <span>配信は対外発信のため、本番では園長の承認（承認ボックス）を経て送信されます。下書きは園内のみで保護者には見えません。</span>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -2699,6 +2760,7 @@ function FileBox(){
   const [t,setT]=useState('すべて');
   const [files,setFiles]=useState(initial);
   const [up,setUp]=useState(false);
+  const [pv,setPv]=useState(null);   // プレビュー対象のファイル行
   const [form,setForm]=useState({name:'', kind:'PDF', target:'全体'});
   const rows = files.filter(f=> t==='すべて'||f[3]===t);
   const upload = ()=>{
@@ -2715,7 +2777,7 @@ function FileBox(){
       <Card className="p-3 mb-4"><div className="flex flex-wrap items-center gap-2"><span className="text-[12px] text-muted font-bold px-1">公開対象で絞り込み：</span>{targets.map(x=>{ const n=x==='すべて'?files.length:files.filter(f=>f[3]===x).length; return <button key={x} onClick={()=>setT(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', t===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}<span className={cx('ml-1.5 px-1.5 rounded-full text-[11px]', t===x?'bg-white/25':'bg-cream')}>{n}</span></button>; })}</div></Card>
       <Card className="overflow-hidden"><table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
         <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['ファイル','種別','サイズ','公開対象','DL'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
-        <tbody>{rows.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button onClick={()=>mockTap(f[0]+'を開く（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
+        <tbody>{rows.map((f,i)=>(<tr key={i} className="border-b border-[#F7EFE7] hover:bg-cream/40"><td className="px-5 py-3"><div className="flex items-center gap-2"><span className="text-brand-500"><Ic name="folder" className="w-4 h-4"/></span><span className="font-bold text-ink">{f[0]}</span></div></td><td className="px-5 py-3"><Badge tone="blue">{f[1]}</Badge></td><td className="px-5 py-3 text-gray-600 font-bold">{f[2]}</td><td className="px-5 py-3"><Badge tone="gray">{f[3]}</Badge></td><td className="px-5 py-3"><button title={f[0]+' をプレビュー'} onClick={()=>setPv(f)} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button></td></tr>))}</tbody>
       </table></Card>
       <Modal open={up} onClose={()=>setUp(false)} icon="folder" title="資料をアップロード" sub="配布資料を追加し、公開対象を選びます（モック）"
         footer={<><Btn kind="ghost" onClick={()=>setUp(false)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={upload}>アップロード</Btn></>}>
@@ -2725,6 +2787,26 @@ function FileBox(){
           <div><div className="text-[12px] text-muted font-bold mb-1">種別</div><div className="flex gap-2">{['PDF','画像','Excel'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,kind:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.kind===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
           <div><div className="text-[12px] text-muted font-bold mb-1">公開対象</div><div className="flex flex-wrap gap-2">{['全体','新入園','年中','年長'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,target:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.target===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
         </div>
+      </Modal>
+
+      <Modal open={!!pv} onClose={()=>setPv(null)} wide icon="file" title={pv&&pv[0]} sub={pv&&(pv[1]+' ・ '+pv[2]+' ・ 公開対象：'+pv[3])}
+        footer={<><span className="text-[11px] font-bold text-warm mr-auto">保護者アプリの資料・お便りBOXにも同じ内容が表示されます</span><Btn kind="ghost" icon="file" onClick={()=>mockTap(pv&&(pv[0]+' をダウンロード（モック）'))}>ダウンロード</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('印刷（モック）')}>印刷</Btn></>}>
+        {pv && (
+          <div className="bg-white rounded-lg border border-[#E8D5C4] shadow-card mx-auto" style={{maxWidth:560}}>
+            <div className="p-6 text-ink">
+              <div className="text-center border-b-2 border-ink/80 pb-2 mb-4">
+                <div className="text-[16px] font-extrabold tracking-wide">{pv[0].replace(/\.[a-zA-Z0-9]+$/,'')}</div>
+                <div className="text-[11px] text-muted font-bold mt-0.5">あおば幼稚園 ・ 2026年度</div>
+              </div>
+              <div className="space-y-2">
+                {[100,92,96,72,88,60].map((w,i)=>(<div key={i} className="h-3 rounded bg-cream" style={{width:w+'%'}}/>))}
+                <div className="h-24 rounded-xl bg-cream/70 border border-dashed border-[#E8D5C4] flex items-center justify-center text-[11px] font-bold text-muted">図・写真（プレビューはモック）</div>
+                {[96,84,90].map((w,i)=>(<div key={i} className="h-3 rounded bg-cream" style={{width:w+'%'}}/>))}
+              </div>
+              <div className="text-right text-[11px] text-muted font-bold mt-4">1 / 2 ページ</div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
