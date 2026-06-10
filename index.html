@@ -2650,17 +2650,37 @@ function Feedback(){
     {k:'改善要望',tone:'amber',pct:'12件',text:'送迎時の駐車場が混雑。時間分散の案内を希望',voices:['朝の送りの時間帯、駐車場が混むので時間を分けてほしい。','お迎えの列が長くなることがあります。','雨の日の動線が分かりにくいです。']},
     {k:'要フォロー',tone:'red',pct:'3件',text:'アレルギー対応の確認連絡を増やしてほしい',voices:['アレルギーの代替食、当日の確認連絡があると安心です。','除去食の内容を事前に共有してほしい。','念のため配膳の写真があると嬉しいです。']},
   ];
-  const surveys=[
+  const QS=[
+    {q:'総合的な満足度',avg:'4.6',dist:[62,28,7,2,1]},
+    {q:'先生との連絡・コミュニケーション',avg:'4.7',dist:[70,22,5,2,1]},
+    {q:'行事・イベントの内容',avg:'4.3',dist:[48,32,14,4,2]},
+    {q:'園からの情報共有の分かりやすさ',avg:'4.4',dist:[55,30,10,3,2]},
+  ];
+  const [list,setList]=useState([
     {t:'6月 保育満足度アンケート',state:'実施中',tone:'green',rate:78,n:92},
     {t:'夏祭りボランティア希望調査',state:'実施中',tone:'green',rate:54,n:64},
     {t:'5月 行事アンケート（運動会）',state:'集計済',tone:'gray',rate:88,n:104},
-  ];
+  ]);
   const [sel,setSel]=useState(null);
+  const [result,setResult]=useState(null);      // 結果モーダル対象のアンケート
+  const [creating,setCreating]=useState(false); // 作成モーダル
+  const [nt,setNt]=useState('');
+  const [ntg,setNtg]=useState('全園児の家庭');
+  const [anon,setAnon]=useState(true);
+  const [nq,setNq]=useState(['総合的な満足度','先生とのコミュニケーション']);
+  const [nqIn,setNqIn]=useState('');
+  const running = list.filter(s=>s.state==='実施中').length;
+  const createSurvey = ()=>{
+    if(!nt.trim() || nq.length===0){ mockTap('タイトルと設問を入力すると配信できます'); return; }
+    setList(l=>[{t:nt.trim(),state:'実施中',tone:'green',rate:0,n:0},...l]);
+    setCreating(false); setNt(''); setNqIn('');
+    mockTap('アンケートを配信しました（モック・本番は園長承認後に配信されます）');
+  };
   return (
     <div>
       <PageHead title="ご意見・アンケート" sub="保護者アンケートを配信→AIが自由記述を要約。満足度の推移も。AI要約をタップで実際の声へ。"
-        action={<div className="flex gap-2"><Btn kind="soft" icon="ai" onClick={()=>mockTap('全回答をAIが再要約（モック）')}>回答をAI要約</Btn><Btn kind="primary" icon="plus" onClick={()=>mockTap('アンケートを新規作成（モック）')}>アンケート作成</Btn></div>}/>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">{[['実施中','2件','ink'],['回答率','78%','orange'],['総合満足度','4.6','green'],['要対応の声','3件','red']].map((s,i)=>(<Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]}/></Card>))}</div>
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai" onClick={()=>mockTap('全回答をAIが再要約（モック）')}>回答をAI要約</Btn><Btn kind="primary" icon="plus" onClick={()=>setCreating(true)}>アンケート作成</Btn></div>}/>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">{[['実施中',running+'件','ink'],['回答率','78%','orange'],['総合満足度','4.6','green'],['要対応の声','3件','red']].map((s,i)=>(<Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]}/></Card>))}</div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         <Card className="col-span-2 p-5"><CardHead icon="ai" title="自由記述のAI要約" action={<span className="text-[11px] text-muted font-bold">タップで実際の声</span>}/>
           <div className="px-5 pb-5 space-y-3">{summary.map((r,i)=>(<button key={i} onClick={()=>setSel(r)} className="w-full text-left rounded-xl p-3 border border-[#F3E6D9] hover:bg-cream/40 transition flex items-start gap-2"><Badge tone={r.tone}>{r.k} {r.pct}</Badge><p className="flex-1 text-[13px] text-ink">{r.text}</p><Ic name="chevron" className="w-4 h-4 text-brand-300 mt-0.5"/></button>))}</div>
@@ -2668,15 +2688,58 @@ function Feedback(){
         <Card className="p-5"><h3 className="font-bold text-ink mb-3">満足度の推移</h3><div className="flex items-end gap-2 h-32">{[4.2,4.3,4.4,4.5,4.6].map((v,i)=>(<div key={i} className="flex-1 flex flex-col items-center gap-1"><div className="w-full bg-green-300 rounded-t-lg" style={{height:`${(v-4)*120}px`}}/><span className="text-[10px] text-muted font-bold">{['2月','3月','4月','5月','6月'][i]}</span></div>))}</div></Card>
       </div>
       <Card><CardHead icon="heart" title="アンケート一覧"/>
-        <div className="px-5 pb-5 space-y-2">{surveys.map((s,i)=>(
+        <div className="px-5 pb-5 space-y-2">{list.map((s,i)=>(
           <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#F3E6D9]">
             <div className="flex-1 min-w-0"><div className="font-bold text-ink text-[14px]">{s.t}</div><div className="mt-1"><Bar pct={s.rate} tone={s.state==='実施中'?'brand':'gray'}/></div></div>
             <div className="text-[12px] text-muted font-bold shrink-0 hidden sm:block">回答 {s.rate}%・{s.n}件</div>
             <Badge tone={s.tone}>{s.state}</Badge>
-            <Btn kind="ghost" onClick={()=>mockTap(s.t+' の結果を表示（モック）')}>結果</Btn>
+            <Btn kind="ghost" onClick={()=>{ s.n===0 ? mockTap('まだ回答がありません（配信直後）') : setResult(s); }}>結果</Btn>
           </div>
         ))}</div>
       </Card>
+
+      <Modal open={!!result} onClose={()=>setResult(null)} wide icon="chart" title={result&&(result.t+' の結果')} sub={result&&('回答 '+result.n+'件 ・ 回答率 '+result.rate+'%'+(result.state==='実施中'?' ・ 実施中（途中集計）':' ・ 集計済'))}
+        footer={<><Btn kind="ghost" icon="file" onClick={()=>mockTap('結果をCSVで出力（モック）')}>CSV出力</Btn><Btn kind="soft" icon="send" onClick={()=>mockTap('この結果を職員会議の議題に追加（モック）')}>会議の議題に追加</Btn></>}>
+        {result && <div className="space-y-4">
+          {QS.map((x,i)=>(
+            <div key={i} className="rounded-xl border border-[#F3E6D9] p-3">
+              <div className="flex items-center justify-between mb-2"><span className="text-[13px] font-bold text-ink">{x.q}</span><span className="inline-flex items-center gap-1 text-[14px] font-extrabold text-brand-600"><Ic name="star" className="w-4 h-4"/>{x.avg}</span></div>
+              <div className="space-y-1">{x.dist.map((d,j)=>(
+                <div key={j} className="flex items-center gap-2"><span className="text-[11px] font-bold text-muted w-7 text-right">★{5-j}</span><div className="flex-1"><Bar pct={d} tone={j===0?'green':j===1?'brand':j<4?'amber':'red'}/></div><span className="text-[11px] font-bold text-muted w-9">{d}%</span></div>
+              ))}</div>
+            </div>
+          ))}
+          <div className="text-[12px] text-muted font-bold">自由記述の抜粋（原文・匿名）</div>
+          {summary[0].voices.slice(0,2).map((v,i)=>(<div key={i} className="rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-ink">「{v}」</div>))}
+          <div className="text-[11px] font-bold text-warm">自由記述の全件はAI要約（カテゴリ別）から確認できます。回答は匿名で集計しています（個人情報保護）。</div>
+        </div>}
+      </Modal>
+
+      <Modal open={creating} onClose={()=>setCreating(false)} icon="plus" title="アンケートを作成" sub="設問と対象を決めて配信。回答は匿名で集計されます"
+        footer={<><Btn kind="ghost" onClick={()=>setCreating(false)}>キャンセル</Btn><Btn kind="primary" icon="send" onClick={createSurvey}>配信する</Btn></>}>
+        <div className="space-y-3">
+          <div><div className="text-[12px] text-muted font-bold mb-1">タイトル</div>
+            <input value={nt} onChange={e=>setNt(e.target.value)} placeholder="例：7月 行事アンケート（夏祭り）" className="w-full bg-cream rounded-xl px-4 py-3 text-[14px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300"/></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">対象</div>
+            <div className="flex flex-wrap gap-2">{['全園児の家庭','年長 全体','年中 全体','行事参加家庭'].map(t=>(
+              <button key={t} onClick={()=>setNtg(t)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', ntg===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{t}</button>
+            ))}</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">設問（★5段階＋自由記述）</div>
+            <div className="space-y-1.5">{nq.map(q=>(
+              <div key={q} className="flex items-center gap-2 rounded-xl border border-[#F3E6D9] px-3 py-2"><span className="flex-1 text-[13px] font-bold text-ink">{q}</span><button onClick={()=>setNq(l=>l.filter(x=>x!==q))} className="text-muted hover:text-red-500" title={q+' を削除'}><Ic name="plus" className="w-4 h-4 rotate-45"/></button></div>
+            ))}</div>
+            <div className="flex gap-2 mt-2">
+              <input value={nqIn} onChange={e=>setNqIn(e.target.value)} placeholder="設問を追加" className="flex-1 bg-cream rounded-xl px-3 py-2 text-[13px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300"/>
+              <Btn kind="soft" icon="plus" onClick={()=>{ const v=nqIn.trim(); if(!v){return;} if(nq.includes(v)){mockTap('同じ設問があります');return;} setNq(l=>[...l,v]); setNqIn(''); }}>追加</Btn>
+            </div>
+            {nq.length===0 && <div className="mt-1 text-[12px] font-bold text-red-500">設問を1つ以上追加してください</div>}</div>
+          <Toggle on={anon} onToggle={()=>setAnon(a=>!a)} label="匿名で回答を集計（推奨）"/>
+          <div className="flex items-start gap-2 text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2 border border-[#F3E6D9]">
+            <Ic name="shield" className="w-3.5 h-3.5 shrink-0 mt-0.5"/>
+            <span>配信は対外発信のため、本番では園長の承認（承認ボックス）を経て送信されます。設問は必要最小限に（個人情報保護）。</span>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={!!sel} onClose={()=>setSel(null)} icon="ai" title={sel&&(sel.k+'の声')} sub={sel&&('AI抽出 ・ '+sel.pct)}
         footer={<Btn kind="soft" icon="send" onClick={()=>mockTap('この声を職員会議の議題に追加（モック）')}>会議の議題に追加</Btn>}>
