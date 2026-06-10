@@ -2059,6 +2059,35 @@ function BusScreen(){
     setEditIdx(null);
     mockTap('コースを保存しました（モック・本番は保護者へ変更通知＋園長承認）');
   };
+  // --- 運行マップ・経路算出・出発→次家庭通知（コミュなび風・架空データ） ---
+  const [selC,setSelC] = useState(0);          // マップ表示中のコース
+  const [busAt,setBusAt] = useState({});       // course index → 現在地（route上のindex）
+  const [notif,setNotif] = useState([]);       // 出発通知フィード（最新が先頭）
+  const [pin,setPin] = useState(null);         // 停留所詳細モーダル {si}
+  const [optimized,setOptimized] = useState(false);
+  const [patrol,setPatrol] = useState({});     // course index → 車内見回り完了
+  const segMin = (i)=> 3 + ((i*2)%4);          // 区間所要（分・架空。本番はルーティングAPIの実測）
+  const depMin = (dep)=>{ const a=dep.split(':'); return Number(a[0])*60+Number(a[1]); };
+  const fmtT = (min)=> Math.floor(min/60)+':'+String(min%60).padStart(2,'0');
+  const route = (c)=> c.stops.map(s=>({name:s})).concat([{name:'園 到着', goal:true}]);
+  const eta = (c, idx)=>{ let t=depMin(c.dep); for(let i=1;i<=idx;i++) t+=segMin(i); return fmtT(t); };
+  const totalMin = (c)=>{ let t=0; for(let i=1;i<route(c).length;i++) t+=segMin(i); return t; };
+  const stopKids = (c, si)=> c.kids.filter((_,ki)=> ki%c.stops.length===si);
+  // マップ座標は停留所数から決定的に生成（コース編集での増減にも追従）
+  const pts = (c)=>{ const r=route(c); const n=Math.max(r.length-1,1); return r.map((s,i)=>({...s, x: 30 + i*(340/n), y: 150 - (i%2)*62 + ((i%3)*16)})); };
+  const depart = ()=>{
+    const c=courses[selC]; const r=route(c); const at=Math.min(busAt[selC]||0, r.length-1);
+    if(at>=r.length-1) return;
+    const nxt=r[at+1];
+    if(!nxt.goal){
+      const fams=stopKids(c,at+1).filter(k=>k.rec).map(k=>k.n+'さん宅');
+      setNotif(n=>[{stop:nxt.name, mins:segMin(at+1), fams, at:eta(c,at+1), course:c.name},...n].slice(0,6));
+      mockTap(nxt.name+' の '+fams.length+' 家庭へ「まもなくバス到着（あと'+segMin(at+1)+'分）」を自動送信（モック）');
+    } else {
+      mockTap('園に到着しました。車内見回りチェック（置き去り確認）を行ってください');
+    }
+    setBusAt(b=>({...b,[selC]:at+1}));
+  };
   // 遅延一斉連絡：対象コース・遅延分数を選んで確認→送信で運行状況KPIに反映。
   const [delayOpen,setDelayOpen] = useState(false);
   const [delayTarget,setDelayTarget] = useState('すべてのコース');
@@ -2083,6 +2112,64 @@ function BusScreen(){
         <Card className="p-4"><Stat label="欠席で除外" value={absent+'名'} tone="red"/></Card>
         <Card className="p-4"><Stat label="運行状況" value={delayed?'遅延':'定刻'} tone={delayed?'red':'green'}/></Card>
       </div>
+
+      {/* 運行マップ＝経路の可視化・ETA・出発→次家庭への自動通知。担任スマホ前提（マップ全幅・大きい出発ボタン）。 */}
+      <Card className="mb-5 overflow-hidden">
+        <CardHead icon="bus" title="運行マップ・出発通知" action={<Tabs tabs={courses.map(c=>c.name.split('コース')[0])} active={courses[selC].name.split('コース')[0]} onChange={(t)=>setSelC(Math.max(0,courses.findIndex(c=>c.name.split('コース')[0]===t)))}/>}/>
+        <div className="px-5 pb-5">
+          {(()=>{ const c=courses[selC]; const r=route(c); const P=pts(c); const at=Math.min(busAt[selC]||0, r.length-1); const done=at>=r.length-1; return (<>
+            <div className="rounded-2xl border border-[#F3E6D9] bg-[#F4F8F2] overflow-hidden">
+              <svg viewBox="0 0 400 200" className="w-full h-auto block" role="img" aria-label="運行マップ">
+                <line x1="0" y1="60" x2="400" y2="60" stroke="#E3EBDD" strokeWidth="10"/>
+                <line x1="0" y1="150" x2="400" y2="150" stroke="#E3EBDD" strokeWidth="10"/>
+                <line x1="90" y1="0" x2="90" y2="200" stroke="#E3EBDD" strokeWidth="8"/>
+                <line x1="250" y1="0" x2="250" y2="200" stroke="#E3EBDD" strokeWidth="8"/>
+                <polyline points={P.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#E07B4A" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 7"/>
+                {P.map((p,i)=>(
+                  <g key={i} onClick={()=>setPin({si:i})} style={{cursor:'pointer'}}>
+                    <circle cx={p.x} cy={p.y} r="13" fill={i<at?'#9BC79F': i===at?'#E07B4A':'#fff'} stroke={p.goal?'#7A9E7E':'#E07B4A'} strokeWidth="2.5"/>
+                    <text x={p.x} y={p.y+4} textAnchor="middle" fontSize="11" fontWeight="700" fill={i<=at?'#fff':'#A66A42'}>{p.goal?'園':String(i+1)}</text>
+                    {!p.goal && <text x={p.x} y={p.y+28} textAnchor="middle" fontSize="9" fontWeight="700" fill="#8B7355">{eta(c,i)}</text>}
+                  </g>
+                ))}
+                <g><circle cx={P[at].x} cy={P[at].y-24} r="11" fill="#fff" stroke="#E07B4A" strokeWidth="2"/><text x={P[at].x} y={P[at].y-19.5} textAnchor="middle" fontSize="12">🚌</text></g>
+              </svg>
+            </div>
+            <div className="mt-1 text-[11px] font-bold text-muted px-1">停留所ピンをタップ＝家庭・園児・到着予定。数字の下は到着予定時刻（ETA）。</div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="flex-1 min-w-[200px]">
+                <div className="text-[12px] text-muted font-bold">バス現在地</div>
+                <div className="font-extrabold text-ink">{r[at].name}{done && !r[at].goal ? '' : ''}</div>
+                {!done && <div className="text-[12px] font-bold text-brand-600">次は {r[at+1].name}（あと{segMin(at+1)}分・{eta(c,at+1)} 着予定）</div>}
+              </div>
+              {!done
+                ? <Btn kind="primary" icon="send" onClick={depart} className="py-3 px-5">この停留所を出発</Btn>
+                : (patrol[selC]
+                    ? <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#E8F5E9] text-green-700 text-[13px] font-bold px-4 py-3"><Ic name="check" className="w-4 h-4"/>車内見回り完了・置き去りゼロ確認済</span>
+                    : <Btn kind="dark" icon="check" onClick={()=>{ setPatrol(p=>({...p,[selC]:true})); mockTap('車内見回りチェック完了：座席・座席下を確認し置き去りゼロを記録しました（モック）'); }} className="py-3 px-5">車内見回りチェック</Btn>)}
+              {at>0 && <Btn kind="ghost" onClick={()=>{ setBusAt(b=>({...b,[selC]:0})); setPatrol(p=>({...p,[selC]:false})); }}>リセット</Btn>}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2">
+              <Ic name="ai" className="w-4 h-4 text-brand-500 shrink-0"/>
+              <div className="flex-1 min-w-[200px] text-[12px] font-bold text-warm">最適巡回順で運行中：{c.stops.length}停留所・総所要 約{totalMin(c)}分・総距離 約5.8km（架空）。本番は VRP（OR-Tools等）＋ルーティングAPI（Google Maps Directions等）で算出します。</div>
+              <Btn kind="soft" icon="ai" onClick={()=>setOptimized(true)}>経路を再計算</Btn>
+            </div>
+            {optimized && <div className="mt-2 text-[12px] font-bold text-green-700 bg-[#E8F5E9] rounded-xl px-3 py-2">再計算結果：現在の巡回順が最短でした（候補3案中・渋滞情報を加味してETAを更新・モック）。</div>}
+            {notif.length>0 && (
+              <div className="mt-3">
+                <div className="text-[12px] text-muted font-bold mb-1.5">出発通知の送信履歴（前の停留所を出ると自動送信）</div>
+                <div className="space-y-1.5">{notif.map((n,i)=>(
+                  <div key={i} className="flex items-center gap-2 rounded-xl border border-[#AFD0F0]/70 bg-[#EFF6FD] px-3 py-2">
+                    <Ic name="bell" className="w-4 h-4 text-[#5B8DBE] shrink-0"/>
+                    <div className="flex-1 text-[12px] font-bold text-ink">{n.stop}（{n.at} 着予定）の {n.fams.length} 家庭へ「まもなくバス到着・あと{n.mins}分」を送信</div>
+                  </div>
+                ))}</div>
+              </div>
+            )}
+          </>); })()}
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {courses.map((c,i)=>(
           <Card key={i} className="p-5">
@@ -2163,6 +2250,24 @@ function BusScreen(){
             <span>遅延連絡は乗車予定の家庭のみに送られます（宛先最小化）。安全に関わる速報のため、本番では承認を簡略化した緊急配信枠を使います。</span>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={!!pin} onClose={()=>setPin(null)} icon="bus"
+        title={pin && route(courses[selC])[Math.min(pin.si, route(courses[selC]).length-1)].name}
+        sub={pin && (courses[selC].name+'・'+(route(courses[selC])[pin.si]&&route(courses[selC])[pin.si].goal ? '終点（園）' : eta(courses[selC], pin.si)+' 着予定'))}>
+        {pin && (route(courses[selC])[pin.si] && route(courses[selC])[pin.si].goal
+          ? <div className="text-[13px] font-bold text-ink">全園児の降車後、<span className="text-brand-600">車内見回りチェック（置き去り確認）</span>を行って運行を終了します。チェック結果は記録され、未実施はアラートになります（モック）。</div>
+          : <div className="space-y-2">
+              {stopKids(courses[selC], pin.si).map(k=>(
+                <div key={k.id} className="flex items-center gap-2 rounded-xl border border-[#F3E6D9] px-3 py-2">
+                  <Avatar name={k.n} color={k.color} size={28}/>
+                  <div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}（{kidFamily(k.id).nm} {kidFamily(k.id).gv}さん宅）</div><div className="text-[11px] text-muted font-bold">{k.rec?'乗車予定':'欠席連絡あり（乗車予定から自動除外）'}</div></div>
+                  {k.rec ? <Badge tone={(status[k.id]==='乗車'||status[k.id]==='降車')?'green':'gray'}>{status[k.id]||'待ち'}</Badge> : <Badge tone="red">欠席</Badge>}
+                </div>
+              ))}
+              {stopKids(courses[selC], pin.si).length===0 && <div className="text-[13px] font-bold text-muted">この停留所の乗車予定はありません</div>}
+              <div className="text-[11px] font-bold text-warm">前の停留所を出発すると、この停留所の家庭へ「まもなくバス到着（あと数分）」が自動送信されます。本番はGPS位置ベースの自動送信も可（モックは出発ボタン起点）。</div>
+            </div>)}
       </Modal>
     </div>
   );
@@ -3171,9 +3276,24 @@ function PhoneFrame({children, tab, setTab}){
 function PTitle({children, sub}){ return <div className="px-5 pt-2 pb-3"><h2 className="text-xl font-extrabold text-ink">{children}</h2>{sub&&<p className="text-[12px] text-muted font-bold mt-0.5">{sub}</p>}</div>; }
 
 function ParentHome({setTab}){
+  // バス出発通知の受け皿：前の停留所をバスが出ると「まもなく到着」がプッシュで届く想定（モックは固定表示・×で既読）。
+  const [busSeen,setBusSeen] = useState(false);
   return (<div>
     <div className="px-5 pt-2 pb-4 flex items-center gap-3"><Avatar name="さくら" color="#C8B3ED" size={48} ring/><div><div className="font-extrabold text-ink text-lg">さくら の ホーム</div><div className="text-[12px] text-muted font-bold">あおば幼稚園・年長</div></div></div>
     <div className="px-5 space-y-3">
+      {!busSeen && (
+        <div className="rounded-2xl border-2 border-[#AFD0F0] bg-[#EFF6FD] p-4 shadow-card">
+          <div className="flex items-center gap-3">
+            <span className="w-11 h-11 rounded-xl bg-[#AFD0F0]/60 flex items-center justify-center shrink-0"><Ic name="bus" className="w-6 h-6 text-[#3F6E99]"/></span>
+            <div className="flex-1 min-w-0">
+              <div className="font-extrabold text-ink text-[14px]">まもなくバスが到着します</div>
+              <div className="text-[12px] font-bold text-[#3F6E99]">さくら団地・<span className="text-[15px]">あと3分</span>（8:12 着予定）・Aコース</div>
+            </div>
+            <button onClick={()=>setBusSeen(true)} className="text-muted hover:text-ink p-2 shrink-0" title="通知を閉じる"><Ic name="plus" className="w-5 h-5 rotate-45"/></button>
+          </div>
+          <div className="mt-2 text-[11px] font-bold text-[#6E8FAC]">前の停留所（みどり公園前）をバスが出発したタイミングで自動通知しています。遅延時も自動で更新されます（モック）。</div>
+        </div>
+      )}
       <button onClick={()=>setTab('report')} className="w-full text-left rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9]">
         <div className="h-28 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-4"><div className="text-white"><div className="text-[11px] font-bold opacity-90">NEW・2026年6月</div><div className="font-extrabold text-lg">今月の成長レポートが届きました</div></div></div>
       </button>
