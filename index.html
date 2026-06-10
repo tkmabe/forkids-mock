@@ -1085,19 +1085,36 @@ function Broadcast(){
   const [attach,setAttach] = useState(['しおり_6月保育参観.pdf']);
   const [confirming,setConfirming] = useState(false);
   const [done,setDone] = useState(null);
+  // 通知チャネル（コミュなび=3チャネルの設計移植）・既読確認の利用有無・未読への再通知
+  const [chPush,setChPush] = useState(true);
+  const [chMail,setChMail] = useState(true);
+  const [chSub,setChSub] = useState(false);
+  const [readCheck,setReadCheck] = useState(true);
+  const [resent,setResent] = useState({});
   const [hist,setHist] = useState([
-    {t:'遠足のしおり', s:'既読 98%', pct:98, tone:'green'},
-    {t:'献立変更のお知らせ', s:'既読 86%', pct:86, tone:'amber'},
-    {t:'写真販売開始', s:'既読 72%', pct:72, tone:'amber'},
+    {t:'遠足のしおり', s:'既読 98%', pct:98, tone:'green', rc:true},
+    {t:'献立変更のお知らせ', s:'既読 86%', pct:86, tone:'amber', rc:true},
+    {t:'写真販売開始', s:'既読 72%', pct:72, tone:'amber', rc:true},
   ]);
+  // 緊急時テンプレ（コミュなび=災害緊急連絡の定型下書きが初期から用意されている設計の移植）
+  const URGENT = [
+    {k:'引き渡し依頼', sub:'【緊急】お子さまの引き渡しのお願い', body:'保護者のみなさまへ。災害発生に伴い、安全のためお子さまの引き渡しを行います。園までお迎えをお願いします。お迎えの際は職員に氏名をお伝えください。来られない場合はこの連絡に返信してください。'},
+    {k:'居場所確認', sub:'【緊急】園児の無事と居場所のお知らせ', body:'保護者のみなさまへ。本日の災害発生時、園児は全員無事です。現在、全園児は園舎2階ホールに避難しています。続報はこの連絡でお知らせします。電話は緊急連絡用に空けてください。'},
+  ];
+  const useUrgent = (u)=>{
+    setSubject(u.sub); setBody(u.body); setDest(['全園児の家庭']); setReserve(false); setReadCheck(true); setChPush(true); setChMail(true); setChSub(true); setDone(null);
+    mockTap('緊急テンプレ「'+u.k+'」を呼び出しました。内容を確認して配信してください（モック・本番は下書きとして常備）');
+  };
+  const channels = ()=> [chPush&&'プッシュ通知', chMail&&'メール', chSub&&'サブメール'].filter(Boolean);
   const homes = AUD.filter(a=>dest.includes(a[0])).reduce((s,a)=>s+a[1],0);
-  const ready = dest.length>0 && body.trim().length>0;
+  const ready = dest.length>0 && body.trim().length>0 && channels().length>0;
   const cand = AUD.filter(a=>!dest.includes(a[0]));
   const send = ()=>{
-    setHist(h=>[{t:subject.trim()||'（件名なし）', s:reserve?'予約中':'既読 0%', pct:0, tone:reserve?'blue':'gray'}, ...h]);
-    setDone(reserve ? '6月3日 7:30 に配信を予約しました（プッシュ＋メール・モック）' : '配信しました（プッシュ＋メール・モック）');
+    setHist(h=>[{t:subject.trim()||'（件名なし）', s:reserve?'予約中':(readCheck?'既読 0%':'既読確認なし'), pct:0, tone:reserve?'blue':'gray', rc:readCheck}, ...h]);
+    setDone((reserve ? '6月3日 7:30 に配信を予約しました' : '配信しました')+'（'+channels().join('＋')+'・モック）');
     setConfirming(false);
   };
+  const renotify = (i)=>{ setResent(r=>({...r,[i]:true})); mockTap('未読の家庭のみに「（再送）」付きで通知を再送しました。送信履歴は増えません（モック）'); };
   return (
     <div>
       <PageHead title="一斉連絡・配信" sub="宛先を選んで、プッシュ＋メールで確実に届ける"/>
@@ -1110,6 +1127,13 @@ function Broadcast(){
       )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="col-span-2 p-5 space-y-4">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-red-50/60 border border-red-100 px-3 py-2">
+            <span className="text-[12px] font-bold text-red-600 shrink-0">緊急時テンプレ（常備）</span>
+            {URGENT.map(u=>(
+              <button key={u.k} onClick={()=>useUrgent(u)} className="px-3 py-1.5 rounded-xl text-[12px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 active:scale-95 transition">{u.k}</button>
+            ))}
+            <span className="text-[10px] font-bold text-red-400 w-full sm:w-auto">タップで件名・本文・宛先(全園児)を即セット＝有事に一から書かない</span>
+          </div>
           <div>
             <div className="flex items-center justify-between mb-1"><span className="text-[12px] text-muted font-bold">宛先</span><span className="text-[12px] font-bold text-brand-600">対象 {homes} 世帯（重複家庭には1回のみ）</span></div>
             <div className="flex flex-wrap gap-2 items-center">
@@ -1146,11 +1170,25 @@ function Broadcast(){
               ))}
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-cream/50 border border-[#F3E6D9] px-3 py-2">
+            <span className="text-[12px] text-muted font-bold shrink-0">通知チャネル</span>
+            <Toggle on={chPush} onToggle={()=>setChPush(v=>!v)} label="プッシュ"/>
+            <Toggle on={chMail} onToggle={()=>setChMail(v=>!v)} label="メール"/>
+            <Toggle on={chSub} onToggle={()=>setChSub(v=>!v)} label="サブメールにも"/>
+            {channels().length===0 && <span className="text-[11px] font-bold text-red-500">1つ以上選んでください</span>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] text-muted font-bold">既読確認</span>
+            {[['利用する','既読率を追跡・未読へ再通知可'],['利用しない','開封の記録なし']].map(([x,d])=>(
+              <button key={x} onClick={()=>setReadCheck(x==='利用する')} title={d} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', (x==='利用する')===readCheck?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+            ))}
+            <span className="text-[11px] font-bold text-muted">{readCheck?'家庭ごとの既読が追え、未読へ再通知できます':'配信のみ（開封は記録しません）'}</span>
+          </div>
           <div className="flex items-center gap-3 flex-wrap">
             <Toggle on={reserve} onToggle={()=>setReserve(r=>!r)} label="予約送信"/>
             <span className="text-[13px] text-muted font-bold">{reserve?'6月3日 7:30':'今すぐ配信'}</span>
             <Btn kind="ghost" icon="camera" className="ml-auto" onClick={()=>setAttach(a=>[...a,'IMG_06'+String(10+a.length)+'.jpg'])}>添付</Btn>
-            <Btn kind={ready?'primary':'ghost'} icon="send" onClick={()=>{ if(!ready){ mockTap('宛先と本文を入力すると配信できます'); return; } setConfirming(true); }}>{reserve?'予約配信する':'今すぐ配信する'}</Btn>
+            <Btn kind={ready?'primary':'ghost'} icon="send" onClick={()=>{ if(!ready){ mockTap('宛先・本文・通知チャネルを設定すると配信できます'); return; } setConfirming(true); }}>{reserve?'予約配信する':'今すぐ配信する'}</Btn>
           </div>
           <div className="flex items-start gap-2 text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2 border border-[#F3E6D9]">
             <Ic name="shield" className="w-3.5 h-3.5 shrink-0 mt-0.5"/>
@@ -1161,8 +1199,12 @@ function Broadcast(){
           <CardHead icon="chart" title="直近の配信"/>
           <div className="px-5 pb-5 space-y-3">
             {hist.map((r,i)=>(
-              <div key={i}><div className="flex justify-between text-[13px]"><span className="font-bold text-ink">{r.t}</span><Badge tone={r.tone}>{r.s}</Badge></div>
-                <div className="h-1.5 rounded-full bg-cream mt-1.5 overflow-hidden"><div className="h-full bg-brand-400" style={{width:r.pct+'%'}}/></div></div>
+              <div key={i}><div className="flex items-center justify-between gap-1 text-[13px]"><span className="font-bold text-ink flex-1 min-w-0 truncate">{r.t}</span><Badge tone={r.tone}>{r.s}</Badge></div>
+                <div className="h-1.5 rounded-full bg-cream mt-1.5 overflow-hidden"><div className="h-full bg-brand-400" style={{width:r.pct+'%'}}/></div>
+                {r.rc && r.pct>0 && r.pct<90 && (resent[i]
+                  ? <div className="mt-1 text-[11px] font-bold text-green-600">（再送）通知を未読家庭へ再送済み</div>
+                  : <button onClick={()=>renotify(i)} className="mt-1 text-[11px] font-bold text-brand-600 underline">未読へ再通知（履歴は増えません）</button>)}
+              </div>
             ))}
           </div>
         </Card>
@@ -1177,8 +1219,9 @@ function Broadcast(){
             <div className="flex justify-between px-4 py-2 text-[13px] bg-cream/50"><span className="font-extrabold text-ink">対象合計（重複除く想定）</span><span className="font-extrabold text-brand-600">{homes} 世帯</span></div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-[13px]">
-            <div className="rounded-xl bg-cream/60 px-3 py-2"><div className="text-[11px] text-muted font-bold">到達手段</div><div className="font-bold text-ink">プッシュ通知＋メール</div></div>
+            <div className="rounded-xl bg-cream/60 px-3 py-2"><div className="text-[11px] text-muted font-bold">到達手段</div><div className="font-bold text-ink">{channels().join('＋')||'—'}</div></div>
             <div className="rounded-xl bg-cream/60 px-3 py-2"><div className="text-[11px] text-muted font-bold">配信タイミング</div><div className="font-bold text-ink">{reserve?'予約：6月3日 7:30':'今すぐ'}</div></div>
+            <div className="rounded-xl bg-cream/60 px-3 py-2 col-span-2"><div className="text-[11px] text-muted font-bold">既読確認</div><div className="font-bold text-ink">{readCheck?'利用する（家庭ごとの既読を追跡・未読へ再通知可）':'利用しない（開封の記録なし）'}</div></div>
           </div>
           <div className="rounded-xl bg-cream/60 px-3 py-2 text-[13px]"><div className="text-[11px] text-muted font-bold">件名</div><div className="font-bold text-ink">{subject.trim()||'（件名なし）'}</div><div className="text-[12px] text-gray-600 mt-1 line-clamp-2">{body}</div>{attach.length>0 && <div className="text-[11px] text-muted font-bold mt-1">添付 {attach.length} 件</div>}</div>
           <div className="flex items-start gap-2 text-[11px] font-bold text-amber-700 bg-amber-50 rounded-xl px-3 py-2 border border-amber-100">
@@ -2862,7 +2905,11 @@ function NoticeBoard(){
       </Card>
 
       <Modal open={!!sel} onClose={()=>setSel(null)} icon="bell" title={sel&&sel.title} sub={sel&&(sel.cat+' ・ '+sel.state)}
-        footer={sel&&sel.read!=='—'? <><Btn kind="ghost" icon="send" onClick={()=>mockTap('未読家庭へリマインド送信（モック）')}>未読家庭へ催促</Btn><Btn kind="soft" icon="edit" onClick={()=>mockTap('この配信を再編集（モック）')}>編集</Btn></> : <Btn kind="primary" icon="send" onClick={()=>{mockTap(sel.title+' を配信（モック）');setSel(null);}}>今すぐ配信</Btn>}>
+        footer={sel&&sel.read!=='—'? <>
+          <Btn kind="ghost" icon="send" onClick={()=>mockTap('未読家庭のみに「（再送）」付きで通知を再送しました。配信履歴は増えません（モック）')}>未読へ再通知</Btn>
+          <Btn kind="ghost" icon="check" onClick={()=>{ const p=Math.min(100,(parseInt(sel.read)||0)+2)+'%'; setItems(l=>l.map(n=>n.title===sel.title?{...n,read:p}:n)); setSel(s=>({...s,read:p})); mockTap('紙・口頭で確認済みの2家庭を代理で既読登録しました（紙文化との橋渡し・モック）'); }}>紙で確認済みを既読登録</Btn>
+          <Btn kind="soft" icon="edit" onClick={()=>mockTap('この配信を再編集（モック）')}>編集</Btn>
+        </> : <Btn kind="primary" icon="send" onClick={()=>{mockTap(sel.title+' を配信（モック）');setSel(null);}}>今すぐ配信</Btn>}>
         {sel && (sel.read!=='—'
           ? <div className="space-y-3">
               <div className="flex items-center justify-between"><span className="text-[13px] font-bold text-ink">全体既読率</span><Badge tone="green">{sel.read}</Badge></div>
@@ -3542,29 +3589,44 @@ function ParentShop({setTab}){
   </div>);
 }
 function ParentNotices({setTab}){
+  // コミュなび文法の移植: 連絡=桃/アンケート=黄の色分け・未読絞り込み・開封した時点で既読。
   const items = [
-    ['保育参観のお知らせ','あおば組','07:30','orange','6月20日（金）10:00より保育参観を行います。スリッパをご持参ください。'],
-    ['6月の献立変更について','全体','昨日','gray','6/12の献立を一部変更します。アレルギー対象のご家庭へは個別連絡済みです。'],
-    ['プール開きと持ち物','年長','2日前','gray','6/24よりプール活動を開始します。水着・タオル・水泳帽の準備をお願いします。'],
-    ['写真販売を開始しました','全体','3日前','pink','春の遠足の写真販売を開始しました。写真タブからご購入いただけます。'],
-    ['夏祭りボランティア募集','全体','5日前','gray','7月の夏祭りの運営ボランティアを募集します。ご協力いただける方は担任まで。'],
+    ['保育参観のお知らせ','あおば組','07:30','orange','6月20日（金）10:00より保育参観を行います。スリッパをご持参ください。','連絡'],
+    ['夏祭りボランティア希望調査','全体','08:00','gray','7月の夏祭りについて、参加可否と希望の係をお聞かせください（回答期限 6/15）。','アンケート'],
+    ['6月の献立変更について','全体','昨日','gray','6/12の献立を一部変更します。アレルギー対象のご家庭へは個別連絡済みです。','連絡'],
+    ['プール開きと持ち物','年長','2日前','gray','6/24よりプール活動を開始します。水着・タオル・水泳帽の準備をお願いします。','連絡'],
+    ['写真販売を開始しました','全体','3日前','pink','春の遠足の写真販売を開始しました。写真タブからご購入いただけます。','連絡'],
+    ['夏祭りボランティア募集','全体','5日前','gray','7月の夏祭りの運営ボランティアを募集します。ご協力いただける方は担任まで。','連絡'],
   ];
-  const [read,setRead] = useState({1:true,2:true,4:true});  // 既読index
+  const [read,setRead] = useState({2:true,3:true,5:true});  // 既読index
   const [open,setOpen] = useState(null);
+  const [fil,setFil] = useState('すべて');
   const markRead = (i)=> setRead(r=>({...r,[i]:true}));
   const unread = items.filter((_,i)=>!read[i]).length;
+  const shown = items.map((n,i)=>[n,i]).filter(([n,i])=> fil==='すべて' || (fil==='未読・未回答' && !read[i]));
   return (<div>
     <PSubHead setTab={setTab}>お知らせ{unread>0&&<span className="ml-2 text-[12px] font-bold text-white bg-brand-500 rounded-full px-2 py-0.5">未読{unread}</span>}</PSubHead>
     <div className="px-5 space-y-2">
-      {items.map((n,i)=>{ const isRead=!!read[i], isOpen=open===i; return (
-        <Card key={i} className="p-4 cursor-pointer" >
-          <div onClick={()=>{ setOpen(isOpen?null:i); markRead(i); }}>
-            <div className="flex items-center gap-2 mb-1"><Badge tone={n[3]}>{n[1]}</Badge>{!isRead&&<span className="w-2 h-2 rounded-full bg-brand-500"/>}<span className="ml-auto text-[11px] text-muted font-bold">{n[2]}</span></div>
+      <div className="flex items-center gap-2">
+        {['すべて','未読・未回答'].map(x=>(
+          <button key={x} onClick={()=>setFil(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', fil===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+        ))}
+        <span className="ml-auto text-[10px] font-bold text-muted">桃=連絡・黄=アンケート</span>
+      </div>
+      {shown.map(([n,i])=>{ const isRead=!!read[i], isOpen=open===i, isSurvey=n[5]==='アンケート'; return (
+        <Card key={i} className={cx('p-4 cursor-pointer border-l-4', isSurvey?'border-l-[#F4D58D] bg-[#FFFBEF]':'border-l-[#F7C7D4]')}>
+          <div onClick={()=>{ setOpen(isOpen?null:i); if(!isSurvey) markRead(i); }}>
+            <div className="flex items-center gap-2 mb-1"><Badge tone={isSurvey?'amber':n[3]}>{isSurvey?'アンケート':n[1]}</Badge>{!isRead&&<span className="w-2 h-2 rounded-full bg-brand-500"/>}<span className="ml-auto text-[11px] text-muted font-bold">{n[2]}</span></div>
             <div className={cx('text-[14px]', !isRead?'font-extrabold text-ink':'font-bold text-gray-600')}>{n[0]}</div>
           </div>
-          {isOpen && <p className="text-[13px] text-ink leading-relaxed mt-2 pt-2 border-t border-[#F3E6D9]">{n[4]}</p>}
+          {isOpen && <div className="mt-2 pt-2 border-t border-[#F3E6D9]">
+            <p className="text-[13px] text-ink leading-relaxed">{n[4]}</p>
+            {isSurvey && <Btn kind="primary" icon="star" className="w-full mt-2 py-2.5" onClick={()=>{ markRead(i); setTab('survey'); }}>アンケートに答える</Btn>}
+          </div>}
         </Card>
       );})}
+      {shown.length===0 && <Card className="p-6 text-center text-[13px] font-bold text-muted">未読・未回答はありません</Card>}
+      <div className="text-[10px] font-bold text-muted px-1">連絡は開封した時点で既読になります。アンケートは回答すると完了です（モック）。</div>
     </div>
   </div>);
 }
