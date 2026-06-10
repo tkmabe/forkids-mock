@@ -903,8 +903,9 @@ function OutputPreview({go}){
 }
 
 // 帳票の印刷／PDFプレビュー（紙面体裁）。要録／出席簿／健康記録／月次レポートを A4縦想定で表示。
-function FormPreview({form, rows, stage, onClose}){
+function FormPreview({form, rows, stage, onClose, kidName}){
   if(!form) return null;
+  const kid = kidName || 'さくら';
   const TITLES={要録:'幼稚園幼児指導要録（学籍・指導の記録）', 出席簿:'出席簿', 健康記録:'健康記録カード', 月次レポート:'成長レポート'};
   const aoba = KIDS.filter(k=>k.klass==='あおば組').slice(0,6);
   const seals=[['担任','田中',true],['主任','佐々木',stage>=2],['園長','塚田',stage>=3]];
@@ -923,7 +924,7 @@ function FormPreview({form, rows, stage, onClose}){
 
           {form==='要録' && <>
             <table className="w-full text-[11px] mb-3"><tbody>
-              {[['氏名','さくら','性別','女'],['生年月日','2020年7月15日','学級','あおば組（年長）'],['在籍期間','2023.4.1〜','園名','あおば幼稚園']].map((r,i)=>(
+              {[['氏名',kid,'性別','女'],['生年月日','2020年7月15日','学級','あおば組（年長）'],['在籍期間','2023.4.1〜','園名','あおば幼稚園']].map((r,i)=>(
                 <tr key={i}>{[0,2].map(c=><React.Fragment key={c}><td className={cx(cell,'bg-cream/50 font-bold w-20')}>{r[c]}</td><td className={cx(cell,'font-bold')}>{r[c+1]}</td></React.Fragment>)}</tr>
               ))}
             </tbody></table>
@@ -1647,18 +1648,28 @@ function DailyCheck(){
   );
 }
 
-function YoroukuList(){
+function YoroukuList({go}){
   // 状態フィルタで「承認の進み具合」を可視化。要録=要保育所児童保育要録の電子化フロー。
-  const all = KIDS.slice(0,7).map((k,i)=>({...k, draft:i%3!==2, status:['承認済','承認待ち','下書き'][i%3]}));
+  // 行の明細→FormPreview(A4紙面・承認stage連動)、編集→3方向出力(要録タブ)へ。未生成は「未生成をAI下書き」で一括生成。
+  const init = KIDS.slice(0,7).map((k,i)=>({...k, draft:i%3!==2, status:['承認済','承認待ち','下書き'][i%3]}));
+  const [all,setAll] = useState(init);
   const filters = ['すべて','下書き','承認待ち','承認済','未生成'];
   const [f,setF] = useState('すべて');
+  const [preview,setPreview] = useState(null);   // {n, stage}
+  const STAGE = {'下書き':0, '承認待ち':1, '承認済':3};
+  const pending = all.filter(r=>!r.draft).length;
+  const genDrafts = ()=>{
+    if(pending===0){ mockTap('未生成の要録はありません'); return; }
+    setAll(l=>l.map(r=>r.draft?r:{...r, draft:true, status:'下書き'}));
+    mockTap(pending+'名分の要録をAIが下書きしました（モック・担任の確認が必要です）');
+  };
   const rows = all.filter(r=> f==='すべて' ? true : f==='未生成' ? !r.draft : r.status===f);
   const done = all.filter(r=>r.status==='承認済').length;
   const pct = Math.round(done/all.length*100);
   return (
     <div>
       <PageHead title="要録一覧" sub="AI下書き → 編集 → 担任・主任・園長の承認 → 小学校引継ぎ。履歴も保持。"
-        action={<div className="flex gap-2"><Btn kind="soft" icon="ai">未生成をAI下書き</Btn><Btn kind="primary" icon="file">一括PDF出力</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="soft" icon="ai" onClick={genDrafts}>未生成をAI下書き{pending>0?'（'+pending+'名）':''}</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('承認済の要録を一括PDF出力（モック）')}>一括PDF出力</Btn></div>}/>
       <Card className="p-5 mb-4">
         <div className="flex items-center justify-between mb-2"><span className="text-[13px] font-bold text-ink">年長クラスの要録 承認進捗</span><span className="text-[13px] font-extrabold text-brand-600">{done}/{all.length}名 ・ {pct}%</span></div>
         <div className="h-2.5 rounded-full bg-cream overflow-hidden"><div className="h-full bg-brand-400 rounded-full transition-all" style={{width:pct+'%'}}/></div>
@@ -1675,11 +1686,16 @@ function YoroukuList(){
               <td className="px-5 py-3 font-bold text-gray-600">{r.klass}</td>
               <td className="px-5 py-3">{r.draft? <AIChip/> : <Badge tone="gray">未生成</Badge>}</td>
               <td className="px-5 py-3">{r.status==='承認済'? <Badge tone="green">園長承認済</Badge> : r.status==='承認待ち'? <Badge tone="amber">主任承認待ち</Badge> : <Badge tone="gray">下書き</Badge>}</td>
-              <td className="px-5 py-3"><div className="flex gap-1"><button onClick={()=>mockTap(r.n+'さんの要録明細（モック）')} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button><button onClick={()=>mockTap(r.n+'さんの要録を編集（モック）')} className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button></div></td>
+              <td className="px-5 py-3"><div className="flex gap-1">
+                <button title={r.n+'さんの要録プレビュー'} onClick={()=>{ r.draft ? setPreview({n:r.n, stage:STAGE[r.status]||0}) : mockTap(r.n+'さんの要録は未生成です。「未生成をAI下書き」で生成してください'); }} className="text-brand-500"><Ic name="file" className="w-4 h-4"/></button>
+                <button title={r.n+'さんの要録を編集（3方向出力へ）'} onClick={()=>{ go && go('output'); }} className="text-brand-500"><Ic name="edit" className="w-4 h-4"/></button>
+              </div></td>
             </tr>
           ))}</tbody>
         </table>
       </Card>
+      <div className="mt-3 text-[12px] text-muted font-bold px-1">※ 明細（紙面プレビュー）は承認状況に応じて押印欄が変わります。編集は 3方向出力（要録タブ）で行います。</div>
+      <FormPreview form={preview?'要録':null} rows={YOROKU_ROWS} stage={preview?preview.stage:0} kidName={preview&&preview.n} onClose={()=>setPreview(null)}/>
     </div>
   );
 }
