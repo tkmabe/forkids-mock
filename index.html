@@ -2069,8 +2069,16 @@ function BusScreen(){
   const segMin = (i)=> 3 + ((i*2)%4);          // 区間所要（分・架空。本番はルーティングAPIの実測）
   const depMin = (dep)=>{ const a=dep.split(':'); return Number(a[0])*60+Number(a[1]); };
   const fmtT = (min)=> Math.floor(min/60)+':'+String(min%60).padStart(2,'0');
+  const [dir,setDir] = useState('登園');        // 登園/降園切替（コミュなび文法）
+  const [pview,setPview] = useState(false);     // 保護者ビュー（園が保護者の見え方を確認）
+  const depFor = (c)=> dir==='登園' ? c.dep : '15:15';
   const route = (c)=> c.stops.map(s=>({name:s})).concat([{name:'園 到着', goal:true}]);
-  const eta = (c, idx)=>{ let t=depMin(c.dep); for(let i=1;i<=idx;i++) t+=segMin(i); return fmtT(t); };
+  const etaMin = (c, idx)=>{ let t=depMin(depFor(c)); for(let i=1;i<=idx;i++) t+=segMin(i); return t; };
+  const eta = (c, idx)=> fmtT(etaMin(c, idx));
+  // GPS実績（架空・決定的）：通過済み停留所の実通過時刻＝予定±2分。本番はGPS通過判定の実測。
+  const actDelta = (i)=> ((i*7)%5)-2;
+  const actual = (c, idx)=> fmtT(etaMin(c, idx)+actDelta(idx));
+  const ontime = (c, at)=>{ let n=0,ok=0; for(let i=1;i<=at;i++){ n++; if(actDelta(i)<=0) ok++; } return n? Math.round(ok/n*100) : 100; };
   const totalMin = (c)=>{ let t=0; for(let i=1;i<route(c).length;i++) t+=segMin(i); return t; };
   const stopKids = (c, si)=> c.kids.filter((_,ki)=> ki%c.stops.length===si);
   // マップ座標は停留所数から決定的に生成（コース編集での増減にも追従）
@@ -2117,44 +2125,57 @@ function BusScreen(){
       <Card className="mb-5 overflow-hidden">
         <CardHead icon="bus" title="運行マップ・出発通知" action={<Tabs tabs={courses.map(c=>c.name.split('コース')[0])} active={courses[selC].name.split('コース')[0]} onChange={(t)=>setSelC(Math.max(0,courses.findIndex(c=>c.name.split('コース')[0]===t)))}/>}/>
         <div className="px-5 pb-5">
-          {(()=>{ const c=courses[selC]; const r=route(c); const P=pts(c); const at=Math.min(busAt[selC]||0, r.length-1); const done=at>=r.length-1; return (<>
+          {(()=>{ const c=courses[selC]; const r=route(c); const P=pts(c); const at=Math.min(busAt[selC]||0, r.length-1); const done=at>=r.length-1;
+            const normal=c.kids.length, absent2=c.kids.filter(k=>!k.rec).length, today=normal-absent2; return (<>
+            {/* 登園/降園切替＋人数サマリ＋保護者ビュー（コミュなび文法の移植） */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <Tabs tabs={['登園','降園']} active={dir} onChange={(t)=>setDir(t)}/>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-cream/70 border border-[#F3E6D9] px-3 py-1.5 text-[12px] font-bold text-ink">通常 {normal}人 <span className="text-red-500">−{absent2}</span> → 本日 <span className="text-brand-600 text-[14px]">{today}人</span></span>
+              <span className="inline-flex items-center gap-1 rounded-xl bg-cream/70 border border-[#F3E6D9] px-3 py-1.5 text-[12px] font-bold text-ink">定刻運行率 <span className={cx('text-[14px]', ontime(c,at)>=80?'text-green-600':'text-amber-600')}>{ontime(c,at)}%</span></span>
+              <button onClick={()=>setPview(v=>!v)} className={cx('ml-auto px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', pview?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{pview?'園ビューに戻す':'保護者ビューで確認'}</button>
+            </div>
+            {pview && <div className="mb-2 text-[11px] font-bold text-[#5B8DBE] bg-[#EFF6FD] rounded-xl px-3 py-2">保護者にはこのように見えています（公開する項目＝現在位置/バス停/コース/軌跡/実績時刻は園の設定で変更できます・モック）。</div>}
             <div className="rounded-2xl border border-[#F3E6D9] bg-[#F4F8F2] overflow-hidden">
               <svg viewBox="0 0 400 200" className="w-full h-auto block" role="img" aria-label="運行マップ">
                 <line x1="0" y1="60" x2="400" y2="60" stroke="#E3EBDD" strokeWidth="10"/>
                 <line x1="0" y1="150" x2="400" y2="150" stroke="#E3EBDD" strokeWidth="10"/>
                 <line x1="90" y1="0" x2="90" y2="200" stroke="#E3EBDD" strokeWidth="8"/>
                 <line x1="250" y1="0" x2="250" y2="200" stroke="#E3EBDD" strokeWidth="8"/>
-                <polyline points={P.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#E07B4A" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 7"/>
+                {/* コミュなび文法: グレー破線=コース全体、色付き実線=走行済みの軌跡 */}
+                <polyline points={P.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#B9C4B3" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 7"/>
+                {at>0 && <polyline points={P.slice(0,at+1).map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#E07B4A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>}
                 {P.map((p,i)=>(
                   <g key={i} onClick={()=>setPin({si:i})} style={{cursor:'pointer'}}>
                     <circle cx={p.x} cy={p.y} r="13" fill={i<at?'#9BC79F': i===at?'#E07B4A':'#fff'} stroke={p.goal?'#7A9E7E':'#E07B4A'} strokeWidth="2.5"/>
                     <text x={p.x} y={p.y+4} textAnchor="middle" fontSize="11" fontWeight="700" fill={i<=at?'#fff':'#A66A42'}>{p.goal?'園':String(i+1)}</text>
-                    {!p.goal && <text x={p.x} y={p.y+28} textAnchor="middle" fontSize="9" fontWeight="700" fill="#8B7355">{eta(c,i)}</text>}
+                    {!p.goal && (i<at && !pview
+                      ? <text x={p.x} y={p.y+28} textAnchor="middle" fontSize="9" fontWeight="700" fill={actDelta(i)>0?'#D14848':'#4E8C55'}>実 {actual(c,i)}</text>
+                      : <text x={p.x} y={p.y+28} textAnchor="middle" fontSize="9" fontWeight="700" fill="#8B7355">{eta(c,i)}</text>)}
                   </g>
                 ))}
                 <g><circle cx={P[at].x} cy={P[at].y-24} r="11" fill="#fff" stroke="#E07B4A" strokeWidth="2"/><text x={P[at].x} y={P[at].y-19.5} textAnchor="middle" fontSize="12">🚌</text></g>
               </svg>
             </div>
-            <div className="mt-1 text-[11px] font-bold text-muted px-1">停留所ピンをタップ＝家庭・園児・到着予定。数字の下は到着予定時刻（ETA）。</div>
+            <div className="mt-1 text-[11px] font-bold text-muted px-1">グレー破線＝コース／色つき実線＝走行済みの軌跡。ピンをタップ＝家庭・予定/実績時刻。{dir}便・出発 {depFor(c)}。</div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <div className="flex-1 min-w-[200px]">
-                <div className="text-[12px] text-muted font-bold">バス現在地</div>
-                <div className="font-extrabold text-ink">{r[at].name}{done && !r[at].goal ? '' : ''}</div>
+                <div className="text-[12px] text-muted font-bold">バス現在地{at>0 && !done ? '（実 '+actual(c,at)+' 通過・予定 '+eta(c,at)+'）' : ''}</div>
+                <div className="font-extrabold text-ink">{r[at].name}</div>
                 {!done && <div className="text-[12px] font-bold text-brand-600">次は {r[at+1].name}（あと{segMin(at+1)}分・{eta(c,at+1)} 着予定）</div>}
               </div>
-              {!done
+              {!pview && (!done
                 ? <Btn kind="primary" icon="send" onClick={depart} className="py-3 px-5">この停留所を出発</Btn>
                 : (patrol[selC]
                     ? <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#E8F5E9] text-green-700 text-[13px] font-bold px-4 py-3"><Ic name="check" className="w-4 h-4"/>車内見回り完了・置き去りゼロ確認済</span>
-                    : <Btn kind="dark" icon="check" onClick={()=>{ setPatrol(p=>({...p,[selC]:true})); mockTap('車内見回りチェック完了：座席・座席下を確認し置き去りゼロを記録しました（モック）'); }} className="py-3 px-5">車内見回りチェック</Btn>)}
-              {at>0 && <Btn kind="ghost" onClick={()=>{ setBusAt(b=>({...b,[selC]:0})); setPatrol(p=>({...p,[selC]:false})); }}>リセット</Btn>}
+                    : <Btn kind="dark" icon="check" onClick={()=>{ setPatrol(p=>({...p,[selC]:true})); mockTap('車内見回りチェック完了：座席・座席下を確認し置き去りゼロを記録しました（モック）'); }} className="py-3 px-5">車内見回りチェック</Btn>))}
+              {!pview && at>0 && <Btn kind="ghost" onClick={()=>{ setBusAt(b=>({...b,[selC]:0})); setPatrol(p=>({...p,[selC]:false})); }}>リセット</Btn>}
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2">
+            {!pview && <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2">
               <Ic name="ai" className="w-4 h-4 text-brand-500 shrink-0"/>
               <div className="flex-1 min-w-[200px] text-[12px] font-bold text-warm">最適巡回順で運行中：{c.stops.length}停留所・総所要 約{totalMin(c)}分・総距離 約5.8km（架空）。本番は VRP（OR-Tools等）＋ルーティングAPI（Google Maps Directions等）で算出します。</div>
               <Btn kind="soft" icon="ai" onClick={()=>setOptimized(true)}>経路を再計算</Btn>
-            </div>
-            {optimized && <div className="mt-2 text-[12px] font-bold text-green-700 bg-[#E8F5E9] rounded-xl px-3 py-2">再計算結果：現在の巡回順が最短でした（候補3案中・渋滞情報を加味してETAを更新・モック）。</div>}
+            </div>}
+            {optimized && !pview && <div className="mt-2 text-[12px] font-bold text-green-700 bg-[#E8F5E9] rounded-xl px-3 py-2">再計算結果：現在の巡回順が最短でした（候補3案中・渋滞情報を加味してETAを更新・モック）。</div>}
             {notif.length>0 && (
               <div className="mt-3">
                 <div className="text-[12px] text-muted font-bold mb-1.5">出発通知の送信履歴（前の停留所を出ると自動送信）</div>
@@ -2186,15 +2207,18 @@ function BusScreen(){
                     <div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{c.stops[ki%c.stops.length]}</div></div>
                     <Badge tone={st[1]}>{st[0]==='乗車'?<><Ic name="check" className="w-3 h-3"/>乗車</>:st[0]}</Badge>
                   </button>
-                : <div key={k.id} className="flex items-center gap-2 p-2 rounded-xl border border-[#F3E6D9] opacity-70">
+                : <div key={k.id} className="flex items-center gap-2 p-2 rounded-xl border border-[#F3E6D9] bg-red-50/30">
                     <Avatar name={k.n} color={k.color} size={30}/>
-                    <div className="flex-1"><div className="font-bold text-[13px] text-ink">{k.n}</div><div className="text-[11px] text-muted font-bold">{c.stops[ki%c.stops.length]}</div></div>
-                    <Badge tone="red">欠席</Badge>
+                    <div className="flex-1"><div className="font-bold text-[13px] text-red-500 line-through">{k.n}</div><div className="text-[11px] text-red-400 font-bold line-through">{c.stops[ki%c.stops.length]}</div></div>
+                    <span className="text-[11px] font-bold text-red-500">欠席・自動キャンセル</span>
                   </div>
               );})}
             </div>
           </Card>
         ))}
+      </div>
+      <div className="mt-3 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2 text-[11px] font-bold text-warm">
+        出欠・預かり申請からの自動キャンセル：<span className="text-red-500">欠席→登園・降園とも</span>／遅刻→登園便のみ／早退→降園便のみ／朝預かり→登園便のみ／夕預かり→降園便のみ。取り消し線＝乗車しない園児（理由つき）。点呼チェックは随時自動保存されます（モック）。
       </div>
 
       <Modal open={editIdx!==null} onClose={()=>setEditIdx(null)} icon="bus" title="コースを編集" sub="バス種別・出発時刻・停留所の順序を変更できます"
@@ -2254,7 +2278,9 @@ function BusScreen(){
 
       <Modal open={!!pin} onClose={()=>setPin(null)} icon="bus"
         title={pin && route(courses[selC])[Math.min(pin.si, route(courses[selC]).length-1)].name}
-        sub={pin && (courses[selC].name+'・'+(route(courses[selC])[pin.si]&&route(courses[selC])[pin.si].goal ? '終点（園）' : eta(courses[selC], pin.si)+' 着予定'))}>
+        sub={pin && (()=>{ const c2=courses[selC]; const r2=route(c2); const at2=Math.min(busAt[selC]||0, r2.length-1); const s=r2[pin.si];
+          if(s && s.goal) return c2.name+'・終点（園）';
+          return c2.name+'・'+dir+'便 予定 '+eta(c2,pin.si)+(pin.si<at2 ? '／実績 '+actual(c2,pin.si)+'（GPS通過判定）' : ' 着予定'); })()}>
         {pin && (route(courses[selC])[pin.si] && route(courses[selC])[pin.si].goal
           ? <div className="text-[13px] font-bold text-ink">全園児の降車後、<span className="text-brand-600">車内見回りチェック（置き去り確認）</span>を行って運行を終了します。チェック結果は記録され、未実施はアラートになります（モック）。</div>
           : <div className="space-y-2">
@@ -3276,8 +3302,12 @@ function PhoneFrame({children, tab, setTab}){
 function PTitle({children, sub}){ return <div className="px-5 pt-2 pb-3"><h2 className="text-xl font-extrabold text-ink">{children}</h2>{sub&&<p className="text-[12px] text-muted font-bold mt-0.5">{sub}</p>}</div>; }
 
 function ParentHome({setTab}){
-  // バス出発通知の受け皿：前の停留所をバスが出ると「まもなく到着」がプッシュで届く想定（モックは固定表示・×で既読）。
+  // バス出発通知の受け皿：指定の通知ポイント（既定=乗車停留所の2つ前）をバスが通過すると自動でお知らせ。
   const [busSeen,setBusSeen] = useState(false);
+  const [busCfg,setBusCfg] = useState(false);          // 通知設定モーダル
+  const [notifyAt,setNotifyAt] = useState('2つ前');     // 通知ポイント（既定=2つ前・コミュなび公式推奨値を既定化）
+  const [chMail,setChMail] = useState(true);
+  const [chPush,setChPush] = useState(true);
   return (<div>
     <div className="px-5 pt-2 pb-4 flex items-center gap-3"><Avatar name="さくら" color="#C8B3ED" size={48} ring/><div><div className="font-extrabold text-ink text-lg">さくら の ホーム</div><div className="text-[12px] text-muted font-bold">あおば幼稚園・年長</div></div></div>
     <div className="px-5 space-y-3">
@@ -3291,9 +3321,28 @@ function ParentHome({setTab}){
             </div>
             <button onClick={()=>setBusSeen(true)} className="text-muted hover:text-ink p-2 shrink-0" title="通知を閉じる"><Ic name="plus" className="w-5 h-5 rotate-45"/></button>
           </div>
-          <div className="mt-2 text-[11px] font-bold text-[#6E8FAC]">前の停留所（みどり公園前）をバスが出発したタイミングで自動通知しています。遅延時も自動で更新されます（モック）。</div>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="flex-1 text-[11px] font-bold text-[#6E8FAC]">通知ポイント（{notifyAt}＝みどり公園前）をバスが通過したため自動通知。遅延時も自動更新（モック）。</span>
+            <button onClick={()=>setBusCfg(true)} className="shrink-0 text-[11px] font-bold text-[#3F6E99] underline">通知設定</button>
+          </div>
         </div>
       )}
+      <Modal open={busCfg} onClose={()=>setBusCfg(false)} icon="bus" title="バス通知の設定" sub="設定しなくても既定（2つ前の停留所）で自動通知されます">
+        <div className="space-y-3">
+          <div><div className="text-[12px] text-muted font-bold mb-1">いつ知らせる？（乗車停留所＝さくら団地 の…）</div>
+            <div className="flex gap-2">{['1つ前','2つ前','3つ前'].map(x=>(
+              <button key={x} onClick={()=>setNotifyAt(x)} className={cx('flex-1 px-3 py-2.5 rounded-xl text-[13px] font-bold border transition', notifyAt===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}{x==='2つ前'&&<span className="block text-[10px] opacity-80">おすすめ</span>}</button>
+            ))}</div>
+            <div className="mt-1 text-[11px] font-bold text-muted">家から停留所までの時間に合わせて選べます（バスが通過した瞬間に届きます）。</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">受け取り方法</div>
+            <div className="space-y-2">
+              <Toggle on={chPush} onToggle={()=>setChPush(v=>!v)} label="アプリのプッシュ通知"/>
+              <Toggle on={chMail} onToggle={()=>setChMail(v=>!v)} label="メール（サブアドレスにも送れます）"/>
+            </div></div>
+          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">兄弟がいる場合はまとめて同じ設定にできます。登園・降園それぞれ設定可能（モック）。</div>
+          <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setBusCfg(false); mockTap('バス通知を「'+notifyAt+'の停留所通過時」に設定しました（モック）'); }}>この設定にする</Btn>
+        </div>
+      </Modal>
       <button onClick={()=>setTab('report')} className="w-full text-left rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9]">
         <div className="h-28 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-4"><div className="text-white"><div className="text-[11px] font-bold opacity-90">NEW・2026年6月</div><div className="font-extrabold text-lg">今月の成長レポートが届きました</div></div></div>
       </button>
