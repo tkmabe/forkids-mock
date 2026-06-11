@@ -1129,6 +1129,7 @@ function Broadcast(){
   const URGENT = [
     {k:'引き渡し依頼', sub:'【緊急】お子さまの引き渡しのお願い', body:'保護者のみなさまへ。災害発生に伴い、安全のためお子さまの引き渡しを行います。園までお迎えをお願いします。お迎えの際は職員に氏名をお伝えください。来られない場合はこの連絡に返信してください。'},
     {k:'居場所確認', sub:'【緊急】園児の無事と居場所のお知らせ', body:'保護者のみなさまへ。本日の災害発生時、園児は全員無事です。現在、全園児は園舎2階ホールに避難しています。続報はこの連絡でお知らせします。電話は緊急連絡用に空けてください。'},
+    {k:'電話不通時の連絡先', sub:'【緊急】電話回線不具合のお知らせ', body:'保護者のみなさまへ。現在、園の電話が繋がりにくくなっています。お急ぎのご用件はアプリのれんらく帳、または臨時連絡先（配信時に記載）までお願いします。復旧しましたら改めてお知らせします。'},
   ];
   const useUrgent = (u)=>{
     setSubject(u.sub); setBody(u.body); setDest(['全園児の家庭']); setReserve(false); setReadCheck(true); setChPush(true); setChMail(true); setChSub(true); setDone(null);
@@ -1168,7 +1169,7 @@ function Broadcast(){
               <button key={u.k} onClick={()=>useUrgent(u)} className="px-3 py-1.5 rounded-xl text-[12px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 active:scale-95 transition">{u.k}</button>
             ))}
             <button onClick={()=>setSafety(true)} className="px-3 py-1.5 rounded-xl text-[12px] font-bold bg-red-500 text-white border border-red-500 active:scale-95 transition">安否確認ダッシュボード</button>
-            <span className="text-[10px] font-bold text-red-400 w-full sm:w-auto">タップで件名・本文・宛先(全園児)を即セット＝有事に一から書かない</span>
+            <span className="text-[10px] font-bold text-red-400 w-full sm:w-auto">タップで件名・本文・宛先(全園児)を即セット＝有事に一から書かない。保護済み＝古い下書きの自動削除で消えません</span>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1"><span className="text-[12px] text-muted font-bold">宛先</span><span className="text-[12px] font-bold text-brand-600">対象 {homes} 世帯（重複家庭には1回のみ）</span></div>
