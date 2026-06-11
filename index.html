@@ -362,10 +362,29 @@ function TeacherHome({go}){
     <div>
       <PageHead title="おはようございます、田中先生" sub="2026年6月6日（土）・あおば組（年長）担任 ・ キャリアLv.3 中堅保育者"
         action={<Btn kind="ghost" icon="bell">通知 3</Btn>} />
+      {/* W1 瞬間入力: 「今日の記録」クイックレーン＝ファーストビュー最上部から1タップで記録開始（UX監査#2,#19） */}
+      <Card className="p-3 mb-4 border-brand-200 bg-gradient-to-r from-[#FFF7F1] to-white">
+        <div className="flex items-center justify-between mb-2"><span className="text-[12px] font-extrabold text-brand-600 flex items-center gap-1"><Ic name="mic" className="w-4 h-4"/>今日の記録（1タップで開始）</span><span className="text-[10px] font-bold text-muted">未記録 5名</span></div>
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={()=>go&&go('check')} className="rounded-xl bg-white border border-[#F3E6D9] px-2 py-3 flex flex-col items-center gap-1 active:scale-95 transition shadow-card">
+            <span className="w-9 h-9 rounded-xl bg-[#E8F5E9] text-green-600 flex items-center justify-center"><Ic name="check" className="w-5 h-5"/></span>
+            <span className="text-[12px] font-bold text-ink">出欠・けんおん</span>
+          </button>
+          <button onClick={()=>go&&go('renraku')} className="rounded-xl bg-white border border-[#F3E6D9] px-2 py-3 flex flex-col items-center gap-1 active:scale-95 transition shadow-card relative">
+            <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-brand-500 text-white text-[9px] font-bold flex items-center justify-center">3</span>
+            <span className="w-9 h-9 rounded-xl bg-[#EFF6FD] text-[#3F6E99] flex items-center justify-center"><Ic name="book" className="w-5 h-5"/></span>
+            <span className="text-[12px] font-bold text-ink">れんらく帳</span>
+          </button>
+          <button onClick={()=>go&&go('record')} className="rounded-xl bg-brand-500 text-white px-2 py-3 flex flex-col items-center gap-1 active:scale-95 transition shadow-card">
+            <span className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center"><Ic name="mic" className="w-5 h-5"/></span>
+            <span className="text-[12px] font-bold">記録を始める</span>
+          </button>
+        </div>
+      </Card>
       <div className="mb-5"><Tabs tabs={['今日のクラス','わたしの育成','キャリア・研修','給与・有給']} active={tab} onChange={setTab}/></div>
 
-      {/* 育成パイプライン：記録→評価→研修→処遇 を全タブ共通のヘッダ帯で常時可視化（本プロダクトの核） */}
-      <Card className="p-3 sm:p-4 mb-5 bg-gradient-to-r from-[#FBFAFF] to-[#FFF7F1] border-[#EEE7FB]">
+      {/* 育成パイプライン帯：UX監査#10により「わたしの育成」タブ内へ移動（現場の主用途=記録を最上部に譲る） */}
+      {tab==='わたしの育成' && <Card className="p-3 sm:p-4 mb-5 bg-gradient-to-r from-[#FBFAFF] to-[#FFF7F1] border-[#EEE7FB]">
         <div className="flex items-center gap-1.5 mb-2 text-[12px] font-bold text-purple-600"><Ic name="ai" className="w-4 h-4"/>あなたの育成エンジン（毎日の記録が、評価・研修・処遇まで自動でつながる）</div>
         {/* 担任=スマホ/タブレット前提: 〜mdは2×2グリッドで全段を一覧（横スクロールで「処遇」が隠れない）。md+は矢印つき横並び。 */}
         <div className="grid grid-cols-2 gap-2 lg:flex lg:items-stretch">
@@ -382,7 +401,7 @@ function TeacherHome({go}){
             </React.Fragment>
           ))}
         </div>
-      </Card>
+      </Card>}
 
       {tab==='今日のクラス' && <>
         {/* 「問いを渡す」UI：答えでなく今日の問いを先生自身に渡す */}
@@ -1942,7 +1961,11 @@ function Renraku(){
             <Toggle on={reserve} onToggle={()=>setReserve(v=>!v)} label={reserve?'お迎え時（15:30）に公開':'今すぐ送信'}/>
             <span className="text-[10px] font-bold text-muted">朝のうちに書いて、お迎え時にまとめて公開できます</span>
           </div>
-          <div className="mt-2 flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>setPendingPhoto(true)} className="text-muted p-2" title="写真を添付"><Ic name="camera" className="w-6 h-6"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder={k.n+'さんの保護者へメッセージ…'} className="flex-1 min-w-0 bg-transparent text-[13px] font-bold text-ink outline-none placeholder:text-muted"/><Btn kind="primary" icon="send" onClick={send} className="shrink-0">{reserve?'予約':'送信'}</Btn></div>
+          {/* W1(#20): モバイルは返信入力を下部固定（スレッドが伸びても親指で即届く）。md+は従来のフロー配置 */}
+          <div className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-[#F3E6D9] p-2 md:static md:z-auto md:bg-transparent md:border-0 md:p-0 md:mt-2">
+            <div className="flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>setPendingPhoto(true)} className="text-muted p-2" title="写真を添付"><Ic name="camera" className="w-6 h-6"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder={k.n+'さんの保護者へメッセージ…'} className="flex-1 min-w-0 bg-transparent text-[13px] font-bold text-ink outline-none placeholder:text-muted"/><Btn kind="primary" icon="send" onClick={send} className="shrink-0">{reserve?'予約':'送信'}</Btn></div>
+          </div>
+          <div className="h-16 md:hidden"/>{/* 下部固定バー分の余白 */}
         </Card>
       </div>
     </div>
@@ -3802,9 +3825,12 @@ const ROLE_USER = { admin:'塚田 のぞみ', office:'佐々木 ゆい', teacher
 function Sidebar({screen, go, role, setRole, navOpen, setNavOpen}){
   const pick=(id)=>{ go(id); setNavOpen&&setNavOpen(false); };
   // アコーディオンNAV（あべ氏指示 2026-06-11）: ジャンル見出しタップで開閉・現在地のグループは自動展開・複数同時に開ける。
+  // W1: ロール別の既定展開（担任=記録が主戦場・事務=台帳・管理職=園運営）＝主要グループを探さず開いた状態に。
+  const ROLE_OPEN={teacher:'記録（コアループ）', office:'台帳・業務', admin:'園運営（主任・園長）'};
   const groupOf=(id)=>{ const g=NAV.find(gr=>gr.items.some(it=>it.id===id)); return g?g.group:null; };
-  const [openG,setOpenG]=useState(()=>{ const g=groupOf(screen); return g?{[g]:true}:{}; });
+  const [openG,setOpenG]=useState(()=>{ const g=groupOf(screen); const o=g?{[g]:true}:{}; if(ROLE_OPEN[role]) o[ROLE_OPEN[role]]=true; return o; });
   React.useEffect(()=>{ const g=groupOf(screen); if(g) setOpenG(o=> o[g]? o : ({...o,[g]:true})); },[screen]);
+  React.useEffect(()=>{ const rg=ROLE_OPEN[role]; if(rg) setOpenG(o=> o[rg]? o : ({...o,[rg]:true})); },[role]);
   const toggleG=(g)=> setOpenG(o=>({...o,[g]:!o[g]}));
   return (
     <aside className={cx("w-64 shrink-0 bg-cream h-full flex flex-col border-r border-[#F0E2D5] fixed md:static inset-y-0 left-0 z-40 transition-transform", navOpen?"translate-x-0":"-translate-x-full md:translate-x-0")}>
