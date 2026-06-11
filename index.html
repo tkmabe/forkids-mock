@@ -1644,25 +1644,34 @@ function Shop(){
 }
 
 function Renraku(){
-  // 児童ごとのスレッド（架空）。クリックで切替＝「双方向のやり取りが児童単位で続く」ことを体感させる。
+  // コミュなび ぎゅっとなび A4-1 の設計移植：双方向の既読/未読状態・未記入フィルタ・登降園/アレルギー/申請の統合表示・予約公開・お家での様子。
   const THREADS = {
-    0:{date:'6月2日', unread:true, msgs:[
-      {who:'先生', txt:'今日は鉄棒の前回りに何度も挑戦していました。「できた！」と嬉しそうでした✨', photo:'#FDC089'},
+    0:{date:'6月2日', unread:true, today:true, msgs:[
+      {who:'先生', txt:'今日は鉄棒の前回りに何度も挑戦していました。「できた！」と嬉しそうでした。', photo:'#FDC089'},
       {who:'保護者', txt:'家でも「鉄棒できたよ」と教えてくれました。見てあげたいです！'}]},
-    1:{date:'6月2日', unread:false, msgs:[
-      {who:'先生', txt:'今日は戸外でだんごむしを観察していました。お家でも自然の話をしてみてください🐛', photo:'#ADDABB'},
-      {who:'保護者', txt:'帰ってからずっとだんごむしの話をしていました！ありがとうございます😊'},
+    1:{date:'6月2日', unread:false, today:true, msgs:[
+      {who:'先生', txt:'今日は戸外でだんごむしを観察していました。お家でも自然の話をしてみてください。', photo:'#ADDABB'},
+      {who:'保護者', txt:'帰ってからずっとだんごむしの話をしていました！ありがとうございます。'},
       {who:'先生', txt:'図鑑で足の数も数えていましたよ。探究心がすてきです。'}]},
-    2:{date:'6月1日', unread:true, msgs:[
+    2:{date:'6月1日', unread:true, today:false, msgs:[
       {who:'保護者', txt:'昨日は少し咳が出ていました。様子を見ていただけますか。'},
       {who:'先生', txt:'承知しました。水分をこまめにとれるよう声かけします。'}]},
-    3:{date:'5月30日', unread:false, msgs:[
-      {who:'先生', txt:'お店やさんごっこで「いらっしゃいませ！」と元気に呼び込みをしていました🛒'}]},
-    4:{date:'5月30日', unread:true, msgs:[
+    3:{date:'5月30日', unread:false, today:false, msgs:[
+      {who:'先生', txt:'お店やさんごっこで「いらっしゃいませ！」と元気に呼び込みをしていました。'}]},
+    4:{date:'5月30日', unread:true, today:false, msgs:[
       {who:'保護者', txt:'プール開きの持ち物を教えてください。'},
       {who:'先生', txt:'資料BOXにしおりを掲載しました。水着・タオル・帽子をお願いします。'}]},
-    5:{date:'5月29日', unread:false, msgs:[
-      {who:'先生', txt:'あじさいの製作で、色の組み合わせをじっくり考えていました🎨'}]},
+    5:{date:'5月29日', unread:false, today:false, msgs:[
+      {who:'先生', txt:'あじさいの製作で、色の組み合わせをじっくり考えていました。'}]},
+  };
+  // 当日メタ（登降園打刻・アレルギー・出欠申請・保護者の「お家での様子」）＝1画面統合のための架空データ
+  const META = {
+    0:{inout:'07:52 -', alg:null, app:null, home:{t:'36.5', bf:'完食', sl:'21:00-6:30', txt:'昨夜は早めに寝ました。今朝も元気です。'}},
+    1:{inout:'08:05 -', alg:'卵', app:null, home:{t:'36.6', bf:'半分', sl:'21:30-6:45', txt:'少し食欲が落ちています。様子を見てください。'}},
+    2:{inout:'08:11 -', alg:null, app:'早退 15:00', home:null},
+    3:{inout:'— 未登園', alg:null, app:'欠席', home:null},
+    4:{inout:'07:48 -', alg:'乳', app:null, home:{t:'36.4', bf:'完食', sl:'20:45-6:30', txt:'プールを楽しみにしています。'}},
+    5:{inout:'08:20 -', alg:null, app:null, home:null},
   };
   const tmpl = ['本日も元気に過ごしました。','戸外あそびを楽しみました。','お変わりありませんか？','ご家庭での様子も教えてください。'];
   const list = KIDS.slice(0,6);
@@ -1670,34 +1679,82 @@ function Renraku(){
   const [drafts,setDrafts] = useState({});      // 児童index→送信した先生メッセージ
   const [val,setVal] = useState('');            // 入力中の本文
   const [pendingPhoto,setPendingPhoto] = useState(false); // 添付予定の写真
-  const k = list[sel]; const th = THREADS[sel] || {date:'—', msgs:[]};
+  const [reserve,setReserve] = useState(false); // 予約公開（お迎え時 15:30）
+  const [readHome,setReadHome] = useState({1:true}); // 保護者記入を先生が既読
+  const [fil,setFil] = useState('すべて');
+  const teacherState = (i)=>{ const t=THREADS[i]||{}; const dr=drafts[i]||[];
+    if(dr.some(m=>m.reserved)) return '予約';
+    if((t.today && t.msgs.some(m=>m.who==='先生')) || dr.length) return '記入済';
+    return '未記入'; };
+  const parentState = (i)=>{ const t=THREADS[i]||{}; const hasP=t.msgs.some(m=>m.who==='保護者')||META[i]&&META[i].home;
+    if(!hasP) return 'なし'; return (t.unread && !readHome[i]) ? '未読' : '既読'; };
+  const unfilled = list.filter((_,i)=>teacherState(i)==='未記入').length;
+  const shownIdx = list.map((_,i)=>i).filter(i=> fil==='すべて' || (fil==='未記入' && teacherState(i)==='未記入') || (fil==='保護者未読' && parentState(i)==='未読'));
+  const k = list[sel]; const th = THREADS[sel] || {date:'—', msgs:[]}; const mt = META[sel]||{};
   const allMsgs = [...th.msgs, ...(drafts[sel]||[])];
-  const pick = (i)=>{ setSel(i); setVal(''); setPendingPhoto(false); };
+  const pick = (i)=>{ setSel(i); setVal(''); setPendingPhoto(false); setReadHome(r=>({...r,[i]:true})); };
   const insert = (t)=> setVal(v=> v.trim()? v.trim()+' '+t : t);
   const send = ()=>{ if(!val.trim() && !pendingPhoto) return;
-    setDrafts(d=>({...d, [sel]:[...(d[sel]||[]), {who:'先生', txt:val.trim()||'（写真を送りました）', photo: pendingPhoto?k.color:null}]}));
+    setDrafts(d=>({...d, [sel]:[...(d[sel]||[]), {who:'先生', txt:val.trim()||'（写真を送りました）', photo: pendingPhoto?k.color:null, reserved:reserve}]}));
+    if(reserve) mockTap('お迎え時（15:30）に公開予約しました。朝のうちに書いて夕方公開できます（モック）');
     setVal(''); setPendingPhoto(false);
   };
   return (
     <div>
       <PageHead title="れんらく帳" sub="先生と保護者の双方向。写真添付・既読・定型文・PDF出力に対応。"
         action={<Btn kind="ghost" icon="file" onClick={()=>mockTap(k.n+'さんのスレッドをPDF出力（モック）')}>スレッドをPDF出力</Btn>}/>
+      {unfilled>0 && (
+        <button onClick={()=>setFil('未記入')} className="w-full text-left mb-4">
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex items-center gap-2">
+            <Ic name="bell" className="w-4 h-4 text-amber-600 shrink-0"/>
+            <span className="flex-1 text-[13px] font-bold text-amber-700">今日の連絡帳が未記入の園児が {unfilled} 名います（タップで絞り込み）</span>
+            <Ic name="chevron" className="w-4 h-4 text-amber-400"/>
+          </div>
+        </button>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="p-2">
-          <div className="px-3 py-2 flex items-center justify-between"><span className="text-[12px] text-muted font-bold">あおば組（12名）</span><Badge tone="orange">未読 3</Badge></div>
-          {list.map((kid,i)=>{
+          <div className="px-2 py-2 flex flex-wrap items-center gap-1.5">
+            {['すべて','未記入','保護者未読'].map(x=>(
+              <button key={x} onClick={()=>setFil(x)} className={cx('px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition', fil===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+            ))}
+          </div>
+          <div className="px-3 pb-1 text-[10px] font-bold text-muted">家=保護者の記入（橙=未読）／園=今日の先生記入</div>
+          {shownIdx.map((i)=>{ const kid=list[i];
             const t = THREADS[i]||{}; const dr=drafts[i]; const last = (dr&&dr.length)? dr[dr.length-1] : (t.msgs && t.msgs[t.msgs.length-1]);
+            const ts=teacherState(i), ps=parentState(i);
             return (
               <button key={kid.id} onClick={()=>pick(i)} className={cx('w-full text-left flex items-center gap-2 p-2 rounded-xl transition', i===sel?'bg-brand-50 ring-1 ring-brand-200':'hover:bg-cream/60')}>
                 <Avatar name={kid.n} color={kid.color} size={36}/>
                 <div className="flex-1 min-w-0"><div className="font-bold text-[13px] text-ink">{kid.n}</div><div className="text-[11px] text-muted font-bold truncate">{last?last.txt:'やり取りなし'}</div></div>
-                {t.unread && <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0"/>}
+                <span className="flex flex-col items-end gap-0.5 shrink-0">
+                  {ps!=='なし' && <span className={cx('text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none', ps==='未読'?'bg-brand-500 text-white':'bg-[#E8F5E9] text-green-700')}>家{ps==='未読'?'・未読':''}</span>}
+                  <span className={cx('text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none', ts==='記入済'?'bg-[#E8F5E9] text-green-700': ts==='予約'?'bg-[#EFF6FD] text-[#3F6E99]':'bg-cream text-muted border border-[#E8D5C4]')}>園{ts==='未記入'?'・未記入': ts==='予約'?'・予約':''}</span>
+                </span>
               </button>
             );
           })}
+          {shownIdx.length===0 && <div className="px-3 py-4 text-center text-[12px] font-bold text-muted">該当なし</div>}
         </Card>
         <Card className="col-span-2 p-5">
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#F3E6D9]"><Avatar name={k.n} color={k.color} size={40}/><div><div className="font-extrabold text-ink">{k.n} ・ {th.date}</div><div className="text-[11px] text-muted font-bold">あおば組 ・ {allMsgs.length}件のやり取り</div></div><span className="ml-auto"><Badge tone="green"><Ic name="check" className="w-3 h-3"/>既読</Badge></span></div>
+          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[#F3E6D9]"><Avatar name={k.n} color={k.color} size={40}/><div><div className="font-extrabold text-ink">{k.n} ・ {th.date}</div><div className="text-[11px] text-muted font-bold">あおば組 ・ {allMsgs.length}件のやり取り</div></div><span className="ml-auto"><Badge tone="green"><Ic name="check" className="w-3 h-3"/>既読</Badge></span></div>
+          {/* 当日メタの統合表示（ぎゅっとなび=連絡・登降園・アレルギー・申請が1画面） */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            <span className="inline-flex items-center gap-1 rounded-lg bg-cream/70 border border-[#F3E6D9] px-2 py-1 text-[11px] font-bold text-ink"><Ic name="clock" className="w-3 h-3 text-brand-400"/>登降園 {mt.inout||'—'}</span>
+            {mt.alg && <span className="inline-flex items-center gap-1 rounded-lg bg-red-50 border border-red-100 px-2 py-1 text-[11px] font-bold text-red-600">アレルギー：{mt.alg}</span>}
+            {mt.app && <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-100 px-2 py-1 text-[11px] font-bold text-amber-700">本日申請：{mt.app}</span>}
+          </div>
+          {mt.home && (
+            <div className="rounded-2xl bg-[#F2FBF5] border border-[#CDEBD6] p-3 mb-3">
+              <div className="flex items-center gap-2 mb-1.5"><Badge tone="green">保護者・お家での様子</Badge>{!readHome[sel] ? <Badge tone="orange">未読</Badge> : <span className="text-[10px] font-bold text-green-700">既読にしました</span>}</div>
+              <div className="flex flex-wrap gap-1.5 mb-1.5 text-[11px] font-bold">
+                <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">検温 {mt.home.t}℃</span>
+                <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">朝食 {mt.home.bf}</span>
+                <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">睡眠 {mt.home.sl}</span>
+              </div>
+              <p className="text-[13px] font-bold text-ink">{mt.home.txt}</p>
+            </div>
+          )}
           <div className="space-y-3">
             {allMsgs.map((m,i)=>{
               const mine = m.who==='先生';
@@ -1706,6 +1763,7 @@ function Renraku(){
                   <Badge tone={mine?'orange':'green'}>{m.who}</Badge>
                   <div className={cx('flex-1 rounded-2xl p-3 text-[14px] text-ink', mine?'bg-cream rounded-tl-sm border border-[#F3E6D9]':'bg-[#E8F5E9] rounded-tr-sm')}>
                     {m.txt}
+                    {m.reserved && <div className="mt-1"><Badge tone="blue">15:30 公開予約</Badge></div>}
                     {m.photo && <div className="mt-2 h-20 w-28 rounded-xl flex items-center justify-center" style={{background:m.photo+'88'}}><Ic name="camera" className="w-6 h-6 text-white/80"/></div>}
                   </div>
                 </div>
@@ -1714,7 +1772,11 @@ function Renraku(){
           </div>
           <div className="mt-4 flex flex-wrap gap-2">{tmpl.map((t,i)=><button key={i} onClick={()=>insert(t)} className="px-3 py-2 rounded-full bg-cream border border-[#F3E6D9] text-[12px] font-bold text-gray-600 hover:bg-brand-50 active:scale-95">{t}</button>)}</div>
           {pendingPhoto && <div className="mt-2 inline-flex items-center gap-2 bg-cream border border-[#F3E6D9] rounded-xl px-2 py-1.5"><span className="w-10 h-10 rounded-lg flex items-center justify-center" style={{background:k.color+'88'}}><Ic name="camera" className="w-4 h-4 text-white/80"/></span><span className="text-[12px] font-bold text-ink">写真を添付</span><button onClick={()=>setPendingPhoto(false)} className="text-muted"><Ic name="plus" className="w-4 h-4 rotate-45"/></button></div>}
-          <div className="mt-2 flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>setPendingPhoto(true)} className="text-muted p-2" title="写真を添付"><Ic name="camera" className="w-6 h-6"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder={k.n+'さんの保護者へメッセージ…'} className="flex-1 min-w-0 bg-transparent text-[13px] font-bold text-ink outline-none placeholder:text-muted"/><Btn kind="primary" icon="send" onClick={send} className="shrink-0">送信</Btn></div>
+          <div className="mt-2 flex items-center gap-2">
+            <Toggle on={reserve} onToggle={()=>setReserve(v=>!v)} label={reserve?'お迎え時（15:30）に公開':'今すぐ送信'}/>
+            <span className="text-[10px] font-bold text-muted">朝のうちに書いて、お迎え時にまとめて公開できます</span>
+          </div>
+          <div className="mt-2 flex items-center gap-2 bg-cream rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>setPendingPhoto(true)} className="text-muted p-2" title="写真を添付"><Ic name="camera" className="w-6 h-6"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder={k.n+'さんの保護者へメッセージ…'} className="flex-1 min-w-0 bg-transparent text-[13px] font-bold text-ink outline-none placeholder:text-muted"/><Btn kind="primary" icon="send" onClick={send} className="shrink-0">{reserve?'予約':'送信'}</Btn></div>
         </Card>
       </div>
     </div>
@@ -3538,19 +3600,51 @@ function ParentReport({setTab}){
   </div>);
 }
 function ParentNotice(){
+  // ぎゅっとなび移植: 「お家での様子」の構造化入力（検温/朝食/睡眠+ひとこと）・先生の既読表示。
   const [msgs,setMsgs] = useState([]);   // 自分が送った追加メッセージ
   const [val,setVal] = useState('');
   const [pv,setPv] = useState(null);     // れんらく帳の写真ビューア
+  const [homeOpen,setHomeOpen] = useState(false);
+  const [hT,setHT] = useState('36.5');
+  const [hBf,setHBf] = useState('完食');
+  const [hSl,setHSl] = useState('21:00-6:30');
+  const [hTxt,setHTxt] = useState('');
   const send = ()=>{ if(!val.trim()) return; setMsgs(m=>[...m,{body:val.trim(),t:'たった今'}]); setVal(''); };
+  const sendHome = ()=>{ setMsgs(m=>[...m,{home:{t:hT,bf:hBf,sl:hSl,txt:hTxt.trim()},t:'たった今'}]); setHomeOpen(false); setHTxt(''); mockTap('お家での様子を送りました。先生が確認すると既読が付きます（モック）'); };
   return (<div><PTitle sub="先生とのやりとり（健康・連絡）">れんらく帳</PTitle>
     <div className="px-5 space-y-3">
       <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月6日（金）</span></div>
-      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:20</div>今日は戸外でだんごむしを観察していました🐛「あしは何本？」と自分から数えていましたよ。
+      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:20</div>今日は戸外でだんごむしを観察していました。「あしは何本？」と自分から数えていましたよ。
         <button onClick={()=>setPv(0)} className="mt-2 w-full h-20 rounded-xl bg-cat-green/40 flex items-center justify-center hover:bg-cat-green/50 transition" title="写真を見る"><Ic name="photo" className="w-7 h-7 text-white"/></button></div></div>
-      <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし ・ 19:02</div>ずっとだんごむしの話をしていました！ありがとうございます😊</div></div>
+      <div className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1 flex items-center gap-2">わたし ・ 19:02<span className="ml-auto text-[10px] text-green-600">先生が既読</span></div>ずっとだんごむしの話をしていました！ありがとうございます。</div></div>
       <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月5日（木）</span></div>
-      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:10</div>給食をおかわりしました。最近よく食べています🍚</div></div>
-      {msgs.map((m,i)=>(<div key={i} className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink"><div className="text-[11px] font-bold text-green-700 mb-1">わたし ・ {m.t}</div>{m.body}</div></div>))}
+      <div className="flex gap-2"><div className="flex-1 bg-white rounded-2xl rounded-tl-sm p-3 text-[13px] text-ink border border-[#F3E6D9]"><div className="text-[11px] font-bold text-brand-600 mb-1">担任・田中先生 ・ 16:10</div>給食をおかわりしました。最近よく食べています。</div></div>
+      {msgs.map((m,i)=>(
+        <div key={i} className="flex gap-2 flex-row-reverse"><div className="flex-1 bg-[#E8F5E9] rounded-2xl rounded-tr-sm p-3 text-[13px] text-ink">
+          <div className="text-[11px] font-bold text-green-700 mb-1 flex items-center gap-2">わたし ・ {m.t}<span className="ml-auto text-[10px] text-muted">先生の確認待ち</span></div>
+          {m.home ? (<div>
+            <div className="text-[11px] font-bold text-green-700 mb-1">お家での様子</div>
+            <div className="flex flex-wrap gap-1.5 mb-1 text-[11px] font-bold">
+              <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">検温 {m.home.t}℃</span>
+              <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">朝食 {m.home.bf}</span>
+              <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">睡眠 {m.home.sl}</span>
+            </div>
+            {m.home.txt && <p>{m.home.txt}</p>}
+          </div>) : m.body}
+        </div></div>
+      ))}
+      {!homeOpen ? (
+        <button onClick={()=>setHomeOpen(true)} className="w-full rounded-2xl border-2 border-dashed border-[#CDEBD6] bg-[#F2FBF5] px-4 py-3 text-[13px] font-bold text-green-700 flex items-center justify-center gap-2 active:scale-[0.99] transition"><Ic name="heart" className="w-4 h-4"/>お家での様子を送る（検温・朝食・睡眠）</button>
+      ) : (
+        <div className="rounded-2xl border border-[#CDEBD6] bg-[#F2FBF5] p-3 space-y-2">
+          <div className="text-[12px] font-bold text-green-700">お家での様子（毎朝の健康連絡）</div>
+          <div><div className="text-[11px] font-bold text-muted mb-1">検温</div><div className="flex flex-wrap gap-1.5">{['36.2','36.5','36.8','37.2','37.5'].map(x=>(<button key={x} onClick={()=>setHT(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', hT===x?(Number(x)>=37?'bg-red-500 text-white border-red-500':'bg-brand-500 text-white border-brand-500'):'bg-white text-gray-500 border-[#E8D5C4]')}>{x}℃</button>))}</div></div>
+          <div><div className="text-[11px] font-bold text-muted mb-1">朝食</div><div className="flex gap-1.5">{['完食','半分','少し','食べていない'].map(x=>(<button key={x} onClick={()=>setHBf(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', hBf===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div></div>
+          <div><div className="text-[11px] font-bold text-muted mb-1">睡眠</div><div className="flex flex-wrap gap-1.5">{['21:00-6:30','21:30-7:00','22:00-7:00'].map(x=>(<button key={x} onClick={()=>setHSl(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', hSl===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div></div>
+          <input value={hTxt} onChange={e=>setHTxt(e.target.value)} placeholder="ひとこと（任意）例：少し鼻水が出ています" className="w-full bg-white rounded-xl px-3 py-2.5 text-[12px] font-bold text-ink border border-[#CDEBD6] outline-none"/>
+          <div className="flex gap-2"><Btn kind="ghost" className="flex-1" onClick={()=>setHomeOpen(false)}>閉じる</Btn><Btn kind="primary" icon="send" className="flex-1" onClick={sendHome}>送る</Btn></div>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2 pt-1">{['ありがとうございます','承知しました','お迎えを変更します'].map((q,i)=><button key={i} onClick={()=>setVal(q)} className="px-3 py-1.5 rounded-full text-[12px] font-bold border bg-white text-gray-600 border-[#E8D5C4] hover:border-brand-300">{q}</button>)}</div>
       <div className="flex items-center gap-2 bg-white rounded-xl p-2 border border-[#F3E6D9]"><button onClick={()=>mockTap('写真を選択して添付（モック）')} className="text-muted"><Ic name="camera" className="w-5 h-5 ml-1"/></button><input value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="メッセージ…" className="flex-1 bg-transparent text-[12px] font-bold text-ink outline-none placeholder:text-muted"/><button onClick={send} className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center"><Ic name="send" className="w-4 h-4"/></button></div>
     </div>
