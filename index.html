@@ -1418,6 +1418,18 @@ function Billing(){
   const [stamp,setStamp]=useState({}); // id -> 'in'|'out'
   const cycle=(id)=> setStamp(s=>{ const cur=s[id]; const nx= cur===undefined?'in': cur==='in'?'out':undefined; const n={...s}; if(nx===undefined) delete n[id]; else n[id]=nx; return n; });
   const here=Object.values(stamp).filter(v=>v==='in').length;
+  // 精算なびA7の移植: 打刻4方式(タッチ/アプリ/バスGPS/手動)の統合・時間記録→保育時間→精算へ自動反映・欠席申請との連動・保護者への打刻通知。
+  const [tc,setTc]=useState([
+    {n:'ひなた', in:'8:05', out:'—', m:'バスGPS', care:'計測中', ext:'—'},
+    {n:'さくら', in:'7:52', out:'—', m:'タッチ', care:'計測中', ext:'—'},
+    {n:'あおい', in:'8:11', out:'—', m:'アプリ', care:'計測中', ext:'—'},
+    {n:'りく',   in:null,  out:null, m:'欠席申請', care:'—', ext:'—'},
+    {n:'ゆうと', in:'7:30', out:'17:35', m:'タッチ', care:'10時間5分', ext:'夕30分'},
+    {n:'めい',   in:'—', out:'—', m:null, care:'—', ext:'—'},
+  ]);
+  const [punchNotify,setPunchNotify]=useState(true);
+  const fixRow=(i)=>{ setTc(l=>l.map((x,j)=>j===i?{...x,in:'8:30',m:'手動',care:'計測中'}:x)); mockTap('打刻漏れを手動で補正しました（修正履歴が残ります・モック）'); };
+  const M_TONE={'タッチ':'gray','アプリ':'blue','バスGPS':'green','手動':'amber','欠席申請':'red'};
   const [fixed,setFixed]=useState(false);
   const [inv,setInv]=useState(null);     // 請求書プレビュー対象index
   const [sent,setSent]=useState({});     // 送付済の請求書index
@@ -1460,6 +1472,25 @@ function Billing(){
           <div className="mt-2 text-[11px] font-bold text-warm">決済は fincode 一体（自動引落・クレジット・コンビニ）。口座情報は決済代行が管理し、園は保持しません。保護者は別アプリ不要＝マイページで完結。</div>
         </Card>
       </div>
+      <Card className="overflow-hidden mb-5">
+        <CardHead icon="clock" title="時間記録・管理（本日 6/2）"
+          action={<div className="flex items-center gap-2"><Toggle on={punchNotify} onToggle={()=>setPunchNotify(v=>!v)} label="登降園を保護者へ自動通知"/></div>}/>
+        <div className="px-5 pb-1 text-[11px] font-bold text-muted">打刻はタッチパネル・保護者アプリ・バスGPS・手動の4方式を1つの記録に統合。保育時間は精算へ自動反映されます。欠席申請の園児は打刻不要（出欠と連動）。</div>
+        <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','登園','降園','打刻方式','保育時間','延長',''].map((h,i)=><th key={i} className="px-5 py-2.5">{h}</th>)}</tr></thead>
+          <tbody>{tc.map((r,i)=>(
+            <tr key={i} className="border-b border-[#F7EFE7]">
+              <td className="px-5 py-2.5 font-bold text-ink">{r.n}</td>
+              <td className="px-5 py-2.5 font-bold">{r.in===null?<span className="text-red-400 line-through">欠席</span>:r.in}</td>
+              <td className="px-5 py-2.5">{r.out===null?'—':r.out}</td>
+              <td className="px-5 py-2.5">{r.m? <Badge tone={M_TONE[r.m]||'gray'}>{r.m}</Badge> : <span className="text-[11px] font-bold text-red-500">打刻なし</span>}</td>
+              <td className="px-5 py-2.5 text-muted font-bold">{r.care}</td>
+              <td className="px-5 py-2.5">{r.ext!=='—'? <Badge tone="amber">{r.ext}</Badge> : '—'}</td>
+              <td className="px-5 py-2.5 text-right">{!r.m && <Btn kind="soft" icon="edit" onClick={()=>fixRow(i)} className="py-1">手動で補正</Btn>}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
       <Card className="overflow-hidden">
         <CardHead icon="money" title="園児別 請求明細" action={<Tabs tabs={['精算一覧','無償化帳票']} active={view} onChange={setView}/>}/>
         {view==='精算一覧' ? (<>
@@ -3682,6 +3713,8 @@ function ParentHome({setTab}){
   const [chPush,setChPush] = useState(true);
   const [billOpen,setBillOpen] = useState(false);  // 今月のご請求 明細モーダル
   const [payWay,setPayWay] = useState('自動引落');
+  const [pkOpen,setPkOpen] = useState(false);      // 登降園の記録モーダル
+  const [pkNotify,setPkNotify] = useState(true);
   return (<div>
     <div className="px-5 pt-2 pb-4 flex items-center gap-3"><Avatar name="さくら" color="#C8B3ED" size={48} ring/><div><div className="font-extrabold text-ink text-lg">さくら の ホーム</div><div className="text-[12px] text-muted font-bold">あおば幼稚園・年長</div></div></div>
     <div className="px-5 space-y-3">
@@ -3728,6 +3761,29 @@ function ParentHome({setTab}){
           </button>
         ))}
       </div>
+      {/* 登降園の記録（精算なびA7の移植: 4方式打刻の統合・打刻と同時に保護者へ自動通知） */}
+      <button onClick={()=>setPkOpen(true)} className="w-full text-left"><Card className="p-4">
+        <div className="flex items-center gap-2 mb-1"><Badge tone="blue">登降園</Badge><span className="text-[11px] text-muted font-bold">きょう</span><span className="ml-auto text-[11px] text-brand-600 font-bold">今週の記録 →</span></div>
+        <div className="text-[13px] font-bold text-ink">8:05 登園しました（バスGPS打刻）・お迎え予定 15:10</div>
+      </Card></button>
+      <Modal open={pkOpen} onClose={()=>setPkOpen(false)} icon="clock" title="登降園の記録" sub="さくらさん・打刻と同時に自動でお知らせします">
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-[#F3E6D9] overflow-hidden">
+            {[['6/2（月）','8:05','15:12','バスGPS',''],['5/30（金）','7:52','17:35','タッチ','延長 30分'],['5/29（木）','8:11','15:08','アプリ',''],['5/28（水）',null,null,'欠席申請',''],['5/27（火）','8:03','15:10','バスGPS','']].map((r,i)=>(
+              <div key={i} className="flex items-center gap-2 px-3 py-2.5 border-b border-[#F7EFE7] last:border-0 text-[12px] font-bold">
+                <span className="w-16 shrink-0 text-muted">{r[0]}</span>
+                {r[1]===null
+                  ? <span className="flex-1 text-red-400 line-through">欠席（申請済み）</span>
+                  : <span className="flex-1 text-ink">{r[1]} → {r[2]}</span>}
+                <span className={cx('text-[10px] px-1.5 py-0.5 rounded-full shrink-0', r[3]==='バスGPS'?'bg-[#E8F5E9] text-green-700':r[3]==='アプリ'?'bg-[#EFF6FD] text-[#3F6E99]':r[3]==='欠席申請'?'bg-red-50 text-red-500':'bg-cream text-muted')}>{r[3]}</span>
+                {r[4] && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 shrink-0">{r[4]}</span>}
+              </div>
+            ))}
+          </div>
+          <Toggle on={pkNotify} onToggle={()=>setPkNotify(v=>!v)} label="登園・降園をプッシュ通知で受け取る"/>
+          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">タッチパネル・アプリ・バスGPSのどの打刻でも同じ記録にまとまります。延長保育の分は月末のご請求に自動反映されます（モック）。</div>
+        </div>
+      </Modal>
       {/* 今月のご請求（精算なび+支払なびの移植: forKidsは精算+決済一体・マイページ完結＝別アプリ不要） */}
       <button onClick={()=>setBillOpen(true)} className="w-full text-left"><Card className="p-4">
         <div className="flex items-center gap-2 mb-1"><Badge tone="green">ご請求</Badge><span className="text-[11px] text-muted font-bold">6月分・確定</span><span className="ml-auto text-[11px] text-brand-600 font-bold">明細を見る →</span></div>
