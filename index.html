@@ -1558,6 +1558,7 @@ function Billing(){
     {n:'めい',   in:'—', out:'—', m:null, care:'—', ext:'—'},
   ]);
   const [punchNotify,setPunchNotify]=useState(true);
+  const [bltab,setBltab]=useState('きょうの登降園');  // W3(#6): 現場(打刻)と月次(精算)の文脈分離
   const fixRow=(i)=>{ setTc(l=>l.map((x,j)=>j===i?{...x,in:'8:30',m:'手動',care:'計測中'}:x)); mockTap('打刻漏れを手動で補正しました（修正履歴が残ります・モック）'); };
   const M_TONE={'タッチ':'gray','アプリ':'blue','バスGPS':'green','手動':'amber','欠席申請':'red'};
   const [fixed,setFixed]=useState(false);
@@ -1576,7 +1577,9 @@ function Billing(){
   return (
     <div>
       <PageHead title="登降園・精算" sub="タッチ打刻 → 時間記録 → 月次精算（無償化・全銀・インボイス対応）"/>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+      <div className="mb-4"><Tabs tabs={['きょうの登降園','月次精算']} active={bltab} onChange={setBltab}/></div>
+      {bltab==='きょうの登降園' && <>
+      <div className="mb-5">
         <Card className="p-5"><div className="flex items-center justify-between mb-3"><h3 className="font-bold text-ink">タッチ打刻（iPad）</h3><Badge tone="green">在園中 {here}名</Badge></div>
           <p className="text-[11px] text-muted font-bold mb-2">園児をタップ：未登園→在園中→降園</p>
           <div className="flex flex-wrap gap-1 mb-2">
@@ -1587,24 +1590,6 @@ function Billing(){
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{KIDS.slice(0,6).map(k=>{ const st=stamp[k.id];
             return <button key={k.id} onClick={()=>cycle(k.id)} className={cx('flex flex-col items-center rounded-xl p-2 border transition', st==='in'?'bg-[#E8F5E9] border-green-200':st==='out'?'bg-cream border-[#E8D5C4] opacity-70':'bg-cream border-[#F3E6D9]')}><div className="relative"><Avatar name={k.n} color={k.color} size={36}/>{st&&<span className={cx('absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white', st==='in'?'bg-green-500':'bg-gray-400')}><Ic name={st==='in'?'check':'logout'} className="w-2.5 h-2.5"/></span>}</div><span className="text-[11px] font-bold mt-1">{k.n}</span><span className={cx('text-[10px] font-bold', st==='in'?'text-green-600':st==='out'?'text-muted':'text-brand-400')}>{st==='in'?'登園 8:'+(20+k.id):st==='out'?'降園済':'未登園'}</span></button>;
           })}</div>
-        </Card>
-        <Card className="col-span-2 p-5"><CardHead icon="money" title="6月分 精算サマリ（締日 5/31・口座振替 6/26）" action={fixed?<Badge tone="green"><Ic name="check" className="w-3 h-3"/>確定済</Badge>:<Badge tone="amber">未確定</Badge>}/>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-1">
-            <Stat label="請求対象" value="118名"/><Stat label="無償化適用" value="92名" tone="green"/><Stat label="請求額" value="¥1.86M" tone="orange"/><Stat label="未確定" value={fixed?'0件':'6件'} tone={fixed?'green':'red'}/>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2 text-[12px] font-bold">
-            <span className="text-ink">入金 ¥{paidSum.toLocaleString()} ／ 確定 ¥{totalAll.toLocaleString()}</span>
-            <span className={cx(unpaidN>0?'text-red-500':'text-green-600')}>残金 ¥{(totalAll-paidSum).toLocaleString()}・未入金 {unpaidN}件</span>
-            <span className="text-muted">（表示中の5名・全体はフィルタで確認）</span>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Btn kind="ghost" icon="file" onClick={()=>mockTap('全銀フォーマット（口座振替依頼）を出力（モック）')}>全銀出力</Btn>
-            <Btn kind="ghost" icon="download" onClick={importBank}>全銀結果インポート（入金消込）</Btn>
-            <Btn kind="ghost" icon="file" onClick={()=>mockTap('適格請求書(インボイス)を出力（モック）')}>インボイス</Btn>
-            <Btn kind="ghost" icon="ai" onClick={()=>mockTap('料金設定の変更を反映して全園児を再計算しました（モック）')}>再計算</Btn>
-            {fixed? <Btn kind="soft" icon="check" onClick={()=>setFixed(false)}>確定を取消</Btn> : <Btn kind="primary" icon="check" onClick={()=>setFixed(true)}>精算を確定</Btn>}
-          </div>
-          <div className="mt-2 text-[11px] font-bold text-warm">決済は fincode 一体（自動引落・クレジット・コンビニ）。口座情報は決済代行が管理し、園は保持しません。保護者は別アプリ不要＝マイページで完結。</div>
         </Card>
       </div>
       <Card className="overflow-hidden mb-5">
@@ -1626,6 +1611,30 @@ function Billing(){
           ))}</tbody>
         </table>
       </Card>
+      </>}
+
+      {bltab==='月次精算' && <>
+      <div className="mb-5">
+        <Card className="p-5"><CardHead icon="money" title="6月分 精算サマリ（締日 5/31・口座振替 6/26）" action={fixed?<Badge tone="green"><Ic name="check" className="w-3 h-3"/>確定済</Badge>:<Badge tone="amber">未確定</Badge>}/>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-1">
+            <Stat label="請求対象" value="118名"/><Stat label="無償化適用" value="92名" tone="green"/><Stat label="請求額" value="¥1.86M" tone="orange"/><Stat label="未確定" value={fixed?'0件':'6件'} tone={fixed?'green':'red'}/>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2 text-[12px] font-bold">
+            <span className="text-ink">入金 ¥{paidSum.toLocaleString()} ／ 確定 ¥{totalAll.toLocaleString()}</span>
+            <span className={cx(unpaidN>0?'text-red-500':'text-green-600')}>残金 ¥{(totalAll-paidSum).toLocaleString()}・未入金 {unpaidN}件</span>
+            <span className="text-muted">（表示中の5名・全体はフィルタで確認）</span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Btn kind="ghost" icon="file" onClick={()=>mockTap('全銀フォーマット（口座振替依頼）を出力（モック）')}>全銀出力</Btn>
+            <Btn kind="ghost" icon="download" onClick={importBank}>全銀結果インポート（入金消込）</Btn>
+            <Btn kind="ghost" icon="file" onClick={()=>mockTap('適格請求書(インボイス)を出力（モック）')}>インボイス</Btn>
+            <Btn kind="ghost" icon="ai" onClick={()=>mockTap('料金設定の変更を反映して全園児を再計算しました（モック）')}>再計算</Btn>
+            {fixed? <Btn kind="soft" icon="check" onClick={()=>setFixed(false)}>確定を取消</Btn> : <Btn kind="primary" icon="check" onClick={()=>setFixed(true)}>精算を確定</Btn>}
+          </div>
+          <div className="mt-2 text-[11px] font-bold text-warm">決済は fincode 一体（自動引落・クレジット・コンビニ）。口座情報は決済代行が管理し、園は保持しません。保護者は別アプリ不要＝マイページで完結。</div>
+        </Card>
+
+      </div>
       <Card className="overflow-hidden">
         <CardHead icon="money" title="園児別 請求明細" action={<Tabs tabs={['精算一覧','無償化帳票']} active={view} onChange={setView}/>}/>
         {view==='精算一覧' ? (<>
@@ -1664,6 +1673,8 @@ function Billing(){
         </div>
         )}
       </Card>
+
+      </>}
 
       <Modal open={inv!=null} onClose={()=>setInv(null)} icon="money" title={inv!=null&&(KIDS[inv].n+' の請求書（6月分）')} sub={fixed?'精算確定済':'精算が未確定です'}
         footer={inv!=null && (sent[inv]
@@ -2501,6 +2512,7 @@ function BusScreen(){
     {name:'Bコース（南回り）', bus:'中型バス', dep:'8:20', kids:KIDS.slice(5,9), stops:STOPS0.slice()},
     {name:'Cコース（駅前）',   bus:'中型バス', dep:'8:35', kids:KIDS.slice(9,12), stops:STOPS0.slice()},
   ]);
+  const [btab,setBtab]=useState('運行（今日）');  // W3(#5): 長尺解消のタブ化
   // 乗降確認：在園児(rec)は タップで 乗車待ち→乗車→降車 を循環。欠席児は対象外。
   const initial = {}; KIDS.forEach(k=>{ if(k.rec) initial[k.id]='待ち'; });
   const [status,setStatus] = useState(initial);
@@ -2576,6 +2588,8 @@ function BusScreen(){
           <Btn kind="soft" icon="check" onClick={()=>setDelayed(null)}>定刻に戻す</Btn>
         </Card>
       )}
+      <div className="mb-4"><Tabs tabs={['運行（今日）','コース・乗降']} active={btab} onChange={setBtab}/></div>
+      {btab==='運行（今日）' && <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card className="p-4"><Stat label="運行コース" value={String(courses.length)} tone="ink"/></Card>
         <Card className="p-4"><Stat label="本日の乗車" value={boarded+'名'} tone="orange"/></Card>
@@ -2619,7 +2633,7 @@ function BusScreen(){
               </svg>
             </div>
             <div className="mt-1 text-[11px] font-bold text-muted px-1">グレー破線＝コース／色つき実線＝走行済みの軌跡。ピンをタップ＝家庭・予定/実績時刻。{dir}便・出発 {depFor(c)}。</div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2 fixed bottom-0 inset-x-0 z-30 bg-white border-t border-[#F3E6D9] px-3 py-2 md:static md:z-auto md:bg-transparent md:border-0 md:p-0">
               <div className="flex-1 min-w-[200px]">
                 <div className="text-[12px] text-muted font-bold">バス現在地{at>0 && !done ? '（実 '+actual(c,at)+' 通過・予定 '+eta(c,at)+'）' : ''}</div>
                 <div className="font-extrabold text-ink">{r[at].name}</div>
@@ -2638,6 +2652,7 @@ function BusScreen(){
               <Btn kind="soft" icon="ai" onClick={()=>setOptimized(true)}>経路を再計算</Btn>
             </div>}
             {optimized && !pview && <div className="mt-2 text-[12px] font-bold text-green-700 bg-[#E8F5E9] rounded-xl px-3 py-2">再計算結果：現在の巡回順が最短でした（候補3案中・渋滞情報を加味してETAを更新・モック）。</div>}
+            <div className="h-14 md:hidden"/>
             {notif.length>0 && (
               <div className="mt-3">
                 <div className="text-[12px] text-muted font-bold mb-1.5">出発通知の送信履歴（前の停留所を出ると自動送信）</div>
@@ -2652,7 +2667,9 @@ function BusScreen(){
           </>); })()}
         </div>
       </Card>
+      </>}
 
+      {btab==='コース・乗降' && <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {courses.map((c,i)=>(
           <Card key={i} className="p-5">
@@ -2682,6 +2699,7 @@ function BusScreen(){
       <div className="mt-3 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2 text-[11px] font-bold text-warm">
         出欠・預かり申請からの自動キャンセル：<span className="text-red-500">欠席→登園・降園とも</span>／遅刻→登園便のみ／早退→降園便のみ／朝預かり→登園便のみ／夕預かり→降園便のみ。取り消し線＝乗車しない園児（理由つき）。点呼チェックは随時自動保存されます（モック）。
       </div>
+      </>}
 
       <Modal open={editIdx!==null} onClose={()=>setEditIdx(null)} icon="bus" title="コースを編集" sub="バス種別・出発時刻・停留所の順序を変更できます"
         footer={<><Btn kind="ghost" onClick={()=>setEditIdx(null)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={saveEdit}>この内容で保存</Btn></>}>
@@ -4011,17 +4029,7 @@ function ParentHome({setTab}){
           <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setBusCfg(false); mockTap('バス通知を「'+notifyAt+'の停留所通過時」に設定しました（モック）'); }}>この設定にする</Btn>
         </div>
       </Modal>
-      <button onClick={()=>setTab('report')} className="w-full text-left rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9]">
-        <div className="h-28 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-4"><div className="text-white"><div className="text-[11px] font-bold opacity-90">NEW・2026年6月</div><div className="font-extrabold text-lg">今月の成長レポートが届きました</div></div></div>
-      </button>
-      <div className="grid grid-cols-2 gap-3">
-        {[['出欠を申請','calendar','#FDC089','attend'],['れんらく帳','book','#C8B3ED','notice'],['成長アルバム','heart','#FFD0D8','growth'],['写真・動画','photo','#ADDABB','media'],['ライブ配信','video','#AFD0F0','live'],['お知らせ','bell','#F4C6A6','notices'],['資料BOX','folder','#C8B3ED','resources'],['物販を見る','shop','#FDC089','shop']].map((c,i)=>(
-          <button key={i} onClick={()=>setTab(c[3])} className="bg-white rounded-2xl border border-[#F3E6D9] p-4 flex flex-col items-start gap-2 shadow-card">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-ink/70" style={{background:c[2]+'55'}}><Ic name={c[1]} className="w-5 h-5"/></div>
-            <span className="font-bold text-[13px] text-ink">{c[0]}</span>
-          </button>
-        ))}
-      </div>
+      <div className="px-1 pt-1 text-[12px] font-extrabold text-warm">きょう</div>
       {/* 登降園の記録（精算なびA7の移植: 4方式打刻の統合・打刻と同時に保護者へ自動通知） */}
       <button onClick={()=>setPkOpen(true)} className="w-full text-left"><Card className="p-4">
         <div className="flex items-center gap-2 mb-1"><Badge tone="blue">登降園</Badge><span className="text-[11px] text-muted font-bold">きょう</span><span className="ml-auto text-[11px] text-brand-600 font-bold">今週の記録 →</span></div>
@@ -4070,6 +4078,19 @@ function ParentHome({setTab}){
         </div>
       </Modal>
       <button onClick={()=>setTab('notices')} className="w-full text-left"><Card className="p-4"><div className="flex items-center gap-2 mb-2"><Badge tone="orange">お知らせ</Badge><span className="text-[11px] text-muted font-bold">07:30</span><span className="ml-auto text-[11px] text-brand-600 font-bold">すべて見る →</span></div><p className="text-[13px] text-ink font-bold">【あおば組】6月の保育参観のお知らせ</p></Card></button>
+      <div className="px-1 pt-2 text-[12px] font-extrabold text-warm">メニュー</div>
+      <button onClick={()=>setTab('report')} className="w-full text-left rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9]">
+        <div className="h-28 bg-gradient-to-br from-cat-orange to-brand-300 flex items-end p-4"><div className="text-white"><div className="text-[11px] font-bold opacity-90">NEW・2026年6月</div><div className="font-extrabold text-lg">今月の成長レポートが届きました</div></div></div>
+      </button>
+      <div className="grid grid-cols-2 gap-3">
+        {[['出欠を申請','calendar','#FDC089','attend'],['れんらく帳','book','#C8B3ED','notice'],['成長アルバム','heart','#FFD0D8','growth'],['写真・動画','photo','#ADDABB','media'],['ライブ配信','video','#AFD0F0','live'],['お知らせ','bell','#F4C6A6','notices'],['資料BOX','folder','#C8B3ED','resources'],['物販を見る','shop','#FDC089','shop']].map((c,i)=>(
+          <button key={i} onClick={()=>setTab(c[3])} className="bg-white rounded-2xl border border-[#F3E6D9] p-4 flex flex-col items-start gap-2 shadow-card">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-ink/70" style={{background:c[2]+'55'}}><Ic name={c[1]} className="w-5 h-5"/></div>
+            <span className="font-bold text-[13px] text-ink">{c[0]}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-2 pt-1">
         <button onClick={()=>setTab('survey')} className="flex-1 flex items-center justify-center gap-1.5 bg-white rounded-xl border border-[#F3E6D9] py-2.5 text-[12px] font-bold text-ink shadow-card"><Ic name="star" className="w-4 h-4 text-brand-400"/>アンケート</button>
         <button onClick={()=>setTab('help')} className="flex-1 flex items-center justify-center gap-1.5 bg-white rounded-xl border border-[#F3E6D9] py-2.5 text-[12px] font-bold text-ink shadow-card"><Ic name="grid" className="w-4 h-4 text-brand-400"/>使い方</button>
@@ -4370,8 +4391,14 @@ function ParentAttend({setTab}){
         <div><div className="text-[12px] text-muted font-bold mb-1">先生への伝言{reason==='発熱・体調不良'&&'（症状・体温など）'}</div>
           <input value={memo} onChange={e=>setMemo(e.target.value)} placeholder={reason==='発熱・体調不良'?'例：朝37.8℃。咳があります':'任意'} className="w-full text-[13px] text-ink font-bold bg-cream rounded-lg px-3 py-2.5 border border-[#F3E6D9] outline-none"/></div>
         {type==='欠席' && <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">欠席を申請すると、バス乗車・給食・預かりも自動でキャンセルされます（個別連絡は不要です）。</div>}
-        <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setApps(a=>[...a,{d:day,t:type,r:reason,ok:false,rep:repeat}]); setSent(true); }}>この内容で申請する</Btn>
       </Card>
+      {/* W3(#21): 申請ボタンを sticky 下部に＝カレンダー/フォームをスクロール中でも常に届く */}
+      <div className="sticky bottom-20 z-20">
+        <div className="rounded-2xl bg-white/95 backdrop-blur border border-[#F3E6D9] shadow-lg p-2">
+          <div className="text-center text-[11px] font-bold text-muted mb-1">6月{day}日（{wdOf(day)}）・{type}{repeat?'・毎週':''}</div>
+          <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setApps(a=>[...a,{d:day,t:type,r:reason,ok:false,rep:repeat}]); setSent(true); }}>この内容で申請する</Btn>
+        </div>
+      </div>
       <Card className="p-4">
         <div className="text-[12px] text-muted font-bold mb-2">申請の一覧（タップせず取消も可能）</div>
         <div className="space-y-1.5">
