@@ -1974,13 +1974,17 @@ function YoroukuList({go}){
       <Card className="p-3 mb-4"><div className="flex flex-wrap gap-2">{filters.map(x=><button key={x} onClick={()=>setF(x)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border', f===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}</div></Card>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
-          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','クラス','AI下書き','承認状況','出力'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
+          <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">{['園児','クラス','種別（学籍／指導）','AI下書き','承認状況','出力'].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}</tr></thead>
           <tbody>{rows.length===0
-            ? <tr><td colSpan={5} className="px-5 py-8 text-center text-muted font-bold">該当する要録はありません</td></tr>
+            ? <tr><td colSpan={6} className="px-5 py-8 text-center text-muted font-bold">該当する要録はありません</td></tr>
             : rows.map((r)=>(
             <tr key={r.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
               <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={r.n} color={r.color} size={30}/><span className="font-bold text-ink">{r.n}</span></div></td>
               <td className="px-5 py-3 font-bold text-gray-600">{r.klass}</td>
+              <td className="px-5 py-3"><div className="flex gap-1">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#E8F5E9] text-green-700">学籍 済</span>
+                <span className={cx('text-[10px] font-bold px-1.5 py-0.5 rounded-full', r.draft?'bg-[#EFF6FD] text-[#3F6E99]':'bg-cream text-muted border border-[#E8D5C4]')}>指導 {r.draft?(r.status==='承認済'?'済':'作成中'):'未'}</span>
+              </div></td>
               <td className="px-5 py-3">{r.draft? <AIChip/> : <Badge tone="gray">未生成</Badge>}</td>
               <td className="px-5 py-3">{r.status==='承認済'? <Badge tone="green">園長承認済</Badge> : r.status==='承認待ち'? <Badge tone="amber">主任承認待ち</Badge> : <Badge tone="gray">下書き</Badge>}</td>
               <td className="px-5 py-3"><div className="flex gap-1">
@@ -1991,7 +1995,7 @@ function YoroukuList({go}){
           ))}</tbody>
         </table>
       </Card>
-      <div className="mt-3 text-[12px] text-muted font-bold px-1">※ 明細（紙面プレビュー）は承認状況に応じて押印欄が変わります。編集は 3方向出力（要録タブ）で行います。</div>
+      <div className="mt-3 text-[12px] text-muted font-bold px-1">※ 要録は「学籍に関する記録」（入退園・基本情報＝名簿から自動転記）と「指導に関する記録」（保育内容・園児の様子）の2種別。指導記録のAI下書きは、1年分のドキュメンテーション・れんらく帳・まいにちチェックを5領域にマッピングして生成します。明細（紙面プレビュー）は承認状況に応じて押印欄が変わります。</div>
       <FormPreview form={preview?'要録':null} rows={YOROKU_ROWS} stage={preview?preview.stage:0} kidName={preview&&preview.n} onClose={()=>setPreview(null)}/>
     </div>
   );
@@ -2821,6 +2825,7 @@ function Docs(){
   const [d,setD]=useState('すべて');
   const rows = acts.filter(a=> d==='すべて'||a.doms.includes(d));
   const [doc,setDoc] = useState(null); // ドキュメンテーション詳細（写真ビューア）対象
+  const [dst,setDst] = useState('公開'); // 公開ステータス（B7の多軸ステータスの移植）
   return (
     <div>
       <PageHead title="ドキュメンテーション" sub="日々の活動を写真＋気づきで記録。AIが5領域を提案し、要録・保護者配信へそのままつながる。写真をタップで詳細。"
@@ -2834,13 +2839,15 @@ function Docs(){
               <div className="flex items-center gap-2 mb-1"><h3 className="font-bold text-ink">{a.t}</h3><Badge tone="gray">{a.kind}</Badge></div>
               <div className="flex items-center gap-2 mb-2"><AIChip/><span className="text-[12px] text-muted font-bold">先生の気づきをAIが整文</span></div>
               <p className="text-[13px] text-ink leading-relaxed mb-3">{a.note}</p>
-              <div className="flex flex-wrap items-center gap-1.5">{a.doms.map((t,k)=><Badge key={k} tone="purple">{t}</Badge>)}<button onClick={()=>mockTap(a.t+'を保護者へ公開（モック）')} className="ml-auto text-[12px] text-brand-600 font-bold">保護者へ公開 →</button></div>
+              <div className="flex flex-wrap items-center gap-1.5">{a.doms.map((t,k)=><Badge key={k} tone="purple">{t}</Badge>)}
+                {i===0 && <span className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-500"><Ic name="heart" className="w-3.5 h-3.5"/>ほめも 12・いいね 34</span>}
+                <button onClick={()=>mockTap(a.t+'を保護者へ公開（モック）')} className="ml-auto text-[12px] text-brand-600 font-bold">保護者へ公開 →</button></div>
             </div>
           </Card>
         ))}
       </div>
       <Modal open={!!doc} onClose={()=>setDoc(null)} wide icon="camera" title={doc&&doc.t} sub={doc&&doc.kind}
-        footer={<><span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="send" className="w-3.5 h-3.5"/>保護者への公開は記録の確定後（モックは実行しません）</span><Btn kind="ghost" icon="ai" onClick={()=>mockTap('この記録から要録の所見をAI下書き（モック）')}>要録へ反映</Btn><Btn kind="primary" icon="send" onClick={()=>mockTap((doc?doc.t:'')+'を保護者へ公開（モック）')}>保護者へ公開</Btn></>}>
+        footer={<><span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="send" className="w-3.5 h-3.5"/>保護者への公開は記録の確定後（モックは実行しません）</span><Btn kind="ghost" icon="bell" onClick={()=>mockTap('このドキュメンテーションをお知らせに変換しました（本文・写真を引き継ぎ・モック）')}>お知らせに変換</Btn><Btn kind="ghost" icon="ai" onClick={()=>mockTap('この記録から要録の所見をAI下書き（モック）')}>要録へ反映</Btn><Btn kind="primary" icon="send" onClick={()=>mockTap((doc?doc.t:'')+'を保護者へ公開（モック）')}>保護者へ公開</Btn></>}>
         {doc && <div className="space-y-4">
           <div className="grid grid-cols-3 gap-2">{[0,1,2,3,4,5].map(j=>(
             <div key={j} className="aspect-square rounded-xl flex items-center justify-center" style={{background:doc.c+(j===0?'cc':'88')}}>{j===0&&<Ic name="camera" className="w-7 h-7 text-white/70"/>}</div>
@@ -2850,10 +2857,21 @@ function Docs(){
             <p className="text-[14px] text-ink leading-relaxed">{doc.note}</p>
           </div>
           <div>
-            <div className="text-[12px] font-bold text-muted mb-1.5">AIが提案した5領域</div>
+            <div className="text-[12px] font-bold text-muted mb-1.5">AIが提案した5領域（タグはお知らせ・要録と共通マスタ）</div>
             <div className="flex flex-wrap gap-1.5">{doc.doms.map((t,k)=><Badge key={k} tone="purple">{t}</Badge>)}</div>
           </div>
-          <div className="flex items-center justify-between text-[12px] font-bold"><span className="text-muted">保護者への公開</span><Badge tone="gray">未公開（下書き）</Badge></div>
+          <div>
+            <div className="text-[12px] font-bold text-muted mb-1.5">公開ステータス（予約公開＝お迎え前に自動配信）</div>
+            <div className="flex gap-1.5">{['公開','予約公開','非公開（下書き）'].map(s=>(
+              <button key={s} onClick={()=>setDst(s)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', dst===s?(s==='公開'?'bg-green-500 text-white border-green-500':s==='予約公開'?'bg-[#5B8DBE] text-white border-[#5B8DBE]':'bg-gray-400 text-white border-gray-400'):'bg-white text-gray-500 border-[#E8D5C4]')}>{s}</button>
+            ))}</div>
+            {dst==='予約公開' && <div className="mt-1 text-[11px] font-bold text-[#3F6E99]">本日 15:00 に自動公開されます（朝に書いてお迎え前に届く）。</div>}
+          </div>
+          <div className="rounded-xl bg-[#FFF1F5] border border-[#FFD0D8] px-3 py-2.5">
+            <div className="text-[12px] font-bold text-pink-600 mb-1">保護者の反応：ほめも 12件・いいね 34</div>
+            <p className="text-[12px] font-bold text-ink">「家でもだんごむしの話をたくさんしてくれました。ありがとうございます」（さくらの保護者・ほめも）</p>
+          </div>
+          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">この記録は5領域タグつきで1年分蓄積され、年度末の要録AI下書き（指導に関する記録）の出典になります。</div>
         </div>}
       </Modal>
     </div>
@@ -4266,17 +4284,40 @@ function ParentNotices({setTab}){
   </div>);
 }
 function ParentGrowth({setTab}){
+  // B7の「ほめも」移植: 先生の記録への保護者リアクション（家庭の様子が先生に届き、要録の出典にもなる）。
   const months = [['2026年6月','だんごむしの観察に夢中','#FDC089','最新'],['2026年5月','こいのぼり製作・どろんこ遊び','#ADDABB',''],['2026年4月','進級・新しいお友だち','#C8B3ED',''],['2026年3月','ひなまつり・お別れ遠足','#FFD0D8','']];
+  const [hmOpen,setHmOpen] = useState(false);
+  const [hmTxt,setHmTxt] = useState('');
+  const [hmSent,setHmSent] = useState(false);
+  const [liked,setLiked] = useState(false);
   return (<div>
     <PSubHead setTab={setTab}>成長アルバム</PSubHead>
     <div className="px-5 space-y-3">
       {months.map((m,i)=>(
-        <button key={i} onClick={()=>setTab('report')} className="w-full text-left rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9]">
-          <div className="h-24 flex items-end p-4" style={{background:`linear-gradient(135deg, ${m[2]}, ${m[2]}99)`}}>
-            <div className="text-ink/80"><div className="text-[11px] font-bold mb-0.5">{m[0]}{m[3]&&<span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/70 text-brand-600">{m[3]}</span>}</div><div className="font-extrabold">{m[1]}</div></div>
-          </div>
-        </button>
+        <div key={i} className="rounded-2xl overflow-hidden shadow-card border border-[#F3E6D9] bg-white">
+          <button onClick={()=>setTab('report')} className="block w-full text-left">
+            <div className="h-24 flex items-end p-4" style={{background:`linear-gradient(135deg, ${m[2]}, ${m[2]}99)`}}>
+              <div className="text-ink/80"><div className="text-[11px] font-bold mb-0.5">{m[0]}{m[3]&&<span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/70 text-brand-600">{m[3]}</span>}</div><div className="font-extrabold">{m[1]}</div></div>
+            </div>
+          </button>
+          {i===0 && (
+            <div className="px-4 py-2.5 border-t border-[#F3E6D9]">
+              {hmSent
+                ? <div className="text-[12px] font-bold text-pink-600 flex items-center gap-1.5"><Ic name="heart" className="w-4 h-4"/>ほめもを送りました。先生に届き、お子さまの記録にも残ります。</div>
+                : !hmOpen
+                ? <div className="flex items-center gap-2">
+                    <button onClick={()=>setHmOpen(true)} className="flex-1 rounded-xl bg-[#FFF1F5] border border-[#FFD0D8] px-3 py-2 text-[12px] font-bold text-pink-600 flex items-center justify-center gap-1.5 active:scale-[0.99] transition"><Ic name="heart" className="w-4 h-4"/>ほめもを送る</button>
+                    <button onClick={()=>{ setLiked(v=>!v); }} className={cx('rounded-xl border px-3 py-2 text-[12px] font-bold transition', liked?'bg-pink-500 text-white border-pink-500':'bg-white text-gray-500 border-[#E8D5C4]')}>いいね{liked?' 35':' 34'}</button>
+                  </div>
+                : <div className="space-y-2">
+                    <input value={hmTxt} onChange={e=>setHmTxt(e.target.value)} placeholder="例：家でもだんごむしの話をしてくれました" className="w-full bg-[#FFF8FA] rounded-xl px-3 py-2.5 text-[12px] font-bold text-ink border border-[#FFD0D8] outline-none"/>
+                    <div className="flex gap-2"><Btn kind="ghost" className="flex-1" onClick={()=>setHmOpen(false)}>閉じる</Btn><Btn kind="primary" icon="heart" className="flex-1" onClick={()=>{ if(!hmTxt.trim()){ mockTap('ひとこと入力してください'); return; } setHmSent(true); mockTap('ほめもを先生に送りました。お家での様子は要録づくりの参考にもなります（モック）'); }}>送る</Btn></div>
+                  </div>}
+            </div>
+          )}
+        </div>
       ))}
+      <div className="text-[10px] font-bold text-muted px-1">「ほめも」＝先生の記録へのひとこと。先生に届き、お子さまの育ちの記録として園にも残ります。</div>
     </div>
   </div>);
 }
