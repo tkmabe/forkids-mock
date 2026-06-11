@@ -1530,7 +1530,7 @@ function Billing(){
           <div className="flex flex-wrap gap-1 mb-2">
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#E8F5E9] text-green-700">兄弟まとめて打刻 ON</span>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-cream text-muted border border-[#E8D5C4]">再打刻防止 60秒</span>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-cream text-muted border border-[#E8D5C4]">バーコード打刻 対応</span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-cream text-muted border border-[#E8D5C4]">ICタグ・QR打刻 対応（保護者セルフ）</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">{KIDS.slice(0,6).map(k=>{ const st=stamp[k.id];
             return <button key={k.id} onClick={()=>cycle(k.id)} className={cx('flex flex-col items-center rounded-xl p-2 border transition', st==='in'?'bg-[#E8F5E9] border-green-200':st==='out'?'bg-cream border-[#E8D5C4] opacity-70':'bg-cream border-[#F3E6D9]')}><div className="relative"><Avatar name={k.n} color={k.color} size={36}/>{st&&<span className={cx('absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white', st==='in'?'bg-green-500':'bg-gray-400')}><Ic name={st==='in'?'check':'logout'} className="w-2.5 h-2.5"/></span>}</div><span className="text-[11px] font-bold mt-1">{k.n}</span><span className={cx('text-[10px] font-bold', st==='in'?'text-green-600':st==='out'?'text-muted':'text-brand-400')}>{st==='in'?'登園 8:'+(20+k.id):st==='out'?'降園済':'未登園'}</span></button>;
