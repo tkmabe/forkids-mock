@@ -1032,7 +1032,14 @@ function Roster(){
   return (
     <div>
       <PageHead title="名簿センター" sub="在園児・未就園児・職員を一元管理。すべての機能のハブ。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('名簿をCSVで入出力（モック）')}>CSV入出力</Btn><Btn kind="primary" icon="plus" onClick={()=>setAdding(true)}>園児を追加</Btn></div>} />
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="users" onClick={()=>mockTap('クラス替え：園児を指定して一括変更できます。年度替わりは事前予約も可能（年齢が大きい順に実施を推奨・モック）')}>クラス替え（一括・予約）</Btn><Btn kind="ghost" icon="file" onClick={()=>mockTap('名簿をCSVで入出力（モック）')}>CSV入出力</Btn><Btn kind="primary" icon="plus" onClick={()=>setAdding(true)}>園児を追加</Btn></div>} />
+      <button onClick={()=>mockTap('保育認定の終了年齢に達した園児：2名。認定変更の予約ができます（年齢到達を自動検出・モック）')} className="w-full text-left mb-3">
+        <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex items-center gap-2">
+          <Ic name="bell" className="w-4 h-4 text-amber-600 shrink-0"/>
+          <span className="flex-1 text-[13px] font-bold text-amber-700">認定変更の確認：終了年齢に達した園児が 2名 います（タップで確認・変更予約）</span>
+          <Ic name="chevron" className="w-4 h-4 text-amber-400"/>
+        </div>
+      </button>
       <Card className="p-3 mb-4">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 bg-cream rounded-xl px-3 py-2 flex-1 min-w-[180px] border border-[#F3E6D9]"><Ic name="search" className="w-4 h-4 text-muted"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="名前・保護者で検索" className="flex-1 bg-transparent text-[13px] font-bold text-ink outline-none placeholder:text-muted"/>{q&&<button onClick={()=>setQ('')} className="text-muted"><Ic name="plus" className="w-4 h-4 rotate-45"/></button>}</div>
@@ -1084,7 +1091,7 @@ function Roster(){
       <Modal open={adding} onClose={()=>setAdding(false)} icon="users" title="園児を追加" sub="名簿に新しい園児を登録します（モック）"
         footer={<><Btn kind="ghost" onClick={()=>setAdding(false)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={addKid}>この内容で追加</Btn></>}>
         <div className="space-y-3">
-          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">まずは最小項目で登録（保護者の認証ID・パスワードは自動採番）。生育・出生・生活などの詳細項目（100+）は、登録後に個票から補完できます＝簡易登録→詳細補完の分業。</div>
+          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">まずは最小項目で登録（保護者の認証ID・パスワードは自動採番）。生育・出生・生活などの詳細項目（100+）は、登録後に個票から補完できます＝簡易登録→詳細補完の分業。基本は招待状（QR）からの保護者セルフ登録を推奨＝園の入力負担を減らし、メール到達確認も登録時に兼ねます。</div>
           <div><div className="text-[12px] text-muted font-bold mb-1">園児の名前</div><input value={form.n} onChange={e=>setForm(f=>({...f,n:e.target.value}))} placeholder="例）あおい" className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[14px] font-bold text-ink outline-none placeholder:text-muted"/></div>
           <div><div className="text-[12px] text-muted font-bold mb-1">クラス</div><div className="flex flex-wrap gap-2">{['あおば組','ふたば組','つぼみ組'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,klass:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.klass===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
           <div><div className="text-[12px] text-muted font-bold mb-1">認定区分</div><div className="flex gap-2">{['1号','2号','3号'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,cert:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.cert===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}認定</button>)}</div></div>
