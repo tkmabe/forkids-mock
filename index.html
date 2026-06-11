@@ -2106,7 +2106,7 @@ function ExecHome({go}){
 // 行事の詳細（架空）。年間カレンダーの行→詳細モーダルで使用。
 const CAL_EVENTS = [
   {date:'6/3（火）', name:'保育参観', target:'あおば組・ふたば組', kind:['行事','orange'], time:'9:30〜11:30', place:'各保育室・園庭', staff:'担任・主任',
-   items:['上履き（保護者用スリッパ）','名札','筆記用具'], shared:'配信済',
+   items:['上履き（保護者用スリッパ）','名札','筆記用具'], shared:'配信済', rsvp:{y:32,n:6,p:10},
    prep:[['しおりPDFを作成','済'],['保護者へ案内を配信','済'],['駐車場の割当を周知','未']]},
   {date:'6/10（火）', name:'内科健診', target:'全園児', kind:['保健','blue'], time:'13:30〜15:00', place:'遊戯室', staff:'嘱託医・看護担当',
    items:['健康カード','母子手帳の写し'], shared:'未共有',
@@ -2117,11 +2117,16 @@ const CAL_EVENTS = [
   {date:'6/27（金）', name:'誕生会（6月生まれ）', target:'全園児', kind:['お祝い','purple'], time:'10:30〜11:15', place:'遊戯室', staff:'各クラス担任',
    items:['誕生カード','飾り付け一式'], shared:'未共有',
    prep:[['誕生児の写真を準備','済'],['出し物の役割分担','未'],['アレルギー対応おやつの確認','未']]},
+  {date:'6/17-19', name:'個人面談週間', target:'あおば組（15分枠・1家庭1枠）', kind:['面談','amber'], time:'15:00〜17:00', place:'相談室', staff:'担任',
+   items:['面談シート（成長レポート連動）'], shared:'配信済',
+   prep:[['面談シートをAI下書き','済'],['未予約の家庭へ再通知','未']],
+   slots:[['6/17 15:00','済'],['6/17 15:30','済'],['6/17 16:00','空'],['6/18 15:00','済'],['6/18 15:30','空'],['6/18 16:00','空'],['6/19 15:00','済'],['6/19 15:30','空'],['6/19 16:00','空']]},
   {date:'7/18（金）', name:'夏祭り', target:'全園・保護者', kind:['行事','orange'], time:'16:30〜19:00', place:'園庭・ホール', staff:'全職員・保護者会',
    items:['うちわ','タオル','飲み物'], shared:'準備中',
    prep:[['出店・ブースの割当','未'],['雨天時の代替案を確定','未'],['保護者ボランティアの募集','未']]},
 ];
 function CalEventDetail({ev, onClose}){
+  const [remind,setRemind] = useState(true);   // 前日の自動リマインド（れんらく連動）
   if(!ev) return null;
   const sharedTone = ev.shared==='配信済'?'green':ev.shared==='準備中'?'amber':'gray';
   const Row = ({label, value})=>(<div className="flex items-center justify-between text-[13px] font-bold py-1.5 border-b border-[#F7EFE7] last:border-0"><span className="text-muted">{label}</span><span className="text-ink text-right">{value}</span></div>);
@@ -2129,6 +2134,30 @@ function CalEventDetail({ev, onClose}){
     <Modal open={!!ev} onClose={onClose} icon="calendar" title={ev.name} sub={ev.date+'・'+ev.time}
       footer={<><span className="text-[11px] font-bold text-warm mr-auto flex items-center gap-1"><Ic name="send" className="w-3.5 h-3.5"/>保護者への配信は要承認（モックは実行しません）</span><Btn kind="ghost" icon="file" onClick={()=>mockTap(ev.name+' のしおりPDFを出力（モック）')}>しおりPDF</Btn><Btn kind="primary" icon="send" onClick={()=>mockTap(ev.name+' を保護者へ一斉共有（モック・要承認）')}>保護者へ共有</Btn></>}>
       <div className="flex flex-wrap items-center gap-2 mb-3"><Badge tone={ev.kind[1]}>{ev.kind[0]}</Badge><Badge tone={sharedTone}>保護者共有：{ev.shared}</Badge></div>
+      {ev.rsvp && (()=>{ const t=ev.rsvp.y+ev.rsvp.n+ev.rsvp.p; return (
+        <div className="rounded-xl border border-[#F3E6D9] px-4 py-3 mb-3">
+          <div className="flex items-center justify-between mb-1.5"><span className="text-[13px] font-extrabold text-ink">出欠回答（1家庭1回答・兄弟まとめ）</span><span className="text-[12px] font-bold text-muted">{t-ev.rsvp.p}/{t} 家庭が回答済</span></div>
+          <div className="flex h-2.5 rounded-full overflow-hidden bg-cream">
+            <div className="bg-green-500" style={{width:(ev.rsvp.y/t*100)+'%'}}/>
+            <div className="bg-red-300" style={{width:(ev.rsvp.n/t*100)+'%'}}/>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 text-[11px] font-bold"><span className="text-green-600">参加 {ev.rsvp.y}</span><span className="text-red-400">不参加 {ev.rsvp.n}</span><span className="text-muted">未回答 {ev.rsvp.p}</span>
+            <button onClick={()=>mockTap('未回答の'+ev.rsvp.p+'家庭のみに（再送）通知を送りました（モック）')} className="text-brand-600 underline ml-auto">未回答へ再通知</button></div>
+        </div>
+      ); })()}
+      {ev.slots && (()=>{ const done=ev.slots.filter(s=>s[1]==='済').length; return (
+        <div className="rounded-xl border border-[#F3E6D9] px-4 py-3 mb-3">
+          <div className="flex items-center justify-between mb-2"><span className="text-[13px] font-extrabold text-ink">面談枠の予約状況</span><span className="text-[12px] font-bold text-muted">予約 {done}/{ev.slots.length}・空き {ev.slots.length-done}</span></div>
+          <div className="grid grid-cols-3 gap-1.5">{ev.slots.map((s,i)=>(
+            <div key={i} className={cx('rounded-lg px-2 py-2 text-[11px] font-bold text-center border', s[1]==='済'?'bg-[#E8F5E9] text-green-700 border-[#CDEBD6]':'bg-white text-muted border-dashed border-[#E8D5C4]')}>{s[0]}<span className="block text-[10px]">{s[1]==='済'?'予約済':'空き'}</span></div>
+          ))}</div>
+          <div className="mt-2 text-[11px] font-bold text-muted">保護者がアプリの空き枠から自分で予約します（電話の往復が不要）。未予約の家庭へは再通知できます。</div>
+        </div>
+      ); })()}
+      <div className="flex items-center gap-2 mb-3 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2">
+        <Toggle on={remind} onToggle={()=>setRemind(v=>!v)} label="前日に自動リマインド"/>
+        <span className="text-[10px] font-bold text-muted">前日の朝、対象家庭のれんらくに「明日は{ev.name}」を自動配信</span>
+      </div>
       <div className="rounded-xl border border-[#F3E6D9] px-4 py-2 mb-4">
         <Row label="対象" value={ev.target}/>
         <Row label="場所" value={ev.place}/>
@@ -2152,12 +2181,44 @@ function CalEventDetail({ev, onClose}){
   );
 }
 function CalendarScreen(){
+  // ぎゅっとなびA4-5の設計移植: 年間/月間ビュー・対象クラス括弧書き・前年度コピー・行事ごとの公開対象。
   const months = ['4月','5月','6月','7月','8月','9月','10月','11月','12月','1月','2月','3月'];
   const events = {1:'親子遠足',2:'保育参観',3:'プール開き',5:'夏祭り',7:'運動会',8:'発表会',11:'卒園式'};
   const [sel,setSel] = useState(null); // 行事詳細モーダル対象
+  const [view,setView] = useState('月間');
+  // 年間ビュー（対象クラスを括弧書き＝誰の行事かが一覧で分かる。防災の日は毎月シチュエーション違い）
+  const YEAR = {
+    '4月':['始業式','入園式（新入園児対象）','防災の日（地震）'],
+    '5月':['親子遠足（全園児）','お弁当の日（年中・年長対象）','防災の日（火災）'],
+    '6月':['保育参観（あおば組対象）','内科健診（全園児）','プール開き（年中・年長対象）','個人面談週間（あおば組）'],
+    '7月':['保育参観（ふたば組対象）','七夕まつり','防災の日（交通安全）'],
+    '8月':['夏期保育（希望者）'],
+    '9月':['保育参観（つぼみ組対象）','防災の日（地震・火災）'],
+    '10月':['運動会（全園児）','いもほり遠足（年長対象）'],
+    '11月':['作品展','防災の日（火災）'],
+    '12月':['発表会（全園児）','もちつき'],
+    '1月':['防災の日（地震）','マラソン大会（年中・年長）'],
+    '2月':['豆まき','一日入園（新入園児対象）'],
+    '3月':['ひなまつり','お別れ遠足（年長対象）','卒園式（年長・年中対象）'],
+  };
   return (
     <div>
-      <PageHead title="年間カレンダー" sub="「今ここ」マーカーで、1年の見通しと残り時間が見える"/>
+      <PageHead title="年間カレンダー" sub="2026年度・「今ここ」マーカーで1年の見通しと残り時間が見える"
+        action={<div className="flex items-center gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('2025年度の行事をコピーして2026年度の下書きを作成しました（日付は曜日合わせで自動調整・モック）')}>前年度からコピー</Btn><Tabs tabs={['月間','年間']} active={view} onChange={setView}/></div>}/>
+      {view==='年間' && (
+        <Card className="p-5 mb-5">
+          <div className="text-[12px] text-muted font-bold mb-3">2026年度 年間行事予定（括弧＝参加対象。公開先はクラス・認定・グループ単位で制御）</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {months.map(m=>(
+              <div key={m} className={cx('rounded-xl border p-3', m==='6月'?'border-brand-300 bg-brand-50/40':'border-[#F3E6D9]')}>
+                <div className={cx('text-[13px] font-extrabold mb-1.5', m==='6月'?'text-brand-600':'text-ink')}>{m}{m==='6月'&&<span className="ml-1 text-[10px]">今ここ</span>}</div>
+                <ul className="space-y-1">{(YEAR[m]||[]).map((e,i)=>(<li key={i} className="text-[11px] font-bold text-gray-600 leading-snug">・{e}</li>))}</ul>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+      {view==='月間' && <div>
       <Card className="p-6">
         <div className="relative pt-8 pb-2">
           <div className="absolute left-0 right-0 top-12 h-1 bg-cream rounded-full"/>
@@ -2191,6 +2252,7 @@ function CalendarScreen(){
           ))}
         </div>
       </Card>
+      </div>}
       <CalEventDetail ev={sel} onClose={()=>setSel(null)}/>
     </div>
   );
@@ -3964,16 +4026,22 @@ function ParentShop({setTab}){
 function ParentNotices({setTab}){
   // コミュなび文法の移植: 連絡=桃/アンケート=黄の色分け・未読絞り込み・開封した時点で既読。
   const items = [
-    ['保育参観のお知らせ','あおば組','07:30','orange','6月20日（金）10:00より保育参観を行います。スリッパをご持参ください。','連絡'],
+    ['保育参観のお知らせ','あおば組','07:30','orange','6月20日（金）10:00より保育参観を行います。スリッパをご持参ください。','連絡','rsvp'],
     ['夏祭りボランティア希望調査','全体','08:00','gray','7月の夏祭りについて、参加可否と希望の係をお聞かせください（回答期限 6/15）。','アンケート'],
     ['6月の献立変更について','全体','昨日','gray','6/12の献立を一部変更します。アレルギー対象のご家庭へは個別連絡済みです。','連絡'],
     ['プール開きと持ち物','年長','2日前','gray','6/24よりプール活動を開始します。水着・タオル・水泳帽の準備をお願いします。','連絡'],
     ['写真販売を開始しました','全体','3日前','pink','春の遠足の写真販売を開始しました。写真タブからご購入いただけます。','連絡'],
     ['夏祭りボランティア募集','全体','5日前','gray','7月の夏祭りの運営ボランティアを募集します。ご協力いただける方は担任まで。','連絡'],
+    ['個人面談のご案内（予約制）','あおば組','06:30','gray','6/17〜19に個人面談を行います。ご都合のよい枠を選んで予約してください（15分・1家庭1枠）。','連絡','interview'],
   ];
   const [read,setRead] = useState({2:true,3:true,5:true});  // 既読index
   const [open,setOpen] = useState(null);
   const [fil,setFil] = useState('すべて');
+  // 行事の出欠回答・個人面談の枠予約（A4-5+連絡なびアンケートの設計移植・面談予約はforKids差別化）
+  const [rsvpAns,setRsvpAns] = useState(null);
+  const [ivPick,setIvPick] = useState(null);
+  const [ivDone,setIvDone] = useState(null);
+  const IV_SLOTS = [['6/17 15:00',false],['6/17 15:30',false],['6/17 16:00',true],['6/18 15:00',false],['6/18 15:30',true],['6/18 16:00',true],['6/19 15:30',true]];
   const markRead = (i)=> setRead(r=>({...r,[i]:true}));
   const unread = items.filter((_,i)=>!read[i]).length;
   const shown = items.map((n,i)=>[n,i]).filter(([n,i])=> fil==='すべて' || (fil==='未読・未回答' && !read[i]));
@@ -3995,6 +4063,24 @@ function ParentNotices({setTab}){
           {isOpen && <div className="mt-2 pt-2 border-t border-[#F3E6D9]">
             <p className="text-[13px] text-ink leading-relaxed">{n[4]}</p>
             {isSurvey && <Btn kind="primary" icon="star" className="w-full mt-2 py-2.5" onClick={()=>{ markRead(i); setTab('survey'); }}>アンケートに答える</Btn>}
+            {n[6]==='rsvp' && (rsvpAns
+              ? <div className="mt-2 rounded-xl bg-[#F2FBF5] border border-[#CDEBD6] px-3 py-2.5 flex items-center gap-2"><Ic name="check" className="w-4 h-4 text-green-600 shrink-0"/><span className="flex-1 text-[12px] font-bold text-green-700">回答済：{rsvpAns}（兄弟まとめて1回答）</span><button onClick={()=>setRsvpAns(null)} className="text-[11px] font-bold text-muted underline">変更</button></div>
+              : <div className="mt-2">
+                  <div className="text-[11px] font-bold text-muted mb-1.5">出欠のご回答をお願いします（1家庭1回答・兄弟はまとめて）</div>
+                  <div className="flex gap-2">
+                    <Btn kind="primary" icon="check" className="flex-1 py-2.5" onClick={()=>setRsvpAns('参加')}>参加する</Btn>
+                    <Btn kind="ghost" className="flex-1 py-2.5" onClick={()=>setRsvpAns('不参加')}>参加しない</Btn>
+                  </div>
+                </div>)}
+            {n[6]==='interview' && (ivDone
+              ? <div className="mt-2 rounded-xl bg-[#F2FBF5] border border-[#CDEBD6] px-3 py-2.5 flex items-center gap-2"><Ic name="check" className="w-4 h-4 text-green-600 shrink-0"/><span className="flex-1 text-[12px] font-bold text-green-700">予約済：{ivDone}（前日にリマインドが届きます）</span><button onClick={()=>{setIvDone(null);setIvPick(null);}} className="text-[11px] font-bold text-muted underline">変更</button></div>
+              : <div className="mt-2">
+                  <div className="text-[11px] font-bold text-muted mb-1.5">空いている枠をタップして予約（グレー＝予約済み）</div>
+                  <div className="grid grid-cols-3 gap-1.5 mb-2">{IV_SLOTS.map(([s,free])=>(
+                    <button key={s} disabled={!free} onClick={()=>setIvPick(s)} className={cx('rounded-lg px-1 py-2 text-[11px] font-bold border transition', !free?'bg-cream text-gray-300 border-transparent':ivPick===s?'bg-brand-500 text-white border-brand-500':'bg-white text-ink border-[#E8D5C4]')}>{s}</button>
+                  ))}</div>
+                  <Btn kind={ivPick?'primary':'ghost'} icon="check" className="w-full py-2.5" onClick={()=>{ if(!ivPick){ mockTap('空いている枠を選んでください'); return; } setIvDone(ivPick); mockTap('面談を予約しました。先生にも通知されます（モック）'); }}>{ivPick?ivPick+' で予約する':'枠を選んでください'}</Btn>
+                </div>)}
           </div>}
         </Card>
       );})}
