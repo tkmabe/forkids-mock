@@ -3255,6 +3255,11 @@ const STAFF_SCREENS = {
 const ROLE_USER = { admin:'塚田 のぞみ', office:'佐々木 ゆい', teacher:'田中 みさき' };
 function Sidebar({screen, go, role, setRole, navOpen, setNavOpen}){
   const pick=(id)=>{ go(id); setNavOpen&&setNavOpen(false); };
+  // アコーディオンNAV（あべ氏指示 2026-06-11）: ジャンル見出しタップで開閉・現在地のグループは自動展開・複数同時に開ける。
+  const groupOf=(id)=>{ const g=NAV.find(gr=>gr.items.some(it=>it.id===id)); return g?g.group:null; };
+  const [openG,setOpenG]=useState(()=>{ const g=groupOf(screen); return g?{[g]:true}:{}; });
+  React.useEffect(()=>{ const g=groupOf(screen); if(g) setOpenG(o=> o[g]? o : ({...o,[g]:true})); },[screen]);
+  const toggleG=(g)=> setOpenG(o=>({...o,[g]:!o[g]}));
   return (
     <aside className={cx("w-64 shrink-0 bg-cream h-full flex flex-col border-r border-[#F0E2D5] fixed md:static inset-y-0 left-0 z-40 transition-transform", navOpen?"translate-x-0":"-translate-x-full md:translate-x-0")}>
       <div className="flex items-center gap-3 px-4 py-4">
@@ -3275,18 +3280,28 @@ function Sidebar({screen, go, role, setRole, navOpen, setNavOpen}){
         {NAV.map(g=>{
           const items=g.items.filter(it=>canAccess(role,it.id));
           if(!items.length) return null;
+          const open=!!openG[g.group];
+          const hasCurrent=items.some(it=>it.id===screen);
           return (
-            <div key={g.group} className="mb-3">
-              <div className="px-2 text-[11px] font-bold text-warm mb-1">{g.group}</div>
-              {items.map(it=>(
-                <button key={it.id} onClick={()=>pick(it.id)}
-                  className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition',
-                    screen===it.id?'bg-brand-500 text-white shadow-soft':'text-gray-600 hover:bg-brand-50')}>
-                  <Ic name={it.icon} className="w-[18px] h-[18px]"/>
-                  <span className="flex-1 text-left">{it.label}</span>
-                  {it.star && <span className={cx(screen===it.id?'text-white':'text-brand-300')}><Ic name="star" className="w-3.5 h-3.5"/></span>}
-                </button>
-              ))}
+            <div key={g.group} className="mb-1.5">
+              <button onClick={()=>toggleG(g.group)} aria-expanded={open}
+                className="w-full flex items-center gap-2 px-2 py-2.5 rounded-lg text-[12px] font-bold text-warm hover:bg-brand-50 transition active:scale-[0.99]">
+                <span className="flex-1 text-left">{g.group}</span>
+                {!open && hasCurrent && <span className="w-1.5 h-1.5 rounded-full bg-brand-500"/>}
+                <span className="text-[10px] text-muted bg-white border border-[#F3E6D9] rounded-full px-1.5 py-0.5 leading-none">{items.length}</span>
+                <Ic name="chevron" className={cx('w-3.5 h-3.5 transition-transform duration-200', open?'rotate-90':'')}/>
+              </button>
+              {open && <div>
+                {items.map(it=>(
+                  <button key={it.id} onClick={()=>pick(it.id)}
+                    className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition',
+                      screen===it.id?'bg-brand-500 text-white shadow-soft':'text-gray-600 hover:bg-brand-50')}>
+                    <Ic name={it.icon} className="w-[18px] h-[18px]"/>
+                    <span className="flex-1 text-left">{it.label}</span>
+                    {it.star && <span className={cx(screen===it.id?'text-white':'text-brand-300')}><Ic name="star" className="w-3.5 h-3.5"/></span>}
+                  </button>
+                ))}
+              </div>}
             </div>
           );
         })}
@@ -5222,6 +5237,11 @@ function OperatorApp({go, leads, addLead}){
   const navActive = NAV_PARENT[screen] || screen;
   const [navOpen,setNavOpen]=useState(false);
   const goScreen=(id)=>{ setScreen(id); setNavOpen(false); };
+  // アコーディオンNAV（園ポータルと同方式・あべ氏指示 2026-06-11）
+  const groupOf=(id)=>{ const g=OP_NAV.find(gr=>gr.items.some(it=>it.id===id)); return g?g.group:null; };
+  const [openG,setOpenG]=useState(()=>{ const g=groupOf(navActive); return g?{[g]:true}:{}; });
+  React.useEffect(()=>{ const g=groupOf(navActive); if(g) setOpenG(o=> o[g]? o : ({...o,[g]:true})); },[navActive]);
+  const toggleG=(g)=> setOpenG(o=>({...o,[g]:!o[g]}));
   return (
     <div className="flex h-full">
       {navOpen && <div className="md:hidden fixed inset-0 bg-black/40 z-30" onClick={()=>setNavOpen(false)}/>}
@@ -5233,16 +5253,27 @@ function OperatorApp({go, leads, addLead}){
         </div>
         <div className="px-4 pb-3"><div className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2"><Avatar name="興縁" color="#E07B4A" size={26}/><div className="text-[12px] leading-tight"><div className="font-bold text-white">興縁 運営チーム</div><div className="text-slate-400 font-bold text-[11px]">販売元アカウント</div></div></div></div>
         <nav className="flex-1 overflow-y-auto noscroll px-3 py-2">
-          {OP_NAV.map(g=>(
-            <div key={g.group} className="mb-3">
-              <div className="px-2 text-[11px] font-bold text-slate-500 mb-1">{g.group}</div>
-              {g.items.map(it=>(
-                <button key={it.id} onClick={()=>goScreen(it.id)} className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition', navActive===it.id?'bg-brand-500 text-white':'text-slate-300 hover:bg-slate-800')}>
-                  <Ic name={it.icon} className="w-[18px] h-[18px]"/><span className="flex-1 text-left">{it.label}</span>
-                </button>
-              ))}
+          {OP_NAV.map(g=>{
+            const open=!!openG[g.group];
+            const hasCurrent=g.items.some(it=>it.id===navActive);
+            return (
+            <div key={g.group} className="mb-1.5">
+              <button onClick={()=>toggleG(g.group)} aria-expanded={open}
+                className="w-full flex items-center gap-2 px-2 py-2.5 rounded-lg text-[12px] font-bold text-slate-400 hover:bg-slate-800 transition">
+                <span className="flex-1 text-left">{g.group}</span>
+                {!open && hasCurrent && <span className="w-1.5 h-1.5 rounded-full bg-brand-400"/>}
+                <span className="text-[10px] text-slate-500 bg-slate-800 rounded-full px-1.5 py-0.5 leading-none">{g.items.length}</span>
+                <Ic name="chevron" className={cx('w-3.5 h-3.5 transition-transform duration-200', open?'rotate-90':'')}/>
+              </button>
+              {open && <div>
+                {g.items.map(it=>(
+                  <button key={it.id} onClick={()=>goScreen(it.id)} className={cx('w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold mb-0.5 transition', navActive===it.id?'bg-brand-500 text-white':'text-slate-300 hover:bg-slate-800')}>
+                    <Ic name={it.icon} className="w-[18px] h-[18px]"/><span className="flex-1 text-left">{it.label}</span>
+                  </button>
+                ))}
+              </div>}
             </div>
-          ))}
+          );})}
         </nav>
         <div className="px-3 py-3 border-t border-slate-800">
           <button onClick={()=>go('teacher')} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold text-slate-300 hover:bg-slate-800"><Ic name="teacher" className="w-[18px] h-[18px]"/>園の画面を見る</button>
