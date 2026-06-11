@@ -2325,9 +2325,9 @@ function CalendarScreen(){
   const [view,setView] = useState('月間');
   // 年間ビュー（対象クラスを括弧書き＝誰の行事かが一覧で分かる。防災の日は毎月シチュエーション違い）
   const YEAR = {
-    '4月':['始業式','入園式（新入園児対象）','防災の日（地震）'],
+    '4月':['始業式','入園式（新入園児対象）','電話での家庭訪問（新・転入園児対象）','防災の日（地震）'],
     '5月':['親子遠足（全園児）','お弁当の日（年中・年長対象）','防災の日（火災）'],
-    '6月':['保育参観（あおば組対象）','内科健診（全園児）','プール開き（年中・年長対象）','個人面談週間（あおば組）'],
+    '6月':['保育参観（あおば組対象）','内科健診（全園児）','プール開き（年中・年長対象）','個人面談週間（あおば組）','撮影日（写真販売と連動）'],
     '7月':['保育参観（ふたば組対象）','七夕まつり','防災の日（交通安全）'],
     '8月':['夏期保育（希望者）'],
     '9月':['保育参観（つぼみ組対象）','防災の日（地震・火災）'],
@@ -2344,7 +2344,7 @@ function CalendarScreen(){
         action={<div className="flex items-center gap-2"><Btn kind="ghost" icon="file" onClick={()=>mockTap('2025年度の行事をコピーして2026年度の下書きを作成しました（日付は曜日合わせで自動調整・モック）')}>前年度からコピー</Btn><Tabs tabs={['月間','年間']} active={view} onChange={setView}/></div>}/>
       {view==='年間' && (
         <Card className="p-5 mb-5">
-          <div className="text-[12px] text-muted font-bold mb-3">2026年度 年間行事予定（括弧＝参加対象。公開先はクラス・認定・グループ単位で制御）</div>
+          <div className="text-[12px] text-muted font-bold mb-3">2026年度 年間行事予定（括弧＝参加対象。公開先はクラス・認定・グループ単位で制御。行事は下書き→公開の2状態で、保護者非公開＝園内のみの予定も同じカレンダーで管理）</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {months.map(m=>(
               <div key={m} className={cx('rounded-xl border p-3', m==='6月'?'border-brand-300 bg-brand-50/40':'border-[#F3E6D9]')}>
