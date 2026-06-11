@@ -3295,8 +3295,18 @@ function Feedback(){
   const [nt,setNt]=useState('');
   const [ntg,setNtg]=useState('全園児の家庭');
   const [anon,setAnon]=useState(true);
-  const [nq,setNq]=useState(['総合的な満足度','先生とのコミュニケーション']);
+  // 連絡なびアンケートの設計移植: 回答方式3種+選択肢ごとの分岐・質問コピー・回答期限・兄弟集計・閲覧制限・スキップ集計・代理回答。
+  const QTYPES=['★5段階','1つだけ選択','複数選択','コメントのみ'];
+  const BR=['次の質問','質問番号指定','最後'];
+  const [nq,setNq]=useState([{q:'総合的な満足度',type:'★5段階',br:['次の質問','次の質問']},{q:'先生とのコミュニケーション',type:'★5段階',br:['次の質問','次の質問']}]);
   const [nqIn,setNqIn]=useState('');
+  const [deadline,setDeadline]=useState('6/15 17:00');
+  const [sibRule,setSibRule]=useState('1家庭として回答');
+  const [viewLimit,setViewLimit]=useState('すべての先生');
+  const [skipRule,setSkipRule]=useState('集計から除く');
+  const cycleType=(i)=> setNq(l=>l.map((x,j)=>j===i?{...x,type:QTYPES[(QTYPES.indexOf(x.type)+1)%QTYPES.length]}:x));
+  const cycleBr=(i,c)=> setNq(l=>l.map((x,j)=>j===i?{...x,br:x.br.map((b,k)=>k===c?BR[(BR.indexOf(b)+1)%BR.length]:b)}:x));
+  const copyQ=(i)=> setNq(l=>{ const n=[...l]; n.splice(i+1,0,{...l[i],q:l[i].q+'（コピー）'}); return n; });
   const running = list.filter(s=>s.state==='実施中').length;
   const createSurvey = ()=>{
     if(!nt.trim() || nq.length===0){ mockTap('タイトルと設問を入力すると配信できます'); return; }
@@ -3327,7 +3337,7 @@ function Feedback(){
       </Card>
 
       <Modal open={!!result} onClose={()=>setResult(null)} wide icon="chart" title={result&&(result.t+' の結果')} sub={result&&('回答 '+result.n+'件 ・ 回答率 '+result.rate+'%'+(result.state==='実施中'?' ・ 実施中（途中集計）':' ・ 集計済'))}
-        footer={<><Btn kind="ghost" icon="file" onClick={()=>mockTap('結果をCSVで出力（モック）')}>CSV出力</Btn><Btn kind="soft" icon="send" onClick={()=>mockTap('この結果を職員会議の議題に追加（モック）')}>会議の議題に追加</Btn></>}>
+        footer={<><Btn kind="ghost" icon="file" onClick={()=>mockTap('結果をCSVで出力（モック）')}>CSV出力</Btn><Btn kind="ghost" icon="edit" onClick={()=>{ if(result){ setList(l=>l.map(x=>x.t===result.t?{...x,n:x.n+1}:x)); setResult(r=>({...r,n:r.n+1})); } mockTap('紙でいただいた回答を代理登録しました（紙文化との橋渡し・モック）'); }}>紙の回答を代理登録</Btn><Btn kind="soft" icon="send" onClick={()=>mockTap('この結果を職員会議の議題に追加（モック）')}>会議の議題に追加</Btn></>}>
         {result && <div className="space-y-4">
           {QS.map((x,i)=>(
             <div key={i} className="rounded-xl border border-[#F3E6D9] p-3">
@@ -3352,15 +3362,42 @@ function Feedback(){
             <div className="flex flex-wrap gap-2">{['全園児の家庭','年長 全体','年中 全体','行事参加家庭'].map(t=>(
               <button key={t} onClick={()=>setNtg(t)} className={cx('px-3 py-1.5 rounded-xl text-[12px] font-bold border transition', ntg===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{t}</button>
             ))}</div></div>
-          <div><div className="text-[12px] text-muted font-bold mb-1">設問（★5段階＋自由記述）</div>
-            <div className="space-y-1.5">{nq.map(q=>(
-              <div key={q} className="flex items-center gap-2 rounded-xl border border-[#F3E6D9] px-3 py-2"><span className="flex-1 text-[13px] font-bold text-ink">{q}</span><button onClick={()=>setNq(l=>l.filter(x=>x!==q))} className="text-muted hover:text-red-500" title={q+' を削除'}><Ic name="plus" className="w-4 h-4 rotate-45"/></button></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">設問（方式タップで切替・選択式は分岐を設定可）</div>
+            <div className="space-y-1.5">{nq.map((q,i)=>(
+              <div key={i} className="rounded-xl border border-[#F3E6D9] px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 text-[13px] font-bold text-ink min-w-0 truncate">Q{i+1}. {q.q}</span>
+                  <button onClick={()=>cycleType(i)} className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg bg-[#EFF6FD] text-[#3F6E99] border border-[#AFD0F0]/60" title="回答方式を切替">{q.type}</button>
+                  <button onClick={()=>copyQ(i)} className="text-muted hover:text-brand-500 shrink-0" title={'Q'+(i+1)+' をコピー'}><Ic name="file" className="w-4 h-4"/></button>
+                  <button onClick={()=>setNq(l=>l.filter((_,j)=>j!==i))} className="text-muted hover:text-red-500 shrink-0" title={q.q+' を削除'}><Ic name="plus" className="w-4 h-4 rotate-45"/></button>
+                </div>
+                {q.type==='1つだけ選択' && (
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold text-muted">
+                    {['はい','いいえ'].map((c,k)=>(
+                      <span key={c} className="inline-flex items-center gap-1">「{c}」→<button onClick={()=>cycleBr(i,k)} className="text-brand-600 underline" title="分岐先を切替">{q.br[k]}</button></span>
+                    ))}
+                    <span className="text-[10px]">（選択肢ごとに次の行き先を制御＝分岐型）</span>
+                  </div>
+                )}
+              </div>
             ))}</div>
             <div className="flex gap-2 mt-2">
               <input value={nqIn} onChange={e=>setNqIn(e.target.value)} placeholder="設問を追加" className="flex-1 bg-cream rounded-xl px-3 py-2 text-[13px] text-ink border border-[#F3E6D9] font-bold focus:outline-none focus:border-brand-300"/>
-              <Btn kind="soft" icon="plus" onClick={()=>{ const v=nqIn.trim(); if(!v){return;} if(nq.includes(v)){mockTap('同じ設問があります');return;} setNq(l=>[...l,v]); setNqIn(''); }}>追加</Btn>
+              <Btn kind="soft" icon="plus" onClick={()=>{ const v=nqIn.trim(); if(!v){return;} if(nq.some(x=>x.q===v)){mockTap('同じ設問があります');return;} setNq(l=>[...l,{q:v,type:'★5段階',br:['次の質問','次の質問']}]); setNqIn(''); }}>追加</Btn>
             </div>
             {nq.length===0 && <div className="mt-1 text-[12px] font-bold text-red-500">設問を1つ以上追加してください</div>}</div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><div className="text-[11px] text-muted font-bold mb-1">回答期限</div>
+              <div className="flex flex-wrap gap-1">{['6/15 17:00','6/20 17:00','期限なし'].map(x=>(<button key={x} onClick={()=>setDeadline(x)} className={cx('px-2 py-1.5 rounded-lg text-[11px] font-bold border transition', deadline===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div></div>
+            <div><div className="text-[11px] text-muted font-bold mb-1">兄弟・姉妹の回答</div>
+              <div className="flex flex-wrap gap-1">{['1家庭として回答','それぞれ回答'].map(x=>(<button key={x} onClick={()=>setSibRule(x)} className={cx('px-2 py-1.5 rounded-lg text-[11px] font-bold border transition', sibRule===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div></div>
+            <div><div className="text-[11px] text-muted font-bold mb-1">結果の閲覧制限</div>
+              <div className="flex flex-wrap gap-1">{['すべての先生','管理職のみ'].map(x=>(<button key={x} onClick={()=>setViewLimit(x)} className={cx('px-2 py-1.5 rounded-lg text-[11px] font-bold border transition', viewLimit===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div>
+              <div className="mt-0.5 text-[10px] font-bold text-muted">機微な調査は管理職のみに</div></div>
+            <div><div className="text-[11px] text-muted font-bold mb-1">スキップした設問の集計</div>
+              <div className="flex flex-wrap gap-1">{['集計から除く','未回答として集計'].map(x=>(<button key={x} onClick={()=>setSkipRule(x)} className={cx('px-2 py-1.5 rounded-lg text-[11px] font-bold border transition', skipRule===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div>
+              <div className="mt-0.5 text-[10px] font-bold text-muted">分岐で飛ばした設問の扱い</div></div>
+          </div>
           <Toggle on={anon} onToggle={()=>setAnon(a=>!a)} label="匿名で回答を集計（推奨）"/>
           <div className="flex items-start gap-2 text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2 border border-[#F3E6D9]">
             <Ic name="shield" className="w-3.5 h-3.5 shrink-0 mt-0.5"/>
@@ -4177,19 +4214,49 @@ function ParentLive({setTab}){
   </div>);
 }
 function ParentSurvey({setTab}){
-  const [rate,setRate] = useState(4);
+  // 連絡なびアンケートの設計移植: 分岐型(回答によって次の質問が変わる)・複数選択+選択肢の自由記述・回答期限・1家庭1回答。
+  const [step,setStep] = useState(1);          // 1→(分岐)→2→3→4=完了
+  const [a1,setA1] = useState(null);
+  const [roles,setRoles] = useState({});
+  const [other,setOther] = useState('');
   const [comment,setComment] = useState('');
   const [anon,setAnon] = useState(false);
-  const [sent,setSent] = useState(false);
+  const skipped = a1==='参加しない';
+  const toggleRole=(r)=> setRoles(o=>{ const n={...o}; if(n[r]) delete n[r]; else n[r]=true; return n; });
+  const Head = ({q})=>(<div className="mb-3">
+    <div className="flex items-center gap-2 mb-2"><Badge tone="orange">回答受付中</Badge><span className="text-[11px] text-muted font-bold">期限 6/15 17:00・兄弟まとめて1家庭1回答</span></div>
+    <div className="font-bold text-ink">夏祭りボランティア希望調査</div>
+    <div className="mt-1.5 flex items-center gap-2"><div className="flex-1 h-1.5 rounded-full bg-cream overflow-hidden"><div className="h-full bg-brand-400 transition-all" style={{width:(step/3*100)+'%'}}/></div><span className="text-[11px] font-bold text-muted shrink-0">質問 {q}/3</span></div>
+  </div>);
   return (<div>
     <PSubHead setTab={setTab}>アンケート・ご意見</PSubHead>
     <div className="px-5 space-y-3">
-      {sent ? <Card className="p-6 text-center"><div className="w-14 h-14 rounded-2xl bg-[#FFE4EA] text-pink-500 mx-auto flex items-center justify-center mb-3"><Ic name="heart" className="w-7 h-7"/></div><div className="font-extrabold text-ink text-lg">ご回答ありがとうございました</div><p className="text-[13px] text-muted font-bold mt-1">満足度 {rate}/5{anon?' ・ 匿名':''}で送信しました。<br/>園運営の改善に活用させていただきます。</p></Card>
-      : <Card className="p-4"><div className="flex items-center gap-2 mb-2"><Badge tone="orange">回答受付中</Badge><span className="text-[11px] text-muted font-bold">〜6/10</span></div><div className="font-bold text-ink mb-3">保育参観についてのアンケート</div>
-        <div className="text-[12px] text-muted font-bold mb-1">満足度（タップで選択）</div><div className="flex gap-1 mb-3">{[1,2,3,4,5].map(s=><button key={s} onClick={()=>setRate(s)} className={cx(s<=rate?'text-brand-400':'text-gray-300','transition active:scale-90')}><Ic name="star" className="w-7 h-7"/></button>)}</div>
+      {step===1 && <Card className="p-4"><Head q={1}/>
+        <div className="text-[14px] font-bold text-ink mb-2">Q1. 7月の夏祭りに参加しますか？（1つだけ選択）</div>
+        <div className="space-y-2">{['参加する','参加しない'].map(x=>(
+          <button key={x} onClick={()=>setA1(x)} className={cx('w-full px-4 py-3 rounded-xl text-[14px] font-bold border text-left transition', a1===x?'bg-brand-500 text-white border-brand-500':'bg-white text-ink border-[#E8D5C4]')}>{x}</button>
+        ))}</div>
+        <div className="mt-2 text-[11px] font-bold text-muted">回答によって次の質問が変わります（参加しない場合は係の質問をスキップ）。</div>
+        <Btn kind={a1?'primary':'ghost'} icon="chevron" className="w-full mt-3 py-3" onClick={()=>{ if(!a1){ mockTap('どちらかを選んでください'); return; } setStep(a1==='参加する'?2:3); }}>次へ</Btn>
+      </Card>}
+      {step===2 && <Card className="p-4"><Head q={2}/>
+        <div className="text-[14px] font-bold text-ink mb-2">Q2. 希望する係を選んでください（複数選択可）</div>
+        <div className="space-y-2">{['受付係','出店の手伝い','写真係','その他'].map(x=>(
+          <button key={x} onClick={()=>toggleRole(x)} className={cx('w-full px-4 py-3 rounded-xl text-[14px] font-bold border text-left transition flex items-center gap-2', roles[x]?'bg-brand-500 text-white border-brand-500':'bg-white text-ink border-[#E8D5C4]')}><span className={cx('w-5 h-5 rounded-md border flex items-center justify-center shrink-0', roles[x]?'bg-white/25 border-white/60':'border-[#E8D5C4]')}>{roles[x]&&<Ic name="check" className="w-3.5 h-3.5"/>}</span>{x}</button>
+        ))}</div>
+        {roles['その他'] && <input value={other} onChange={e=>setOther(e.target.value)} placeholder="その他の内容（自由記述）" className="w-full mt-2 bg-cream rounded-xl px-3 py-2.5 text-[13px] font-bold text-ink border border-[#F3E6D9] outline-none"/>}
+        <div className="flex gap-2 mt-3"><Btn kind="ghost" className="flex-1" onClick={()=>setStep(1)}>戻る</Btn><Btn kind="primary" icon="chevron" className="flex-1" onClick={()=>setStep(3)}>次へ</Btn></div>
+      </Card>}
+      {step===3 && <Card className="p-4"><Head q={3}/>
+        <div className="text-[14px] font-bold text-ink mb-2">Q3. 園へのメッセージ（任意・コメントのみ）</div>
+        {skipped && <div className="mb-2 text-[11px] font-bold text-[#3F6E99] bg-[#EFF6FD] rounded-xl px-3 py-2">Q2（係の希望）は回答に応じてスキップされました。</div>}
         <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder="ご意見・ご感想をご記入ください…" className="w-full bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[13px] text-ink font-bold h-20 outline-none resize-none placeholder:text-muted"/>
         <div className="mt-3"><Toggle on={anon} onToggle={()=>setAnon(v=>!v)} label="匿名で送信する"/></div>
-        <Btn kind="primary" icon="send" className="w-full mt-3" onClick={()=>setSent(true)}>回答を送信</Btn>
+        <div className="flex gap-2 mt-3"><Btn kind="ghost" className="flex-1" onClick={()=>setStep(skipped?1:2)}>戻る</Btn><Btn kind="primary" icon="send" className="flex-1" onClick={()=>setStep(4)}>回答を送る</Btn></div>
+      </Card>}
+      {step===4 && <Card className="p-6 text-center"><div className="w-14 h-14 rounded-2xl bg-[#FFE4EA] text-pink-500 mx-auto flex items-center justify-center mb-3"><Ic name="heart" className="w-7 h-7"/></div><div className="font-extrabold text-ink text-lg">ご回答ありがとうございました</div>
+        <p className="text-[13px] text-muted font-bold mt-1">{a1}{a1==='参加する'?('・係：'+(Object.keys(roles).filter(r=>r!=='その他').join('、')+(roles['その他']&&other?('、'+other):''))||'未選択'):''}{anon?' ・ 匿名':''} で送信しました。</p>
+        {skipped && <p className="text-[11px] text-muted font-bold mt-1">スキップされた設問は園の設定に従って集計されます。</p>}
       </Card>}
       <Card className="p-4"><div className="text-[12px] font-bold text-brand-600 mb-1">園からのお願い</div><p className="text-[13px] text-ink">いただいたご意見はAIが整理し、園運営の改善に活用します。匿名での送信も可能です。</p></Card>
     </div>
