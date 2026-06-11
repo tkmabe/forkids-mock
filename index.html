@@ -2145,7 +2145,7 @@ function YoroukuList({go}){
           ))}</tbody>
         </table>
       </Card>
-      <div className="mt-3 text-[12px] text-muted font-bold px-1">※ 要録は「学籍に関する記録」（入退園・基本情報＝名簿から自動転記）と「指導に関する記録」（保育内容・園児の様子）の2種別。指導記録のAI下書きは、1年分のドキュメンテーション・れんらく帳・まいにちチェックを5領域にマッピングして生成します。明細（紙面プレビュー）は承認状況に応じて押印欄が変わります。</div>
+      <div className="mt-3 text-[12px] text-muted font-bold px-1">※ 要録は「学籍に関する記録」（入退園・基本情報＝名簿から自動転記）と「指導に関する記録」（保育内容・園児の様子）の2種別。指導記録のAI下書きは、1年分のドキュメンテーション・れんらく帳・まいにちチェックを5領域にマッピングして生成し、公的様式への整形→担任・主任・園長の承認→押印→市提出まで一気通貫（CSV下書き出力どまりの他社AI要録との違い）。明細（紙面プレビュー）は承認状況に応じて押印欄が変わります。</div>
       <FormPreview form={preview?'要録':null} rows={YOROKU_ROWS} stage={preview?preview.stage:0} kidName={preview&&preview.n} onClose={()=>setPreview(null)}/>
     </div>
   );
@@ -3355,6 +3355,7 @@ function MediaMgmt(){
     {t:'親子遠足のようす（5分）', st:'予約公開', views:0, dl:true},
   ]);
   const [share,setShare]=useState(null);   // シェアモーダル対象index
+  const [fair,setFair]=useState(false);    // 写りの偏りチェック（顔認識回数の園児別サマリ）
   const STATES=['公開','非公開','予約公開','予約非公開'];
   return (
     <div>
@@ -3370,7 +3371,10 @@ function MediaMgmt(){
         <Card className="p-4 mb-4">
           <div className="flex items-center justify-between mb-3"><span className="text-[12px] text-muted font-bold">タップで販売選択　選択中 {pickedN}枚</span>{pickedN>0 && <Btn kind="soft" icon="shop" onClick={()=>{mockTap(pickedN+'枚を販売リストに公開（モック）');setPicked({});}}>選択を販売公開</Btn>}</div>
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">{photos.map((c,i)=>(<button key={i} onClick={()=>toggle(i)} className={cx('aspect-square rounded-xl relative overflow-hidden transition', picked[i]&&'ring-2 ring-brand-500 ring-offset-1')} style={{background:c+'88'}}><span className="absolute bottom-1 right-1 bg-white/80 rounded px-1 text-[10px] font-bold text-brand-600">¥150</span>{i%5===0&&<div className="absolute inset-0 flex items-center justify-center"><Ic name="play" className="w-6 h-6 text-white"/></div>}{picked[i]&&<span className="absolute top-1 left-1 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center"><Ic name="check" className="w-3 h-3"/></span>}</button>))}</div>
-          <div className="mt-3 text-[11px] font-bold text-muted">アップロード：JPEG／PNG／HEIC（iPhone標準）対応・一度に100枚まで。動画は変換に時間がかかる場合があります。AIが顔認識で園児タグを自動付与します（モック）。</div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="flex-1 min-w-[200px] text-[11px] font-bold text-muted">アップロード：JPEG／PNG／HEIC（iPhone標準）対応・一度に100枚まで。動画は変換に時間がかかる場合があります。AIが顔認識で園児タグを自動付与します（モック）。</span>
+            <Btn kind="soft" icon="ai" onClick={()=>setFair(true)} className="py-1.5 shrink-0">写りの偏りをチェック</Btn>
+          </div>
         </Card>
         <Card>
           <CardHead icon="video" title="動画の公開設定" action={<span className="text-[11px] font-bold text-muted hidden sm:block">予約公開＋予約非公開＝期間限定公開（例：運動会は2週間だけ）</span>}/>
@@ -3387,6 +3391,22 @@ function MediaMgmt(){
             ))}
           </div>
         </Card>
+        <Modal open={fair} onClose={()=>setFair(false)} icon="ai" title="写りの偏りチェック（今月）" sub="顔認識の回数を園児ごとに集計（約20分ごと更新）。少ない子を次の撮影で意識できます">
+          <div className="space-y-3">
+            <div>
+              <div className="text-[12px] font-bold text-red-500 mb-1.5">写りが少ない園児（今月）</div>
+              <div className="space-y-1.5">{[['そうた','3回'],['みお','4回'],['はると','5回']].map(([n,c])=>(
+                <div key={n} className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50/40 px-3 py-2"><span className="flex-1 text-[13px] font-bold text-ink">{n}</span><span className="text-[12px] font-bold text-red-500">{c}</span></div>
+              ))}</div>
+            </div>
+            <div>
+              <div className="text-[12px] font-bold text-muted mb-1.5">写りが多い園児（参考）</div>
+              <div className="flex flex-wrap gap-1.5">{[['ひなた','38回'],['さくら','33回'],['ことね','23回']].map(([n,c])=>(<span key={n} className="rounded-lg bg-cream border border-[#F3E6D9] px-2.5 py-1.5 text-[12px] font-bold text-ink">{n} {c}</span>))}</div>
+            </div>
+            <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setFair(false); mockTap('「写りが少ない3名」を今週の撮影メモとして担任に共有しました（モック）'); }}>少ない子を撮影メモへ共有</Btn>
+            <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">配信・販売前に偏りを直すことで「うちの子が写っていない」を防ぎます（保護者満足の核心指標）。</div>
+          </div>
+        </Modal>
         <Modal open={share!=null} onClose={()=>setShare(null)} icon="send" title={share!=null ? vids[share].t : ''} sub="遠くの祖父母にも・園の公式HPにも（3つの共有手段）">
           {share!=null && <div className="space-y-3">
             <div><div className="text-[12px] text-muted font-bold mb-1">公開用URL（リンクを知っている人だけが見られます）</div>
