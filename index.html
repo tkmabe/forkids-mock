@@ -1137,6 +1137,12 @@ function Broadcast(){
     setConfirming(false);
   };
   const renotify = (i)=>{ setResent(r=>({...r,[i]:true})); mockTap('未読の家庭のみに「（再送）」付きで通知を再送しました。送信履歴は増えません（モック）'); };
+  // 安否確認ダッシュボード（居場所確認アンケートの集計+引き渡しチェック=置き去りゼロと同思想・forKids差別化）
+  const [safety,setSafety] = useState(false);
+  const [handed,setHanded] = useState({0:'母'});   // 引き渡し済 index→相手続柄
+  const HAND_KIDS = ['ひなた','さくら','あおい','りく','ゆうと','めい'];
+  const handOver=(i)=>{ const who=['母','父','祖母'][i%3]; setHanded(h=>({...h,[i]:who})); mockTap(HAND_KIDS[i]+'さんを「'+who+'」へ引き渡しました（時刻・相手を記録・モック）'); };
+  const handedN = Object.keys(handed).length;
   return (
     <div>
       <PageHead title="一斉連絡・配信" sub="宛先を選んで、プッシュ＋メールで確実に届ける"/>
@@ -1154,6 +1160,7 @@ function Broadcast(){
             {URGENT.map(u=>(
               <button key={u.k} onClick={()=>useUrgent(u)} className="px-3 py-1.5 rounded-xl text-[12px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 active:scale-95 transition">{u.k}</button>
             ))}
+            <button onClick={()=>setSafety(true)} className="px-3 py-1.5 rounded-xl text-[12px] font-bold bg-red-500 text-white border border-red-500 active:scale-95 transition">安否確認ダッシュボード</button>
             <span className="text-[10px] font-bold text-red-400 w-full sm:w-auto">タップで件名・本文・宛先(全園児)を即セット＝有事に一から書かない</span>
           </div>
           <div>
@@ -1231,6 +1238,35 @@ function Broadcast(){
           </div>
         </Card>
       </div>
+      <Modal open={safety} onClose={()=>setSafety(false)} wide icon="shield" title="安否確認ダッシュボード" sub="居場所確認の回答集計と引き渡しの記録（訓練モード・防災の日と連動）">
+        <div className="space-y-4">
+          <div className="rounded-xl bg-[#EFF6FD] border border-[#AFD0F0]/70 px-3 py-2 text-[11px] font-bold text-[#3F6E99]">いまは訓練モードです（毎月の防災の日と連動）。実災害時は同じ画面がそのまま使えます。</div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5"><span className="text-[13px] font-extrabold text-ink">安否回答（居場所確認・48家庭）</span><span className="text-[12px] font-bold text-muted">回答 36/48</span></div>
+            <div className="flex h-3 rounded-full overflow-hidden bg-cream">
+              <div className="bg-green-500" style={{width:'67%'}}/>
+              <div className="bg-[#5B8DBE]" style={{width:'8%'}}/>
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-x-3 text-[11px] font-bold"><span className="text-green-600">無事 32</span><span className="text-[#3F6E99]">避難中 4</span><span className="text-red-500">未回答 12</span></div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Btn kind="soft" icon="send" onClick={()=>mockTap('未回答の12家庭のみに（再送）通知＋サブメールへ再送しました（モック）')} className="py-1.5">未回答へ再通知</Btn>
+              <Btn kind="ghost" icon="headset" onClick={()=>mockTap('未回答の家庭の緊急連絡先リスト（電話）を表示しました。上から順に電話でエスカレーション（モック）')} className="py-1.5">電話リストへ</Btn>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5"><span className="text-[13px] font-extrabold text-ink">引き渡しチェック（あおば組）</span><span className={cx('text-[12px] font-bold', handedN===HAND_KIDS.length?'text-green-600':'text-amber-600')}>{handedN}/{HAND_KIDS.length}名 引き渡し済{handedN===HAND_KIDS.length&&'・全員確認（置き去りゼロ）'}</span></div>
+            <div className="space-y-1.5">{HAND_KIDS.map((n,i)=>(
+              <div key={i} className={cx('flex items-center gap-2 rounded-xl border px-3 py-2', handed[i]?'border-[#CDEBD6] bg-[#F2FBF5]':'border-[#F3E6D9]')}>
+                <span className="flex-1 text-[13px] font-bold text-ink">{n}</span>
+                {handed[i]
+                  ? <span className="inline-flex items-center gap-1 text-[12px] font-bold text-green-700"><Ic name="check" className="w-4 h-4"/>引き渡し済（{handed[i]}・記録済）</span>
+                  : <Btn kind="dark" icon="check" onClick={()=>handOver(i)} className="py-1.5">引き渡しを記録</Btn>}
+              </div>
+            ))}</div>
+            <div className="mt-2 text-[11px] font-bold text-muted">引き渡しは「誰に・何時」を記録します（保護者が事前登録した引き渡し予定者と照合）。残数が0になるまで園は解散しません。</div>
+          </div>
+        </div>
+      </Modal>
       <Modal open={confirming} onClose={()=>setConfirming(false)} title="配信内容の確認" sub="誤配信防止のため、宛先と内容を最終確認してください" icon="send"
         footer={<><Btn kind="ghost" onClick={()=>setConfirming(false)}>戻って直す</Btn><Btn kind="primary" icon="send" onClick={send}>{reserve?'予約を確定':'この内容で配信'}</Btn></>}>
         <div className="space-y-3">
@@ -4288,6 +4324,7 @@ function ParentNotices({setTab}){
     ['写真販売を開始しました','全体','3日前','pink','春の遠足の写真販売を開始しました。写真タブからご購入いただけます。','連絡'],
     ['夏祭りボランティア募集','全体','5日前','gray','7月の夏祭りの運営ボランティアを募集します。ご協力いただける方は担任まで。','連絡'],
     ['個人面談のご案内（予約制）','あおば組','06:30','gray','6/17〜19に個人面談を行います。ご都合のよい枠を選んで予約してください（15分・1家庭1枠）。','連絡','interview'],
+    ['【訓練】安否確認（居場所確認）','全体','06:00','red','防災の日の訓練です。実際の災害時と同じ手順で、安否と現在地をワンタップで回答してください。','連絡','safety'],
   ];
   const [read,setRead] = useState({2:true,3:true,5:true});  // 既読index
   const [open,setOpen] = useState(null);
@@ -4297,6 +4334,11 @@ function ParentNotices({setTab}){
   const [ivPick,setIvPick] = useState(null);
   const [ivDone,setIvDone] = useState(null);
   const IV_SLOTS = [['6/17 15:00',false],['6/17 15:30',false],['6/17 16:00',true],['6/18 15:00',false],['6/18 15:30',true],['6/18 16:00',true],['6/19 15:30',true]];
+  // 安否確認（緊急時・訓練）: ワンタップ回答+現在地+引き渡し予定者の事前登録。
+  const [sfStatus,setSfStatus] = useState(null);
+  const [sfPlace,setSfPlace] = useState('自宅');
+  const [sfPicker,setSfPicker] = useState('母');
+  const [sfDone,setSfDone] = useState(false);
   const markRead = (i)=> setRead(r=>({...r,[i]:true}));
   const unread = items.filter((_,i)=>!read[i]).length;
   const shown = items.map((n,i)=>[n,i]).filter(([n,i])=> fil==='すべて' || (fil==='未読・未回答' && !read[i]));
@@ -4326,6 +4368,18 @@ function ParentNotices({setTab}){
                     <Btn kind="primary" icon="check" className="flex-1 py-2.5" onClick={()=>setRsvpAns('参加')}>参加する</Btn>
                     <Btn kind="ghost" className="flex-1 py-2.5" onClick={()=>setRsvpAns('不参加')}>参加しない</Btn>
                   </div>
+                </div>)}
+            {n[6]==='safety' && (sfDone
+              ? <div className="mt-2 rounded-xl bg-[#F2FBF5] border border-[#CDEBD6] px-3 py-2.5 flex items-center gap-2"><Ic name="check" className="w-4 h-4 text-green-600 shrink-0"/><span className="flex-1 text-[12px] font-bold text-green-700">回答済：{sfStatus}・{sfPlace}・お迎えは{sfPicker}（園に届きました）</span><button onClick={()=>setSfDone(false)} className="text-[11px] font-bold text-muted underline">変更</button></div>
+              : <div className="mt-2 space-y-2">
+                  <div className="flex gap-2">
+                    <button onClick={()=>setSfStatus('無事')} className={cx('flex-1 px-3 py-3 rounded-xl text-[14px] font-bold border transition', sfStatus==='無事'?'bg-green-500 text-white border-green-500':'bg-white text-ink border-[#E8D5C4]')}>無事です</button>
+                    <button onClick={()=>setSfStatus('避難中')} className={cx('flex-1 px-3 py-3 rounded-xl text-[14px] font-bold border transition', sfStatus==='避難中'?'bg-[#5B8DBE] text-white border-[#5B8DBE]':'bg-white text-ink border-[#E8D5C4]')}>避難しています</button>
+                  </div>
+                  <div><div className="text-[11px] font-bold text-muted mb-1">いまいる場所</div><div className="flex flex-wrap gap-1.5">{['自宅','勤務先','避難所','移動中'].map(x=>(<button key={x} onClick={()=>setSfPlace(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', sfPlace===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div></div>
+                  <div><div className="text-[11px] font-bold text-muted mb-1">お迎え（引き渡し）に行ける人</div><div className="flex gap-1.5">{['母','父','祖母'].map(x=>(<button key={x} onClick={()=>setSfPicker(x)} className={cx('flex-1 px-2 py-2 rounded-xl text-[12px] font-bold border transition', sfPicker===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div>
+                    <div className="mt-0.5 text-[10px] font-bold text-muted">園は登録された方にのみ引き渡します（本人確認のうえ記録）。</div></div>
+                  <Btn kind={sfStatus?'primary':'ghost'} icon="check" className="w-full py-3" onClick={()=>{ if(!sfStatus){ mockTap('「無事です」か「避難しています」を選んでください'); return; } setSfDone(true); markRead(i); mockTap('安否を園に送りました。続報はこのお知らせに届きます（モック）'); }}>この内容で回答する</Btn>
                 </div>)}
             {n[6]==='interview' && (ivDone
               ? <div className="mt-2 rounded-xl bg-[#F2FBF5] border border-[#CDEBD6] px-3 py-2.5 flex items-center gap-2"><Ic name="check" className="w-4 h-4 text-green-600 shrink-0"/><span className="flex-1 text-[12px] font-bold text-green-700">予約済：{ivDone}（前日にリマインドが届きます）</span><button onClick={()=>{setIvDone(null);setIvPick(null);}} className="text-[11px] font-bold text-muted underline">変更</button></div>
