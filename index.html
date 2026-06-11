@@ -1051,7 +1051,7 @@ function Roster(){
   return (
     <div>
       <PageHead title="名簿センター" sub="在園児・未就園児・職員を一元管理。すべての機能のハブ。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="users" onClick={()=>mockTap('クラス替え：園児を指定して一括変更できます。年度替わりは事前予約も可能（年齢が大きい順に実施を推奨・モック）')}>クラス替え（一括・予約）</Btn><Btn kind="ghost" icon="file" onClick={()=>mockTap('名簿をCSVで入出力（モック）')}>CSV入出力</Btn><Btn kind="primary" icon="plus" onClick={()=>setAdding(true)}>園児を追加</Btn></div>} />
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="users" onClick={()=>mockTap('クラス替え：園児を指定して一括変更できます。年度替わりは事前予約も可能（年齢が大きい順に実施を推奨・モック）')}><span className="hidden sm:inline">クラス替え（一括・予約）</span></Btn><Btn kind="ghost" icon="file" onClick={()=>mockTap('名簿をCSVで入出力（モック）')}><span className="hidden sm:inline">CSV入出力</span></Btn><Btn kind="primary" icon="plus" onClick={()=>setAdding(true)}>園児を追加</Btn></div>} />
       <button onClick={()=>mockTap('保育認定の終了年齢に達した園児：2名。認定変更の予約ができます（年齢到達を自動検出・モック）')} className="w-full text-left mb-3">
         <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 flex items-center gap-2">
           <Ic name="bell" className="w-4 h-4 text-amber-600 shrink-0"/>
@@ -1380,7 +1380,7 @@ function AttendanceApprove(){
   return (
     <div>
       <PageHead title="出欠申請の確認" sub="保護者アプリからの欠席・遅刻・早退・預かり・連絡をここで確認。確認すると保護者にマークが付きます。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="edit" onClick={()=>setAppSet(true)}>申請設定</Btn><Btn kind="ghost" icon="headset" onClick={()=>setProxy(true)}>電話受けを代理入力</Btn><Btn kind="primary" icon="check" onClick={confirmAll}>表示中をまとめて確認</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="edit" onClick={()=>setAppSet(true)}><span className="hidden sm:inline">申請設定</span></Btn><Btn kind="ghost" icon="headset" onClick={()=>setProxy(true)}><span className="hidden sm:inline">電話受けを代理入力</span></Btn><Btn kind="primary" icon="check" onClick={confirmAll}>表示中をまとめて確認</Btn></div>}/>
       <Modal open={appSet} onClose={()=>setAppSet(false)} icon="edit" title="申請設定（欠席の例・種別ごとに設定）" sub="受付期間・締切・理由は園が種別ごとに自由に設定できます">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
@@ -2915,8 +2915,8 @@ function SettingsScreen(){
   return (
     <div>
       <PageHead title="設定・連携" sub="自園の職員権限・外部連携・データ移行・ブランディングを管理（テナント／施設の発行は運営ポータル）"
-        action={<Tabs tabs={['自園の施設','職員権限','連携・移行']} active={tab} onChange={setTab}/>}/>
-      {tab==='自園の施設' && <Card className="overflow-hidden mb-5">
+        action={<Tabs tabs={['自園の施設','帳票','職員権限','連携・移行']} active={tab} onChange={setTab}/>}/>
+      {tab==='帳票' && <Card className="overflow-hidden mb-5">
         <CardHead icon="download" title="帳票出力状況（ダウンロードセンター）" action={<Btn kind="soft" icon="ai" onClick={refreshForms}>状況を更新</Btn>}/>
         <div className="px-5 pb-1 text-[11px] font-bold text-muted">大きな帳票（請求書・要録・名簿など35種別×PDF/Excel/CSV）は裏側で生成し、できたらここに届きます。画面を待たせません。</div>
         <div className="px-5 pb-5 space-y-2">
@@ -3267,7 +3267,7 @@ function Allergy(){
   return (
     <div>
       <PageHead title="給食・アレルギー" sub="献立 × アレルゲンを自動クロス。該当セルを色で警告し、配膳ミスを防ぐ。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="calendar" onClick={()=>mockTap('明日以降の献立を取込（モック）')}>献立を取込</Btn><Btn kind="ghost" icon="file" onClick={()=>mockTap('給食室向け：本日の除去食リストを出力しました（対象3名・卵=からあげ／乳=牛乳／大豆=みそ汁・ひじき煮、モック）')}>給食室へ除去食リスト</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('本日の配膳対応表を印刷（モック）')}>対応表を印刷</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="calendar" onClick={()=>mockTap('明日以降の献立を取込（モック）')}><span className="hidden sm:inline">献立を取込</span></Btn><Btn kind="ghost" icon="file" onClick={()=>mockTap('給食室向け：本日の除去食リストを出力しました（対象3名・卵=からあげ／乳=牛乳／大豆=みそ汁・ひじき煮、モック）')}><span className="hidden sm:inline">給食室へ除去食リスト</span></Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('本日の配膳対応表を印刷（モック）')}>対応表を印刷</Btn></div>}/>
       <Card className="p-4 mb-5">
         <div className="flex items-center justify-between mb-2"><span className="text-[13px] font-extrabold text-ink">アレルギー検索（食品衛生法28品目マスター）</span><span className="text-[11px] font-bold text-muted">名簿センターの生育情報から集約</span></div>
         <div className="flex flex-wrap gap-1.5">
@@ -4164,6 +4164,7 @@ function ParentNotice(){
   const [hSl,setHSl] = useState('21:00-6:30');
   const [hTxt,setHTxt] = useState('');
   // 与薬依頼（医師処方薬のみ・保護者同意必須→園が投与記録・ダブルチェック）
+  const [plusOpen,setPlusOpen] = useState(false);  // W4(#14): 入力メニューの集約
   const [medOpen,setMedOpen] = useState(false);
   const [medName,setMedName] = useState('');
   const [medTim,setMedTim] = useState('昼食後');
@@ -4205,9 +4206,16 @@ function ParentNotice(){
           </div>) : m.body}
         </div></div>
       ))}
-      {!medOpen ? (
-        <button onClick={()=>setMedOpen(true)} className="w-full rounded-2xl border-2 border-dashed border-[#F4D58D] bg-[#FFFBEF] px-4 py-3 text-[13px] font-bold text-amber-700 flex items-center justify-center gap-2 active:scale-[0.99] transition"><Ic name="shield" className="w-4 h-4"/>お薬の依頼を送る（与薬依頼）</button>
-      ) : (
+      {!plusOpen && !medOpen && !homeOpen && (
+        <button onClick={()=>setPlusOpen(true)} className="w-full rounded-2xl border-2 border-dashed border-[#E8D5C4] bg-cream/40 px-4 py-2.5 text-[13px] font-bold text-gray-600 flex items-center justify-center gap-2 active:scale-[0.99] transition"><Ic name="plus" className="w-4 h-4"/>そのほかの連絡（お家での様子・お薬）</button>
+      )}
+      {plusOpen && !medOpen && !homeOpen && (
+        <div className="flex gap-2">
+          <button onClick={()=>{setHomeOpen(true);setPlusOpen(false);}} className="flex-1 rounded-2xl border-2 border-dashed border-[#CDEBD6] bg-[#F2FBF5] px-3 py-3 text-[12px] font-bold text-green-700 flex items-center justify-center gap-1.5 active:scale-[0.99] transition"><Ic name="heart" className="w-4 h-4"/>お家での様子</button>
+          <button onClick={()=>{setMedOpen(true);setPlusOpen(false);}} className="flex-1 rounded-2xl border-2 border-dashed border-[#F4D58D] bg-[#FFFBEF] px-3 py-3 text-[12px] font-bold text-amber-700 flex items-center justify-center gap-1.5 active:scale-[0.99] transition"><Ic name="shield" className="w-4 h-4"/>お薬の依頼</button>
+        </div>
+      )}
+      {medOpen && (
         <div className="rounded-2xl border border-[#F4D58D] bg-[#FFFBEF] p-3 space-y-2">
           <div className="text-[12px] font-bold text-amber-700">与薬依頼（医師に処方されたお薬のみ・市販薬は預かれません）</div>
           <input value={medName} onChange={e=>setMedName(e.target.value)} placeholder="お薬の名前（例：抗アレルギー薬 1包）" className="w-full bg-white rounded-xl px-3 py-2.5 text-[12px] font-bold text-ink border border-[#F4D58D] outline-none"/>
@@ -4219,9 +4227,7 @@ function ParentNotice(){
           <div className="flex gap-2"><Btn kind="ghost" className="flex-1" onClick={()=>setMedOpen(false)}>閉じる</Btn><Btn kind="primary" icon="send" className="flex-1" onClick={sendMed}>依頼する</Btn></div>
         </div>
       )}
-      {!homeOpen ? (
-        <button onClick={()=>setHomeOpen(true)} className="w-full rounded-2xl border-2 border-dashed border-[#CDEBD6] bg-[#F2FBF5] px-4 py-3 text-[13px] font-bold text-green-700 flex items-center justify-center gap-2 active:scale-[0.99] transition"><Ic name="heart" className="w-4 h-4"/>お家での様子を送る（検温・朝食・睡眠）</button>
-      ) : (
+      {homeOpen && (
         <div className="rounded-2xl border border-[#CDEBD6] bg-[#F2FBF5] p-3 space-y-2">
           <div className="text-[12px] font-bold text-green-700">お家での様子（毎朝の健康連絡）</div>
           <div><div className="text-[11px] font-bold text-muted mb-1">検温</div><div className="flex flex-wrap gap-1.5">{['36.2','36.5','36.8','37.2','37.5'].map(x=>(<button key={x} onClick={()=>setHT(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', hT===x?(Number(x)>=37?'bg-red-500 text-white border-red-500':'bg-brand-500 text-white border-brand-500'):'bg-white text-gray-500 border-[#E8D5C4]')}>{x}℃</button>))}</div></div>
