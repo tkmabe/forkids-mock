@@ -1014,6 +1014,7 @@ function Roster(){
   const [f,setF] = useState('全クラス');
   const [adding,setAdding] = useState(false);
   const [form,setForm] = useState({n:'', klass:'あおば組', cert:'1号', guardian:''});
+  const [pre,setPre] = useState('標準');  // 表示項目プリセット（A1: シーン別の表示パターン保存の移植）
   const rows = all.filter(r=>{
     if(q && !((r.n||'').includes(q) || (r.guardian||'').includes(q))) return false;
     if(f==='全クラス') return true;
@@ -1038,31 +1039,52 @@ function Roster(){
           {filters.map((x,i)=><button key={i} onClick={()=>setF(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border', f===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>)}
         </div>
       </Card>
-      <div className="text-[12px] text-muted font-bold mb-2 px-1">{rows.length}名を表示中（絞り込み：{f}{q&&'・「'+q+'」'}）</div>
+      <div className="flex flex-wrap items-center gap-2 mb-2 px-1">
+        <span className="text-[12px] text-muted font-bold">{rows.length}名を表示中（絞り込み：{f}{q&&'・「'+q+'」'}）</span>
+        <span className="ml-auto text-[11px] font-bold text-muted">表示項目プリセット：</span>
+        {['標準','保健用','連絡用'].map(x=>(
+          <button key={x} onClick={()=>setPre(x)} className={cx('px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition', pre===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+        ))}
+        <button onClick={()=>mockTap('現在の表示項目を「'+pre+'（カスタム）」として保存しました（全100+項目から選んで何パターンでも保存可・モック）')} className="text-[11px] font-bold text-brand-600 underline">別名で保存</button>
+      </div>
       <Card className="overflow-hidden">
         <table className="w-full text-[13px] block overflow-x-auto whitespace-nowrap md:table md:overflow-visible md:whitespace-normal">
           <thead><tr className="text-left text-muted font-bold border-b border-[#F3E6D9] bg-cream/40">
-            {['園児','クラス','認定区分','保護者','タグ',''].map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}
+            {(pre==='標準'?['園児','クラス','認定区分','保護者','タグ','']:pre==='保健用'?['園児','クラス','アレルギー','平熱','かかりつけ医','']:['園児','クラス','保護者','メイン連絡先','サブメール','']).map((h,i)=><th key={i} className="px-5 py-3">{h}</th>)}
           </tr></thead>
           <tbody>
             {rows.length===0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-muted font-bold">該当する園児はいません</td></tr>}
-            {rows.map(r=>(
+            {rows.map((r,ri)=>(
               <tr key={r.id} className="border-b border-[#F7EFE7] hover:bg-cream/40">
                 <td className="px-5 py-3"><div className="flex items-center gap-2"><Avatar name={r.n} color={r.color} size={32}/><span className="font-bold text-ink">{r.n}</span>{r.id>=900&&<Badge tone="orange">新規</Badge>}</div></td>
                 <td className="px-5 py-3 font-bold text-gray-600">{r.klass}</td>
-                <td className="px-5 py-3"><Badge tone="blue">{r.cert}認定</Badge></td>
-                <td className="px-5 py-3 font-bold text-gray-600">{r.guardian}家</td>
-                <td className="px-5 py-3">{r.id%2===0? <Badge tone="red">アレルギー</Badge> : <Badge tone="green">兄弟あり</Badge>}</td>
+                {pre==='標準' && <>
+                  <td className="px-5 py-3"><Badge tone="blue">{r.cert}認定</Badge></td>
+                  <td className="px-5 py-3 font-bold text-gray-600">{r.guardian}家</td>
+                  <td className="px-5 py-3">{r.id%2===0? <Badge tone="red">アレルギー</Badge> : <Badge tone="green">兄弟：{KIDS[(r.id+1)%6].n}</Badge>}</td>
+                </>}
+                {pre==='保健用' && <>
+                  <td className="px-5 py-3">{r.id%2===0? <span className="text-[12px] font-bold text-red-500">卵・乳</span> : <span className="text-[12px] font-bold text-muted">なし</span>}</td>
+                  <td className="px-5 py-3 font-bold text-gray-600">36.{4+(ri%3)}℃</td>
+                  <td className="px-5 py-3 font-bold text-gray-600">あおば小児科</td>
+                </>}
+                {pre==='連絡用' && <>
+                  <td className="px-5 py-3 font-bold text-gray-600">{r.guardian}家（{r.guardian}）</td>
+                  <td className="px-5 py-3 font-bold text-gray-600">090-****-00{ri+1}0</td>
+                  <td className="px-5 py-3 font-bold text-muted">登録あり（2件）</td>
+                </>}
                 <td className="px-5 py-3 text-right"><button onClick={()=>setSel(r.id)} className="text-brand-500" title="園児の個票を開く"><Ic name="chevron" className="w-4 h-4"/></button></td>
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
+      <div className="mt-2 text-[11px] font-bold text-muted px-1">名簿は全機能のハブ（基本・生育・出生・乳児期・生活・食品摂取・保護者・家族の100+項目）。表示パターンはロールやシーンごとに保存して使い分けできます。</div>
       <KidProfileModal child={sel!=null?all.find(k=>k.id===sel):null} onClose={()=>setSel(null)}/>
       <Modal open={adding} onClose={()=>setAdding(false)} icon="users" title="園児を追加" sub="名簿に新しい園児を登録します（モック）"
         footer={<><Btn kind="ghost" onClick={()=>setAdding(false)}>キャンセル</Btn><Btn kind="primary" icon="check" onClick={addKid}>この内容で追加</Btn></>}>
         <div className="space-y-3">
+          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">まずは最小項目で登録（保護者の認証ID・パスワードは自動採番）。生育・出生・生活などの詳細項目（100+）は、登録後に個票から補完できます＝簡易登録→詳細補完の分業。</div>
           <div><div className="text-[12px] text-muted font-bold mb-1">園児の名前</div><input value={form.n} onChange={e=>setForm(f=>({...f,n:e.target.value}))} placeholder="例）あおい" className="w-full bg-cream rounded-xl border border-[#F3E6D9] p-3 text-[14px] font-bold text-ink outline-none placeholder:text-muted"/></div>
           <div><div className="text-[12px] text-muted font-bold mb-1">クラス</div><div className="flex flex-wrap gap-2">{['あおば組','ふたば組','つぼみ組'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,klass:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.klass===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}</button>)}</div></div>
           <div><div className="text-[12px] text-muted font-bold mb-1">認定区分</div><div className="flex gap-2">{['1号','2号','3号'].map(c=><button key={c} onClick={()=>setForm(f=>({...f,cert:c}))} className={cx('px-3 py-2 rounded-xl text-[13px] font-bold border', form.cert===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{c}認定</button>)}</div></div>
@@ -2746,10 +2768,34 @@ function ApproveBox(){
 
 function SettingsScreen(){
   const [tab,setTab] = useState('自園の施設');
+  // 精算なびA7「帳票出力状況」の移植: 大きな帳票は非同期バッチ生成→DLセンターで受け取る（画面を待たせない）。
+  const [forms,setForms] = useState([
+    {t:'6月分 請求書（全園児・118名）', fmt:'PDF', st:'ダウンロード可', by:'佐藤', at:'09:12'},
+    {t:'要録（承認済・一括）', fmt:'PDF', st:'ダウンロード可', by:'田中', at:'08:45'},
+    {t:'名簿一覧（保健用プリセット）', fmt:'Excel', st:'生成中', by:'佐藤', at:'09:30'},
+  ]);
+  const refreshForms=()=>{ setForms(l=>l.map(x=>x.st==='生成中'?{...x,st:'ダウンロード可'}:x)); mockTap('生成が完了した帳票をダウンロード可に更新しました（完了時は通知も届きます・モック）'); };
   return (
     <div>
       <PageHead title="設定・連携" sub="自園の職員権限・外部連携・データ移行・ブランディングを管理（テナント／施設の発行は運営ポータル）"
         action={<Tabs tabs={['自園の施設','職員権限','連携・移行']} active={tab} onChange={setTab}/>}/>
+      {tab==='自園の施設' && <Card className="overflow-hidden mb-5">
+        <CardHead icon="download" title="帳票出力状況（ダウンロードセンター）" action={<Btn kind="soft" icon="ai" onClick={refreshForms}>状況を更新</Btn>}/>
+        <div className="px-5 pb-1 text-[11px] font-bold text-muted">大きな帳票（請求書・要録・名簿など35種別×PDF/Excel/CSV）は裏側で生成し、できたらここに届きます。画面を待たせません。</div>
+        <div className="px-5 pb-5 space-y-2">
+          {forms.map((x,i)=>(
+            <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl border border-[#F3E6D9] px-3 py-2.5">
+              <Ic name="file" className="w-4 h-4 text-brand-400 shrink-0"/>
+              <span className="flex-1 min-w-[160px] text-[13px] font-bold text-ink">{x.t}</span>
+              <Badge tone="gray">{x.fmt}</Badge>
+              <span className="text-[11px] font-bold text-muted">{x.by}・{x.at}</span>
+              {x.st==='生成中'
+                ? <Badge tone="amber">生成中…</Badge>
+                : <Btn kind="soft" icon="download" onClick={()=>mockTap(x.t+' をダウンロード（モック）')} className="py-1.5">ダウンロード</Btn>}
+            </div>
+          ))}
+        </div>
+      </Card>}
       {tab==='自園の施設' && <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <Card className="col-span-2 p-5">
           <CardHead icon="building" title="自テナントの園・施設（あおばグループ）" action={<Badge tone="gray">閲覧のみ</Badge>}/>
@@ -3558,6 +3604,9 @@ const STAFF_MEMBERS = [
 ];
 function Roles(){
   const [members,setMembers] = useState(STAFF_MEMBERS);
+  // 連絡なび権限設定の移植: 機能×アクション(閲覧/編集/削除/代理登録/出力)×個人の3層スパース制御。
+  const [gran,setGran] = useState(false);
+  const [granT,setGranT] = useState([true,true,false,true,false]);
   const counts = ROLE_ORDER.reduce((a,r)=>{ a[r]=members.filter(m=>m.role===r).length; return a; },{});
   const base = (role,id)=> (SCREEN_ROLES[id]||ROLE_ORDER).includes(role);
   // クリックで循環：既定 →（既定可なら「除」/既定不可なら「個」）→ 既定に戻す。管理職は固定。
@@ -3570,7 +3619,19 @@ function Roles(){
   return (
     <div>
       <PageHead title="権限管理" sub="ロール既定＋個別カスタム上書きの合成で、登録している先生“全員”の権限を管理します（操作できるのは管理職のみ）。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="plus">先生を追加</Btn><Btn kind="primary" icon="check">変更を保存</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="lock" onClick={()=>setGran(true)}>アクション粒度</Btn><Btn kind="ghost" icon="plus">先生を追加</Btn><Btn kind="primary" icon="check">変更を保存</Btn></div>}/>
+      <Modal open={gran} onClose={()=>setGran(false)} icon="lock" title="アクション粒度の設定（れんらく帳の例）" sub="機能のON/OFFだけでなく、操作の種類ごとに制御できます">
+        <div className="space-y-2">
+          {['閲覧','編集','削除','代理登録（既読・回答の代行）','出力（CSV・PDF）'].map((a,i)=>(
+            <div key={a} className="flex items-center justify-between rounded-xl border border-[#F3E6D9] px-3 py-2.5">
+              <span className="text-[13px] font-bold text-ink">{a}</span>
+              <Toggle on={granT[i]} onToggle={()=>setGranT(t=>t.map((x,j)=>j===i?!x:x))} label={granT[i]?'許可':'不可'}/>
+            </div>
+          ))}
+          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">権限は「ロール標準 → 個人の上書き → 対象単位（特定アンケートの閲覧制限など）」の3層で合成されます。削除・出力は事務/管理職のみを推奨。</div>
+          <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setGran(false); mockTap('アクション粒度を保存しました（機能×操作×先生のきめ細かい制御・モック）'); }}>この設定を保存</Btn>
+        </div>
+      </Modal>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         {ROLE_ORDER.map(r=>(
           <Card key={r} className="p-4">
