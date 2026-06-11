@@ -3642,7 +3642,7 @@ function Roles(){
   const [members,setMembers] = useState(STAFF_MEMBERS);
   // 連絡なび権限設定の移植: 機能×アクション(閲覧/編集/削除/代理登録/出力)×個人の3層スパース制御。
   const [gran,setGran] = useState(false);
-  const [granT,setGranT] = useState([true,true,false,true,false]);
+  const [granT,setGranT] = useState([true,true,false,true,false,false]);
   const counts = ROLE_ORDER.reduce((a,r)=>{ a[r]=members.filter(m=>m.role===r).length; return a; },{});
   const base = (role,id)=> (SCREEN_ROLES[id]||ROLE_ORDER).includes(role);
   // クリックで循環：既定 →（既定可なら「除」/既定不可なら「個」）→ 既定に戻す。管理職は固定。
@@ -3658,13 +3658,13 @@ function Roles(){
         action={<div className="flex gap-2"><Btn kind="ghost" icon="lock" onClick={()=>setGran(true)}>アクション粒度</Btn><Btn kind="ghost" icon="plus">先生を追加</Btn><Btn kind="primary" icon="check">変更を保存</Btn></div>}/>
       <Modal open={gran} onClose={()=>setGran(false)} icon="lock" title="アクション粒度の設定（れんらく帳の例）" sub="機能のON/OFFだけでなく、操作の種類ごとに制御できます">
         <div className="space-y-2">
-          {['閲覧','編集','削除','代理登録（既読・回答の代行）','出力（CSV・PDF）'].map((a,i)=>(
+          {['閲覧','編集','削除','代理登録（既読・回答の代行）','出力（CSV・PDF）','個人情報の表示（メール・電話番号）'].map((a,i)=>(
             <div key={a} className="flex items-center justify-between rounded-xl border border-[#F3E6D9] px-3 py-2.5">
-              <span className="text-[13px] font-bold text-ink">{a}</span>
+              <span className="text-[13px] font-bold text-ink">{a}{i===5&&<span className="block text-[10px] text-muted">対象者一覧で連絡先を見られるか（既定OFF＝最小化）</span>}</span>
               <Toggle on={granT[i]} onToggle={()=>setGranT(t=>t.map((x,j)=>j===i?!x:x))} label={granT[i]?'許可':'不可'}/>
             </div>
           ))}
-          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">権限は「ロール標準 → 個人の上書き → 対象単位（特定アンケートの閲覧制限など）」の3層で合成されます。削除・出力は事務/管理職のみを推奨。</div>
+          <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">権限は「ロール標準 → 個人の上書き → 対象単位」の3層で合成され、対象単位（個別アンケートの閲覧権限など）が標準設定より優先されます。閲覧は種別単位（通常連絡／既読確認／アンケート）でも制御可能。削除・出力は事務/管理職のみを推奨。</div>
           <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setGran(false); mockTap('アクション粒度を保存しました（機能×操作×先生のきめ細かい制御・モック）'); }}>この設定を保存</Btn>
         </div>
       </Modal>
