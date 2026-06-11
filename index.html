@@ -1235,42 +1235,100 @@ function Broadcast(){
 }
 
 function AttendanceApprove(){
-  const items = [
-    {n:'ひなた', type:'欠席', reason:'発熱のため', tone:'red', t:'07:12'},
-    {n:'りく', type:'遅刻', reason:'通院後に登園', tone:'amber', t:'07:30'},
-    {n:'めい', type:'朝フレンド', reason:'8:00から', tone:'blue', t:'昨日'},
-    {n:'そうた', type:'早退', reason:'15:00お迎え', tone:'purple', t:'昨日'},
-    {n:'ことね', type:'午後フレンド', reason:'17:00まで', tone:'green', t:'昨日'},
-  ];
-  // 確認操作を状態化：個別「確認」/「まとめて確認」で確認済になり、残件数が減る。
-  const [done,setDone] = useState({});
-  const confirm = (i)=> setDone(d=>({...d,[i]:true}));
-  const confirmAll = ()=> setDone(items.reduce((a,_,i)=>{a[i]=true;return a;},{}));
-  const remain = items.filter((_,i)=>!done[i]).length;
+  // コミュなび出欠申請なびの設計移植: 6カテゴリタブ(カテゴリ別の項目差)・日付ナビ・確認者/確認時刻の記録・預かり定員カウンタ・電話受けの代理申請。
+  const CATS = {
+    '欠席':{tone:'red'}, '遅刻':{tone:'amber', col:'登園予定'}, '早退':{tone:'purple', col:'お迎え'},
+    '朝フレンド':{tone:'blue', col:'登園', set:'1号フレンド', cap:12}, '午後フレンド':{tone:'green', col:'お迎え', set:'1号午後フレンド', cap:20}, '連絡':{tone:'gray'},
+  };
+  const DATA = {
+    '今日': {
+      '欠席':[{n:'ひなた',k:'あおば組',r:'発熱・体調不良',m:'朝37.8℃・咳あり',by:'母',at:'07:12'},{n:'みお',k:'あおば組',r:'家庭の都合',m:'',by:'父',at:'06:58'}],
+      '遅刻':[{n:'りく',k:'ふたば組',time:'10:00',r:'通院後に登園',m:'皮膚科に寄ります',by:'母',at:'07:30'}],
+      '早退':[{n:'そうた',k:'あおば組',time:'15:00',r:'習い事',m:'',by:'母',at:'昨日 21:04'}],
+      '朝フレンド':[{n:'めい',k:'つぼみ組',time:'8:00',r:'仕事',m:'',by:'母',at:'昨日 20:11'}],
+      '午後フレンド':[{n:'ことね',k:'つぼみ組',time:'17:00',r:'仕事',m:'',by:'父',at:'昨日 19:45'},{n:'ねね',k:'ふたば組',time:'18:00',r:'仕事',m:'お迎えは祖母です',by:'母',at:'昨日 18:30'}],
+      '連絡':[{n:'あおい',k:'ふたば組',r:'連絡事項',m:'水筒を忘れました。お茶をお願いします',by:'母',at:'07:02'}],
+    },
+    '明日': {
+      '欠席':[{n:'はると',k:'ふたば組',r:'通院',m:'定期検診',by:'母',at:'今日 07:40'}],
+      '遅刻':[], '早退':[{n:'さくら',k:'あおば組',time:'14:30',r:'通院',m:'',by:'母',at:'今日 06:50'}],
+      '朝フレンド':[], '午後フレンド':[{n:'ゆうと',k:'つぼみ組',time:'17:30',r:'仕事',m:'',by:'母',at:'今日 07:15'}], '連絡':[],
+    },
+    '明後日': {'欠席':[],'遅刻':[],'早退':[],'朝フレンド':[],'午後フレンド':[],'連絡':[]},
+  };
+  const [dayN,setDayN] = useState('今日');
+  const [cat,setCat] = useState('欠席');
+  const [extra,setExtra] = useState([]);        // 代理申請の追加分
+  const [done,setDone] = useState({});          // key→確認者表示
+  const [proxy,setProxy] = useState(false);
+  const [pxKid,setPxKid] = useState('ひなた');
+  const [pxCat,setPxCat] = useState('欠席');
+  const [pxMemo,setPxMemo] = useState('');
+  const rows = (d,c)=> (DATA[d][c]||[]).concat(extra.filter(e=>e.day===d&&e.cat===c));
+  const key = (d,c,i)=> d+'|'+c+'|'+i;
+  const confirm = (k)=> setDone(s=>({...s,[k]:'田中 09:15'}));
+  const confirmAll = ()=> { const n={...done}; rows(dayN,cat).forEach((_,i)=>{ n[key(dayN,cat,i)]='田中 09:15'; }); setDone(n); };
+  const remain = rows(dayN,cat).filter((_,i)=>!done[key(dayN,cat,i)]).length;
+  const total = (d)=> Object.keys(CATS).reduce((s,c)=>s+rows(d,c).length,0);
+  const C = CATS[cat];
   return (
     <div>
-      <PageHead title="出欠申請の確認" sub="2026年6月2日（火）・ 保護者アプリからの欠席/遅刻/預かり申請をここで確認"
-        action={<Btn kind="primary" icon="check" onClick={confirmAll}>まとめて確認</Btn>}/>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-        {[['欠席','2','red'],['遅刻','1','amber'],['早退','1','purple'],['預かり','2','green']].map((s,i)=>(
-          <Card key={i} className="p-4"><Stat label={s[0]} value={s[1]} tone={s[2]==='red'?'red':'ink'}/></Card>
-        ))}
-      </div>
-      <Card>
-        <CardHead icon="bell" title={'本日の申請（残り '+remain+' 件）'} action={remain===0&&<Badge tone="green"><Ic name="check" className="w-3 h-3"/>すべて確認済</Badge>}/>
-        <div className="px-5 pb-5 space-y-2">
-          {items.map((it,i)=>(
-            <div key={i} className={cx('flex items-center gap-3 p-3 rounded-xl border transition', done[i]?'border-[#E8F5E9] bg-[#E8F5E9]/40 opacity-70':'border-[#F3E6D9] hover:bg-cream/40')}>
-              <Avatar name={it.n} color={CAT[i]} size={40}/>
-              <div className="flex-1"><div className="font-bold text-ink text-[14px]">{it.n} <span className="ml-1"><Badge tone={it.tone}>{it.type}</Badge></span></div><div className="text-[12px] text-muted font-bold">{it.reason}</div></div>
-              <div className="text-[12px] text-muted font-bold">{it.t}</div>
-              {done[i]
-                ? <span className="inline-flex items-center gap-1 text-[13px] font-bold text-green-600"><Ic name="check" className="w-4 h-4"/>確認済</span>
-                : <Btn kind="soft" icon="check" onClick={()=>confirm(i)}>確認</Btn>}
-            </div>
+      <PageHead title="出欠申請の確認" sub="保護者アプリからの欠席・遅刻・早退・預かり・連絡をここで確認。確認すると保護者にマークが付きます。"
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="headset" onClick={()=>setProxy(true)}>電話受けを代理入力</Btn><Btn kind="primary" icon="check" onClick={confirmAll}>表示中をまとめて確認</Btn></div>}/>
+      <Card className="p-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {['今日','明日','明後日'].map(d=>(
+            <button key={d} onClick={()=>setDayN(d)} className={cx('px-4 py-2 rounded-xl text-[13px] font-bold border transition', dayN===d?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{d}<span className="ml-1.5 text-[11px] opacity-80">{total(d)}</span></button>
           ))}
+          <span className="ml-auto text-[12px] font-bold text-muted">{dayN==='今日'?'6月2日（火）':dayN==='明日'?'6月3日（水）':'6月4日（木）'}・計 {total(dayN)} 件</span>
         </div>
       </Card>
+      <Card className="p-3 mb-4">
+        <div className="flex flex-wrap gap-2">
+          {Object.keys(CATS).map(c=>{ const n=rows(dayN,c).length; return (
+            <button key={c} onClick={()=>setCat(c)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', cat===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{c}<span className={cx('ml-1.5 px-1.5 rounded-full text-[11px]', cat===c?'bg-white/25':(n>0?'bg-cream':'bg-cream opacity-50'))}>{n}</span></button>
+          );})}
+        </div>
+        {C.set && <div className="mt-2 flex items-center justify-between rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2 text-[12px] font-bold"><span className="text-ink">{C.set}・本日の利用 {rows(dayN,cat).length+ (cat==='午後フレンド'?9:2)}名</span><span className={cx((rows(dayN,cat).length+(cat==='午後フレンド'?9:2))>=C.cap/2?'text-amber-600':'text-green-600')}>定員 {C.cap}名（空き {C.cap-rows(dayN,cat).length-(cat==='午後フレンド'?9:2)}）</span></div>}
+      </Card>
+      <Card>
+        <CardHead icon="bell" title={dayN+'の'+cat+'（未確認 '+remain+' 件）'} action={remain===0&&rows(dayN,cat).length>0&&<Badge tone="green"><Ic name="check" className="w-3 h-3"/>すべて確認済</Badge>}/>
+        <div className="px-5 pb-5 space-y-2">
+          {rows(dayN,cat).map((it,i)=>{ const k=key(dayN,cat,i); return (
+            <div key={k} className={cx('flex items-center gap-3 p-3 rounded-xl border transition', done[k]?'border-[#E8F5E9] bg-[#E8F5E9]/40 opacity-80':'border-[#F3E6D9] hover:bg-cream/40')}>
+              <Avatar name={it.n} color={CAT[i%CAT.length]} size={40}/>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-ink text-[14px] flex items-center gap-1.5 flex-wrap">{it.n}<span className="text-[11px] text-muted">{it.k}</span>{it.time && <Badge tone={C.tone}>{C.col} {it.time}</Badge>}{it.proxy && <Badge tone="gray">代理入力</Badge>}</div>
+                <div className="text-[12px] text-muted font-bold truncate">{it.r}{it.m && <span className="text-ink">・「{it.m}」</span>}</div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-[11px] text-muted font-bold">{it.by} {it.at}</div>
+                {done[k]
+                  ? <span className="inline-flex items-center gap-1 text-[12px] font-bold text-green-600"><Ic name="check" className="w-4 h-4"/>確認 {done[k]}</span>
+                  : <Btn kind="soft" icon="check" onClick={()=>confirm(k)} className="mt-0.5 py-1.5">確認</Btn>}
+              </div>
+            </div>
+          );})}
+          {rows(dayN,cat).length===0 && <div className="text-[13px] font-bold text-muted text-center py-4">{dayN}の{cat}の申請はありません</div>}
+        </div>
+      </Card>
+      <div className="mt-3 text-[12px] text-muted font-bold px-1">※ 欠席はバス・給食・預かりへ自動連動。確認すると保護者アプリの申請に「先生確認済」マークが付きます。電話・口頭で受けた分は「電話受けを代理入力」で記録できます（紙文化との橋渡し）。</div>
+
+      <Modal open={proxy} onClose={()=>setProxy(false)} icon="headset" title="電話受けを代理入力" sub="保護者から電話・口頭で受けた申請を先生が代行登録します">
+        <div className="space-y-3">
+          <div><div className="text-[12px] text-muted font-bold mb-1">園児</div>
+            <div className="flex flex-wrap gap-1.5">{['ひなた','さくら','りく','めい','そうた'].map(n=>(
+              <button key={n} onClick={()=>setPxKid(n)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', pxKid===n?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{n}</button>
+            ))}</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">種別</div>
+            <div className="flex flex-wrap gap-1.5">{Object.keys(CATS).map(c=>(
+              <button key={c} onClick={()=>setPxCat(c)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', pxCat===c?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{c}</button>
+            ))}</div></div>
+          <div><div className="text-[12px] text-muted font-bold mb-1">内容メモ</div>
+            <input value={pxMemo} onChange={e=>setPxMemo(e.target.value)} placeholder="例：祖母から電話。発熱のためお休み" className="w-full bg-cream rounded-xl px-3 py-2.5 text-[13px] font-bold text-ink border border-[#F3E6D9] outline-none"/></div>
+          <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setExtra(x=>[...x,{day:dayN,cat:pxCat,n:pxKid,k:'あおば組',r:pxMemo||'電話連絡',m:'',by:'園（代理）',at:'09:20',proxy:true}]); setProxy(false); setPxMemo(''); mockTap('代理入力しました。保護者の申請履歴にも記録されます（モック）'); }}>この内容で登録</Btn>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -3552,28 +3610,117 @@ function ParentPhoto({setTab}){
   </div>);
 }
 function ParentAttend(){
-  const types=['欠席','遅刻','早退','朝フレンド','午後フレンド','連絡'];
+  // コミュなび出欠申請なびの設計移植: カレンダー起点(種別色・行事旗・定員ストライプ)・種別別フォーム・繰り返し申請・申請一覧から取消・先生確認済マーク。
+  const TYPES=[
+    {t:'欠席',    c:'#E8736B', reasons:['発熱・体調不良','通院','家庭の都合','その他']},
+    {t:'遅刻',    c:'#E8A04B', reasons:['通院後に登園','家庭の都合','その他'], time:'登園予定', def:'10:00'},
+    {t:'早退',    c:'#8E7BD8', reasons:['習い事','通院','家庭の都合','その他'], time:'お迎え時刻', def:'15:00'},
+    {t:'朝フレンド',  c:'#4E9DD0', set:'1号フレンド',     cap:[3,12],  time:'登園時刻',   def:'8:00',  reasons:['仕事','その他']},
+    {t:'午後フレンド', c:'#4CAF7D', set:'1号午後フレンド', cap:[11,20], time:'お迎え時刻', def:'17:00', reasons:['仕事','その他']},
+    {t:'連絡',    c:'#9A8B7A', reasons:['連絡事項']},
+  ];
   const [type,setType] = useState('欠席');
-  const [reason,setReason] = useState('発熱のためお休みします');
+  const T = TYPES.find(x=>x.t===type);
+  const [day,setDay] = useState(3);
+  const [repeat,setRepeat] = useState(false);
+  const [reason,setReason] = useState('発熱・体調不良');
+  const [memo,setMemo] = useState('');
+  const [time,setTime] = useState('10:00');
   const [sent,setSent] = useState(false);
+  const [apps,setApps] = useState([
+    {d:2, t:'欠席', r:'発熱・体調不良', ok:true},
+    {d:5, t:'午後フレンド', r:'仕事', ok:false},
+  ]);
+  const pickType=(t)=>{ const x=TYPES.find(y=>y.t===t); setType(t); setReason(x.reasons[0]); if(x.def) setTime(x.def); };
+  // 2026年6月: 6/1=月曜。土日は申請不可(白)。15日=午後フレンド定員半分到達(ストライプ)。
+  const WD=['月','火','水','木','金','土','日'];
+  const EVENTS={20:'保育参観', 24:'プール開き'};
+  const STRIPE=[15];
+  const wdOf=(d)=> WD[(d-1)%7];
+  const isClosed=(d)=> ['土','日'].includes(wdOf(d));
+  const colorOf=(t)=> (TYPES.find(x=>x.t===t)||{}).c;
   if(sent) return (<div><PTitle sub="送信が完了しました">出欠の申請</PTitle>
     <div className="px-5 space-y-3">
       <Card className="p-6 text-center"><div className="w-14 h-14 rounded-2xl bg-[#E8F5E9] text-green-600 mx-auto flex items-center justify-center mb-3"><Ic name="check" className="w-7 h-7"/></div>
         <div className="font-extrabold text-ink text-lg">申請しました</div>
-        <p className="text-[13px] text-muted font-bold mt-1">6月3日（水）・ {type}<br/>担任の先生に通知されました。</p>
+        <p className="text-[13px] text-muted font-bold mt-1">6月{day}日（{wdOf(day)}）{repeat?'から毎週'+wdOf(day)+'曜':''}・ {type}<br/>担任の先生に通知されました。確認されるとマークが付きます。</p>
         <div className="mt-3"><Badge tone="amber">先生の確認待ち</Badge></div>
       </Card>
       <Btn kind="ghost" className="w-full" onClick={()=>setSent(false)}>続けて申請する</Btn>
     </div></div>);
-  return (<div><PTitle sub="欠席・遅刻・お迎え時間など">出欠の申請</PTitle>
+  return (<div><PTitle sub="カレンダーから日付を選んで申請">出欠の申請</PTitle>
     <div className="px-5 space-y-3">
-      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-2">申請の種類</div>
-        <div className="grid grid-cols-3 gap-2">{types.map((t,i)=><button key={i} onClick={()=>setType(t)} className={cx('py-2 rounded-xl text-[12px] font-bold border transition', type===t?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{t}</button>)}</div>
+      <div className="rounded-xl bg-[#EFF6FD] border border-[#AFD0F0]/70 px-3 py-2 text-[11px] font-bold text-[#3F6E99]">当日分の申請は 8:30 まで受付（園の設定）。先の予定は90日先・毎週の繰り返しもまとめて申請できます。</div>
+      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-2">申請の種類（色がカレンダーに対応）</div>
+        <div className="grid grid-cols-3 gap-2">{TYPES.map((x)=>(
+          <button key={x.t} onClick={()=>pickType(x.t)} className={cx('py-2.5 rounded-xl text-[12px] font-bold border transition flex items-center justify-center gap-1.5', type===x.t?'text-white border-transparent':'bg-white text-gray-600 border-[#E8D5C4]')} style={type===x.t?{background:x.c}:{}}>
+            <span className="w-2 h-2 rounded-full shrink-0" style={{background:type===x.t?'#fff':x.c}}/>{x.t}
+          </button>
+        ))}</div>
       </Card>
-      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">日付</div><div className="font-bold text-ink flex items-center gap-2"><Ic name="calendar" className="w-4 h-4 text-brand-500"/>2026年6月3日（水）</div></Card>
-      <Card className="p-4"><div className="text-[12px] text-muted font-bold mb-1">{type==='欠席'?'理由':'連絡事項'}</div><input value={reason} onChange={e=>setReason(e.target.value)} className="w-full text-[13px] text-ink font-bold bg-cream rounded-lg px-3 py-2 border border-[#F3E6D9] outline-none"/></Card>
-      <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>setSent(true)}>この内容で申請する</Btn>
-      <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[12px] text-muted font-bold">兄弟がいる場合はまとめて申請できます。オフラインでも送信予約されます。</div>
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-2"><span className="text-[12px] text-muted font-bold">2026年6月（日付タップで選択）</span><span className="text-[10px] font-bold text-muted">旗=行事・しま=預かり残りわずか</span></div>
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-muted mb-1">{WD.map(w=><div key={w}>{w}</div>)}</div>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({length:30},(_,i)=>i+1).map(d=>{
+            const closed=isClosed(d); const today=d===3; const sel=d===day;
+            const stripe=STRIPE.includes(d)&&(type==='午後フレンド');
+            return (
+              <button key={d} disabled={closed} onClick={()=>setDay(d)}
+                className={cx('relative aspect-square rounded-lg text-[12px] font-bold flex flex-col items-center justify-center gap-0.5 border transition',
+                  closed?'bg-white text-gray-300 border-transparent':'border-[#F3E6D9] text-ink active:scale-95',
+                  sel&&'ring-2 ring-brand-500', today&&'border-red-400 border-2')}
+                style={stripe?{background:'repeating-linear-gradient(45deg,#FFF7F1,#FFF7F1 4px,#FDE7CF 4px,#FDE7CF 8px)'}:(closed?{}:{background:'#fff'})}>
+                <span>{d}</span>
+                <span className="flex items-center gap-0.5">
+                  {apps.filter(a=>a.d===d).slice(0,2).map((a,j)=><span key={j} className="w-1.5 h-1.5 rounded-full" style={{background:colorOf(a.t)}}/>)}
+                  {EVENTS[d] && <Ic name="send" className="w-2.5 h-2.5 text-brand-400 rotate-[-45deg]"/>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {EVENTS[day] && <div className="mt-2 text-[11px] font-bold text-brand-600">6/{day} 行事：{EVENTS[day]}</div>}
+      </Card>
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between"><span className="text-[12px] text-muted font-bold">対象日</span><span className="font-extrabold text-ink">6月{day}日（{wdOf(day)}）{repeat&&<span className="text-brand-600 text-[12px]">から毎週{wdOf(day)}曜（7月末まで）</span>}</span></div>
+        <Toggle on={repeat} onToggle={()=>setRepeat(v=>!v)} label={'毎週'+wdOf(day)+'曜日に繰り返す（習い事の早退など）'}/>
+        {T.set && (
+          <div className="flex items-center justify-between rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2">
+            <span className="text-[12px] font-bold text-ink">{T.set}</span>
+            <span className={cx('text-[12px] font-bold', T.cap[0]>=T.cap[1]/2?'text-amber-600':'text-green-600')}>空き {T.cap[1]-T.cap[0]}/{T.cap[1]}名{T.cap[0]>=T.cap[1]/2&&'（残りわずか）'}</span>
+          </div>
+        )}
+        {T.time && (
+          <div><div className="text-[12px] text-muted font-bold mb-1">{T.time}</div>
+            <div className="flex flex-wrap gap-1.5">{['8:00','9:00','10:00','11:00','14:00','15:00','16:00','17:00','18:00'].map(x=>(
+              <button key={x} onClick={()=>setTime(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', time===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+            ))}</div></div>
+        )}
+        <div><div className="text-[12px] text-muted font-bold mb-1">理由（選択式）</div>
+          <div className="flex flex-wrap gap-1.5">{T.reasons.map(x=>(
+            <button key={x} onClick={()=>setReason(x)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', reason===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>
+          ))}</div></div>
+        <div><div className="text-[12px] text-muted font-bold mb-1">先生への伝言{reason==='発熱・体調不良'&&'（症状・体温など）'}</div>
+          <input value={memo} onChange={e=>setMemo(e.target.value)} placeholder={reason==='発熱・体調不良'?'例：朝37.8℃。咳があります':'任意'} className="w-full text-[13px] text-ink font-bold bg-cream rounded-lg px-3 py-2.5 border border-[#F3E6D9] outline-none"/></div>
+        {type==='欠席' && <div className="text-[11px] font-bold text-warm bg-cream/60 rounded-xl px-3 py-2">欠席を申請すると、バス乗車・給食・預かりも自動でキャンセルされます（個別連絡は不要です）。</div>}
+        <Btn kind="primary" icon="check" className="w-full py-3" onClick={()=>{ setApps(a=>[...a,{d:day,t:type,r:reason,ok:false,rep:repeat}]); setSent(true); }}>この内容で申請する</Btn>
+      </Card>
+      <Card className="p-4">
+        <div className="text-[12px] text-muted font-bold mb-2">申請の一覧（タップせず取消も可能）</div>
+        <div className="space-y-1.5">
+          {apps.sort((a,b)=>a.d-b.d).map((a,i)=>(
+            <div key={i} className="flex items-center gap-2 rounded-xl border border-[#F3E6D9] px-3 py-2">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{background:colorOf(a.t)}}/>
+              <div className="flex-1 min-w-0"><div className="text-[13px] font-bold text-ink">6/{a.d}（{wdOf(a.d)}）{a.t}{a.rep&&'・毎週'}</div><div className="text-[11px] text-muted font-bold truncate">{a.r}</div></div>
+              {a.ok? <span className="inline-flex items-center gap-1 text-[11px] font-bold text-green-600 shrink-0"><Ic name="check" className="w-3.5 h-3.5"/>先生確認済</span> : <Badge tone="amber">確認待ち</Badge>}
+              <button onClick={()=>{ setApps(l=>l.filter((_,j)=>j!==i)); mockTap('申請を取り消しました（先生にも通知されます・モック）'); }} className="text-muted hover:text-red-500 p-1.5 shrink-0" title="申請を取り消す"><Ic name="plus" className="w-4 h-4 rotate-45"/></button>
+            </div>
+          ))}
+          {apps.length===0 && <div className="text-[12px] font-bold text-muted text-center py-2">申請はありません</div>}
+        </div>
+      </Card>
+      <div className="bg-cream rounded-xl p-3 border border-[#F3E6D9] text-[12px] text-muted font-bold">兄弟がいる場合はまとめて申請できます。先生が確認すると一覧にマークが付きます（モック）。</div>
     </div></div>);
 }
 function PSubHead({children, setTab}){
