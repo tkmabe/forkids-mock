@@ -1873,10 +1873,29 @@ function DailyCheck(){
   const entered = rows.filter(k=>att[k.id]).length;
   const absent = rows.filter(k=>att[k.id]==='欠席').length;
   const fever = rows.filter((k,ri)=> (5+ri%4)>=8).length; // 36.8℃以上を「やや高め」として可視化
+  // 与薬（保護者依頼→園が投与記録・ダブルチェック）。医師処方薬のみ・同意必須。
+  const [meds,setMeds] = useState([
+    {n:'ひなた', med:'抗アレルギー薬（処方）', tim:'昼食後', dose:'1包', ok:false},
+    {n:'そうた', med:'解熱剤（処方・37.8℃以上のみ）', tim:'必要時', dose:'1錠', ok:true, by:'佐藤 12:10・確認 田中'},
+  ]);
+  const giveMed=(i)=>{ setMeds(l=>l.map((x,j)=>j===i?{...x,ok:true,by:'田中 12:35・確認 佐藤'}:x)); mockTap('投与を記録しました（投与者+確認者のダブルチェック・保護者にも通知されます・モック）'); };
   return (
     <div className="pb-24 md:pb-0">{/* モバイルは下部固定バーの分の余白 */}
       <PageHead title="まいにちチェック" sub="出欠・午睡・排便・検温・食事・水分・服薬を一括記録。前回コピーで時短。園児の出欠をタップで記録。"
         action={<div className="hidden md:flex gap-2"><Btn kind="soft" icon="check" onClick={copyPrev}>前回をコピー</Btn><Btn kind="primary" icon="check" onClick={()=>setSaved(true)}>この内容で保存</Btn></div>}/>
+      <Card className="p-4 mb-4">
+        <div className="flex items-center justify-between mb-2"><span className="text-[13px] font-extrabold text-ink">今日の与薬予定（保護者からの依頼・同意済のみ）</span><span className="text-[11px] font-bold text-muted">医師処方薬のみ・市販薬は不可</span></div>
+        <div className="space-y-2">{meds.map((m,i)=>(
+          <div key={i} className={cx('flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5', m.ok?'border-[#CDEBD6] bg-[#F2FBF5]':'border-amber-200 bg-amber-50/50')}>
+            <span className="font-bold text-ink text-[13px]">{m.n}</span>
+            <span className="flex-1 min-w-[140px] text-[12px] font-bold text-muted">{m.med}・{m.tim}・{m.dose}<span className="text-green-600 ml-1.5">保護者同意済</span></span>
+            {m.ok
+              ? <span className="inline-flex items-center gap-1 text-[12px] font-bold text-green-700 shrink-0"><Ic name="check" className="w-4 h-4"/>投与済（{m.by}）</span>
+              : <Btn kind="primary" icon="check" onClick={()=>giveMed(i)} className="py-1.5 shrink-0">投与を記録</Btn>}
+          </div>
+        ))}</div>
+        <div className="mt-2 text-[10px] font-bold text-muted">投与は投与者＋確認者のダブルチェックで記録し、保護者へ自動通知。お家の検温（れんらく帳）とこの画面の検温列は同じ記録につながります。</div>
+      </Card>
       {saved && <Card className="p-3 mb-4 border-2 border-[#CDEBD6] bg-[#F2FBF5]"><div className="flex items-center gap-2 text-[13px]"><span className="w-7 h-7 rounded-lg bg-[#E8F5E9] text-green-600 flex items-center justify-center"><Ic name="check" className="w-4 h-4"/></span><span className="font-bold text-ink">{klass}の本日のチェックを保存しました（出欠 {entered}/{rows.length}名・欠席 {absent}名）。欠席はバス・精算・れんらく帳に連動します。</span></div></Card>}
       <Card className="p-3 mb-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -3024,8 +3043,18 @@ function KidsInfo(){
 
 function Allergy(){
   // 各献立が含むアレルゲン（架空）。園児のアレルゲンと自動クロスして該当セルを警告する。
+  // A4-9の移植: 食品衛生法28品目マスター(特定原材料7+準ずる21)検索・「アレルギー無し」抽出・給食室向け除去食リスト。
   const menu=[['ごはん',[]],['みそ汁',['大豆']],['鶏のからあげ',['卵','小麦']],['ひじき煮',['大豆']],['牛乳',['乳']]];
   const kids=[['ひなた',['卵','乳'],'代替食'],['りく',['えび','かに'],'除去'],['めい',['小麦'],'代替食'],['そうた',['そば'],'要確認'],['ことね',['大豆'],'除去']];
+  const NO_ALG=['さくら','あおい','ゆうと'];
+  const ITEMS7=['えび','かに','小麦','そば','卵','乳','落花生'];
+  const ITEMS21=['あわび','いか','いくら','オレンジ','カシューナッツ','キウイ','牛肉','くるみ','ごま','さけ','さば','大豆','鶏肉','バナナ','豚肉','まつたけ','もも','やまいも','りんご','ゼラチン','その他'];
+  const [flt,setFlt]=useState({});
+  const [show21,setShow21]=useState(false);
+  const [noAlg,setNoAlg]=useState(false);
+  const toggleF=(a)=> setFlt(o=>{ const n={...o}; if(n[a]) delete n[a]; else n[a]=true; setNoAlg(false); return n; });
+  const fkeys=Object.keys(flt);
+  const found = noAlg ? NO_ALG.map(n=>[n,[]]) : (fkeys.length? kids.filter(k=>k[1].some(a=>fkeys.includes(a))) : []);
   const hit=(kAllerg,mAllerg)=> kAllerg.filter(a=>mAllerg.includes(a));
   const [sel,setSel]=useState(null); // {ki,mi}
   const totalHits = kids.reduce((s,k)=> s + menu.filter(m=>hit(k[1],m[1]).length).length, 0);
@@ -3033,7 +3062,29 @@ function Allergy(){
   return (
     <div>
       <PageHead title="給食・アレルギー" sub="献立 × アレルゲンを自動クロス。該当セルを色で警告し、配膳ミスを防ぐ。"
-        action={<div className="flex gap-2"><Btn kind="ghost" icon="calendar" onClick={()=>mockTap('明日以降の献立を取込（モック）')}>献立を取込</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('本日の配膳対応表を印刷（モック）')}>対応表を印刷</Btn></div>}/>
+        action={<div className="flex gap-2"><Btn kind="ghost" icon="calendar" onClick={()=>mockTap('明日以降の献立を取込（モック）')}>献立を取込</Btn><Btn kind="ghost" icon="file" onClick={()=>mockTap('給食室向け：本日の除去食リストを出力しました（対象3名・卵=からあげ／乳=牛乳／大豆=みそ汁・ひじき煮、モック）')}>給食室へ除去食リスト</Btn><Btn kind="primary" icon="file" onClick={()=>mockTap('本日の配膳対応表を印刷（モック）')}>対応表を印刷</Btn></div>}/>
+      <Card className="p-4 mb-5">
+        <div className="flex items-center justify-between mb-2"><span className="text-[13px] font-extrabold text-ink">アレルギー検索（食品衛生法28品目マスター）</span><span className="text-[11px] font-bold text-muted">名簿センターの生育情報から集約</span></div>
+        <div className="flex flex-wrap gap-1.5">
+          {ITEMS7.map(a=>(
+            <button key={a} onClick={()=>toggleF(a)} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', flt[a]?'bg-red-500 text-white border-red-500':'bg-white text-gray-600 border-[#E8D5C4]')}>{a}</button>
+          ))}
+          <button onClick={()=>setShow21(v=>!v)} className="px-3 py-2 rounded-xl text-[12px] font-bold border bg-cream text-muted border-[#E8D5C4]">{show21?'− 準ずる21品目を閉じる':'＋ 準ずる21品目'}</button>
+          <button onClick={()=>{ setNoAlg(v=>!v); setFlt({}); }} className={cx('px-3 py-2 rounded-xl text-[12px] font-bold border transition', noAlg?'bg-green-500 text-white border-green-500':'bg-white text-gray-600 border-[#E8D5C4]')}>アレルギー無し</button>
+        </div>
+        {show21 && <div className="mt-1.5 flex flex-wrap gap-1.5">{ITEMS21.map(a=>(
+          <button key={a} onClick={()=>toggleF(a)} className={cx('px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition', flt[a]?'bg-red-500 text-white border-red-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{a}</button>
+        ))}</div>}
+        {(fkeys.length>0 || noAlg) && (
+          <div className="mt-3 rounded-xl bg-cream/60 border border-[#F3E6D9] px-3 py-2.5">
+            <div className="text-[12px] font-bold text-ink mb-1.5">{noAlg?'アレルギーの登録がない園児':'該当する園児'}：{found.length}名</div>
+            <div className="flex flex-wrap gap-1.5">{found.map((k,i)=>(
+              <span key={i} className={cx('inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-bold border', noAlg?'bg-white border-[#CDEBD6] text-green-700':'bg-white border-red-200 text-ink')}>{k[0]}{k[1].length>0&&<span className="text-[10px] text-red-500">{k[1].join('・')}</span>}</span>
+            ))}{found.length===0 && <span className="text-[12px] font-bold text-muted">該当なし</span>}</div>
+          </div>
+        )}
+        <div className="mt-2 text-[10px] font-bold text-muted">特定原材料7品目＋準ずる21品目＋その他（法定マスター準拠）。「アレルギー無し」での抽出もできます（除去食対象外の確認用）。</div>
+      </Card>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <Card className="p-4"><Stat label="本日の献立" value={menu.length+'品'} tone="ink"/></Card>
         <Card className="p-4"><Stat label="対応必要な園児" value={kids.length+'名'} tone="orange"/></Card>
@@ -3881,8 +3932,19 @@ function ParentNotice(){
   const [hBf,setHBf] = useState('完食');
   const [hSl,setHSl] = useState('21:00-6:30');
   const [hTxt,setHTxt] = useState('');
+  // 与薬依頼（医師処方薬のみ・保護者同意必須→園が投与記録・ダブルチェック）
+  const [medOpen,setMedOpen] = useState(false);
+  const [medName,setMedName] = useState('');
+  const [medTim,setMedTim] = useState('昼食後');
+  const [medAgree,setMedAgree] = useState(false);
   const send = ()=>{ if(!val.trim()) return; setMsgs(m=>[...m,{body:val.trim(),t:'たった今'}]); setVal(''); };
   const sendHome = ()=>{ setMsgs(m=>[...m,{home:{t:hT,bf:hBf,sl:hSl,txt:hTxt.trim()},t:'たった今'}]); setHomeOpen(false); setHTxt(''); mockTap('お家での様子を送りました。先生が確認すると既読が付きます（モック）'); };
+  const sendMed = ()=>{
+    if(!medName.trim()){ mockTap('お薬の名前を入力してください'); return; }
+    if(!medAgree){ mockTap('同意のチェックが必要です（医師処方薬のみ）'); return; }
+    setMsgs(m=>[...m,{med:{name:medName.trim(),tim:medTim},t:'たった今'}]); setMedOpen(false); setMedName(''); setMedAgree(false);
+    mockTap('与薬を依頼しました。園が投与するとダブルチェックの記録つきで通知が届きます（モック）');
+  };
   return (<div><PTitle sub="先生とのやりとり（健康・連絡）">れんらく帳</PTitle>
     <div className="px-5 space-y-3">
       <div className="text-center"><span className="text-[11px] font-bold text-muted bg-cream px-2 py-0.5 rounded-full">6月6日（金）</span></div>
@@ -3902,9 +3964,30 @@ function ParentNotice(){
               <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">睡眠 {m.home.sl}</span>
             </div>
             {m.home.txt && <p>{m.home.txt}</p>}
+          </div>) : m.med ? (<div>
+            <div className="text-[11px] font-bold text-green-700 mb-1">与薬のお願い（同意済）</div>
+            <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
+              <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">{m.med.name}</span>
+              <span className="rounded-lg bg-white border border-[#CDEBD6] px-2 py-1">{m.med.tim}</span>
+              <span className="rounded-lg bg-amber-50 border border-amber-200 px-2 py-1 text-amber-700">園の投与待ち</span>
+            </div>
           </div>) : m.body}
         </div></div>
       ))}
+      {!medOpen ? (
+        <button onClick={()=>setMedOpen(true)} className="w-full rounded-2xl border-2 border-dashed border-[#F4D58D] bg-[#FFFBEF] px-4 py-3 text-[13px] font-bold text-amber-700 flex items-center justify-center gap-2 active:scale-[0.99] transition"><Ic name="shield" className="w-4 h-4"/>お薬の依頼を送る（与薬依頼）</button>
+      ) : (
+        <div className="rounded-2xl border border-[#F4D58D] bg-[#FFFBEF] p-3 space-y-2">
+          <div className="text-[12px] font-bold text-amber-700">与薬依頼（医師に処方されたお薬のみ・市販薬は預かれません）</div>
+          <input value={medName} onChange={e=>setMedName(e.target.value)} placeholder="お薬の名前（例：抗アレルギー薬 1包）" className="w-full bg-white rounded-xl px-3 py-2.5 text-[12px] font-bold text-ink border border-[#F4D58D] outline-none"/>
+          <div><div className="text-[11px] font-bold text-muted mb-1">飲ませるタイミング</div><div className="flex gap-1.5">{['朝','昼食後','夕','必要時'].map(x=>(<button key={x} onClick={()=>setMedTim(x)} className={cx('flex-1 px-2 py-2 rounded-xl text-[12px] font-bold border transition', medTim===x?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4]')}>{x}</button>))}</div></div>
+          <button onClick={()=>setMedAgree(v=>!v)} className="w-full flex items-start gap-2 text-left">
+            <span className={cx('w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5', medAgree?'bg-brand-500 border-brand-500 text-white':'border-[#E8D5C4] bg-white')}>{medAgree&&<Ic name="check" className="w-3.5 h-3.5"/>}</span>
+            <span className="text-[11px] font-bold text-ink">医師の指示によるお薬です。園での投与に同意します（必須）。</span>
+          </button>
+          <div className="flex gap-2"><Btn kind="ghost" className="flex-1" onClick={()=>setMedOpen(false)}>閉じる</Btn><Btn kind="primary" icon="send" className="flex-1" onClick={sendMed}>依頼する</Btn></div>
+        </div>
+      )}
       {!homeOpen ? (
         <button onClick={()=>setHomeOpen(true)} className="w-full rounded-2xl border-2 border-dashed border-[#CDEBD6] bg-[#F2FBF5] px-4 py-3 text-[13px] font-bold text-green-700 flex items-center justify-center gap-2 active:scale-[0.99] transition"><Ic name="heart" className="w-4 h-4"/>お家での様子を送る（検温・朝食・睡眠）</button>
       ) : (
