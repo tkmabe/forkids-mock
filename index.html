@@ -5420,7 +5420,9 @@ function Login({go}){
           <div className="text-[11px] font-bold text-warm mb-3">3つのポータルは完全に分離されています</div>
           <button onClick={()=>go('teacher')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:bg-brand-50 transition mb-3">
             <div className="w-11 h-11 rounded-xl bg-cat-orange/50 flex items-center justify-center text-ink/70"><Ic name="teacher" className="w-6 h-6"/></div>
-            <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">園として</span><Badge tone="orange">保育者・主任・園長</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">記録・要録・保護者連携・台帳・園運営（役割で出し分け）</div></div>
+            <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">園として</span><Badge tone="orange">保育者・主任・園長</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">記録・要録・保護者連携・台帳・園運営（役割で出し分け）</div>
+              <div className="flex items-center gap-1 mt-1.5 flex-wrap"><span className="text-[11px] font-bold text-warm">サービス：</span><Badge tone="green">幼稚園 標準</Badge><span className="text-[11px] text-warm font-bold">＋</span><Badge tone="orange">児童発達 オプション</Badge><Badge tone="blue">学童 連携</Badge></div>
+            </div>
             <Ic name="chevron" className="w-5 h-5 text-brand-400"/>
           </button>
           <button onClick={()=>go('__parent')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:bg-brand-50 transition mb-3">
