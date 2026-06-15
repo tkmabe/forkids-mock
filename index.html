@@ -4000,27 +4000,41 @@ function StaffApp({screen, go}){
 }
 
 /* ======================================================================
-   児童発達支援(障害児通所) モック画面 ＋ サービス切替（オプション構造の可視化）
+   児童発達支援(障害児通所) モック ＋ サービス切替（オプション構造の可視化）
    ----------------------------------------------------------------------
-   あべ氏指示(2026-06-15)：幼稚園メイン＋児発(＋学童)が「オプションで足せる」
-   構造を“触って分かる”UIに。サービス切替で 幼稚園/児発/学童 を見せる。
-   fKidsの児発研究(docs/design/jihatsu_competitive_ui_2026-06-15.md)に整合：
+   あべ氏指示(2026-06-15/16)：幼稚園メイン＋児発(＋学童)が「オプションで足せる」
+   構造を“触って分かる”UIに。打合せでそのまま見せられる完成度（リアルなサンプル）。
+   fKidsの児発研究(docs/design/jihatsu_competitive_ui・17_jidou_hattatsu・18_kokuhoren)に整合：
    ・単一入力→多帳票自動波及（記録1回→実績票/国保連請求/連絡）
    ・音声→AI下書き（観察・支援目標・モニタリング所見）＝forKidsの勝ち筋
-   ・期限/加算の先回り提示（6か月モニタリング・減算防止）
-   ※設計+モックのみ。請求/国保連/新ロール等の要件確定は fKids/あべ氏主導。
+   ・期限/加算/上限額の先回り提示（6か月モニタリング・減算/算定もれ防止）
+   ※設計+モックのみ。金額・単位数はダミー。国保連/新ロール等の要件確定は fKids/あべ氏主導。
    ====================================================================== */
 
 /* ---- 児発 サンプルデータ（架空・ダミー） ---- */
 const JI_RYOIKI = ['健康・生活','運動・感覚','認知・行動','言語・コミュニケーション','人間関係・社会性'];
 const JI_KIDS = [
-  {n:'たいち', age:'年中相当', cert:'児発', days:'週3（月・水・金）', cap:'23日/月', uplan:'2026-04〜09', color:CAT[1]},
-  {n:'ひかり', age:'年長相当', cert:'児発', days:'週2（火・木）',   cap:'23日/月', uplan:'2026-05〜10', color:CAT[2]},
-  {n:'そら',   age:'年少相当', cert:'児発', days:'週4',            cap:'23日/月', uplan:'2026-03〜08', color:CAT[3]},
-  {n:'あかり', age:'年中相当', cert:'児発', days:'週3',            cap:'10日/月', uplan:'2026-06〜11', color:CAT[4]},
+  {n:'たいち', age:'4歳(年中相当)', cert:'児発',  days:'週3（月・水・金）', cap:'23日/月', burden:'一般1（4,600円）', uplan:'2026-04〜09', mon:'7/2', tantou:'佐藤', color:CAT[1]},
+  {n:'ひかり', age:'5歳(年長相当)', cert:'児発',  days:'週2（火・木）',     cap:'23日/月', burden:'一般2（37,200円）',uplan:'2026-05〜10', mon:'6/20',tantou:'田中', color:CAT[2]},
+  {n:'そら',   age:'3歳(年少相当)', cert:'児発',  days:'週4',              cap:'23日/月', burden:'生活保護（0円）',  uplan:'2026-03〜08', mon:'6/18',tantou:'鈴木', color:CAT[3]},
+  {n:'あかり', age:'4歳(年中相当)', cert:'児発',  days:'週3',              cap:'10日/月', burden:'一般1（4,600円）', uplan:'2026-06〜11', mon:'7/15',tantou:'佐藤', color:CAT[4]},
+  {n:'はやと', age:'5歳(年長相当)', cert:'児発',  days:'週2',              cap:'23日/月', burden:'一般1（4,600円）', uplan:'2026-02〜07', mon:'6/17',tantou:'田中', color:CAT[0]},
+  {n:'みなと', age:'3歳(年少相当)', cert:'児発',  days:'週3',              cap:'23日/月', burden:'生活保護（0円）',  uplan:'2026-05〜10', mon:'7/8', tantou:'鈴木', color:CAT[5]},
 ].map((k,i)=>({...k,id:i}));
 
-/* ---- 児発：オプション概要ホーム（“足せる”を触って分かる入口） ---- */
+const JI_OBS = [
+  {d:'6/15', who:'たいち', ryo:'認知・行動', t:'ブロックを高く積むことに集中。崩れても「もう一回」と再挑戦できた。'},
+  {d:'6/15', who:'ひかり', ryo:'人間関係・社会性', t:'おままごとで友だちに「どうぞ」と渡す姿。順番待ちは声かけで成立。'},
+  {d:'6/13', who:'そら',   ryo:'言語・コミュニケーション', t:'要求を指さし＋単語で表現。「ちょうだい」が出始めた。'},
+  {d:'6/13', who:'たいち', ryo:'運動・感覚', t:'平均台を補助なしで渡れた。高い所はまだ怖がる。'},
+];
+
+/* 共通：節セクション見出し */
+function SubHead({icon,title,right}){
+  return <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-2 text-[13px] font-extrabold text-ink"><span className="text-brand-500"><Ic name={icon} className="w-[18px] h-[18px]"/></span>{title}</div>{right}</div>;
+}
+
+/* ---- 児発：オプション概要ホーム（“足せる”＋今日のサマリ） ---- */
 function JihatsuHome({go}){
   const cards = [
     {id:'j_assess', icon:'mic',      t:'行動観察・アセスメント', d:'音声→AIで整文。5領域で記録'},
@@ -4032,24 +4046,40 @@ function JihatsuHome({go}){
     {id:'j_bus',    icon:'bus',      t:'バス送迎案内',          d:'送迎編成＋保護者へ到着案内'},
     {id:'j_notice', icon:'bell',     t:'お知らせ・配信',        d:'既読の見える化＋未読者へ再送'},
   ];
+  const plan = [
+    {id:'youchien', t:'幼稚園', d:'基本機能（記録・要録・保護者連携）', state:'利用中', tone:'green', icon:'leaf'},
+    {id:'jihatsu',  t:'児童発達支援', d:'受給者証・個別支援計画・国保連請求', state:'追加済（オプション）', tone:'orange', icon:'heart'},
+    {id:'gakudo',   t:'学童（こしょこしょ）', d:'卒園後の入退室・連絡・写真の継続', state:'連携（準備中）', tone:'blue', icon:'book'},
+  ];
   return (
     <div className="space-y-5">
       <PageHead title="児童発達支援（オプション機能）" sub="幼稚園の基本機能に“追加で”使えるモジュールです。下のカードから各画面に触れます。"/>
+
+      {/* 今日のサマリ＝空っぽ感を消す */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="p-4"><Stat label="本日の来所" value="5 / 6" tone="orange"/></Card>
+        <Card className="p-4"><Stat label="計画 見直し期限間近" value="2名" tone="red"/></Card>
+        <Card className="p-4"><Stat label="サイン未取得" value="2" tone="ink"/></Card>
+        <Card className="p-4"><Stat label="今月 給付費(見込)" value="¥58万" tone="green"/></Card>
+      </div>
+
+      {/* プラン構成＝“オプションで足せる”を一目で */}
       <Card className="p-5 bg-gradient-to-br from-brand-50 to-white">
-        <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-brand-500 text-white flex items-center justify-center shrink-0"><Ic name="heart" className="w-6 h-6"/></div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-extrabold text-ink text-[16px]">この園は「幼稚園 ＋ 児童発達支援」で利用中</h3>
-              <Badge tone="orange">オプション ON</Badge>
-            </div>
-            <p className="text-[13px] text-gray-600 font-bold mt-1 leading-relaxed">
-              左上の<span className="text-brand-600">サービス切替</span>で、幼稚園／児童発達支援／学童（こしょこしょ連携）を行き来できます。
-              児発は<span className="text-brand-600">受給者証・個別支援計画・国保連請求</span>など療育に必要な機能を、園の運用に“足す”形で提供します。
-            </p>
-          </div>
+        <SubHead icon="grid" title="この園のサービス構成（オプションで足せます）" right={<Badge tone="orange">2/3 利用中</Badge>}/>
+        <div className="grid sm:grid-cols-3 gap-3 mt-1">
+          {plan.map(p=>(
+            <button key={p.id} onClick={()=>{ if(p.id==='jihatsu') return; go(p.id==='youchien'?'teacher':'g_home'); }}
+              className="text-left bg-white rounded-2xl border border-[#F3E6D9] p-3.5 hover:bg-brand-50 transition active:scale-[0.99]">
+              <div className="flex items-center gap-2"><span className="w-9 h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center"><Ic name={p.icon} className="w-5 h-5"/></span><div className="font-bold text-ink text-[14px]">{p.t}</div></div>
+              <div className="text-[12px] text-muted font-bold mt-1.5 leading-snug">{p.d}</div>
+              <div className="mt-2"><Badge tone={p.tone}>{p.state}</Badge></div>
+            </button>
+          ))}
         </div>
+        <div className="text-[12px] font-bold text-warm mt-3 flex items-center gap-1"><Ic name="arrow" className="w-4 h-4"/>左上の<span className="text-brand-600">サービス切替</span>で、いつでも 幼稚園／児童発達支援／学童 を行き来できます。</div>
       </Card>
+
+      <SubHead icon="heart" title="児童発達支援の機能（8つ）"/>
       <div className="grid sm:grid-cols-2 gap-3">
         {cards.map(c=>(
           <button key={c.id} onClick={()=>go(c.id)} className="text-left bg-white rounded-2xl border border-[#F3E6D9] shadow-card p-4 hover:bg-brand-50 transition active:scale-[0.99]">
@@ -4071,13 +4101,15 @@ function JihatsuHome({go}){
   );
 }
 
-/* ① 行動観察→アセスメント入力（音声→AI整文・5領域） */
+/* ① 行動観察→アセスメント入力（音声→AI整文・5領域・観察履歴） */
 function JiAssess({go}){
-  const [picked,setPicked] = useState(JI_RYOIKI[2]);
+  const [picked,setPicked] = useState([JI_RYOIKI[2]]);
+  const toggle=(r)=> setPicked(p=> p.includes(r)? p.filter(x=>x!==r):[...p,r]);
+  const dev = [['健康・生活',70],['運動・感覚',55],['認知・行動',62],['言語・コミュニケーション',40],['人間関係・社会性',48]];
   return (
     <div className="space-y-5">
       <PageHead title="行動観察・アセスメント入力" sub="現場でその場入力。音声をAIが整文し、5領域で構造化します。"
-        action={<Btn icon="check">この内容で記録</Btn>}/>
+        action={<Btn icon="check" onClick={()=>mockTap('観察記録を保存しました（デモ）')}>この内容で記録</Btn>}/>
       <div className="grid lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 p-5 space-y-4">
           <div className="flex items-center gap-3">
@@ -4099,17 +4131,17 @@ function JiAssess({go}){
             <div className="text-[12px] text-muted font-bold mb-1.5">関連する5領域（複数選択）</div>
             <div className="flex flex-wrap gap-2">
               {JI_RYOIKI.map(r=>(
-                <button key={r} onClick={()=>setPicked(r)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border transition', picked===r?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4] hover:bg-brand-50')}>{r}</button>
+                <button key={r} onClick={()=>toggle(r)} className={cx('px-3 py-1.5 rounded-full text-[12px] font-bold border transition active:scale-95', picked.includes(r)?'bg-brand-500 text-white border-brand-500':'bg-white text-gray-500 border-[#E8D5C4] hover:bg-brand-50')}>{r}</button>
               ))}
             </div>
           </div>
         </Card>
         <div className="space-y-4">
           <Card>
-            <CardHead icon="search" title="アセスメントの観点"/>
-            <div className="px-5 pb-4 space-y-2">
-              {[['集中して取り組む力','伸びている','green'],['気持ちの切替','支援中','amber'],['友だちへの関わり','見守り','blue']].map(([t,s,tone])=>(
-                <div key={t} className="flex items-center justify-between text-[13px]"><span className="font-bold text-ink">{t}</span><Badge tone={tone}>{s}</Badge></div>
+            <CardHead icon="chart" title="発達の現在地（5領域）"/>
+            <div className="px-5 pb-4 space-y-2.5">
+              {dev.map(([t,p])=>(
+                <div key={t}><div className="flex justify-between text-[11px] font-bold mb-1"><span className="text-ink">{t}</span><span className="text-muted">{p}</span></div><Bar pct={p} tone="brand"/></div>
               ))}
             </div>
           </Card>
@@ -4118,75 +4150,111 @@ function JiAssess({go}){
           </Card>
         </div>
       </div>
+      <Card>
+        <CardHead icon="list" title="最近の観察記録" action={<Btn kind="ghost" className="!px-2.5 !py-1 !text-[12px]" icon="search" onClick={()=>mockTap('観察記録を検索（デモ）')}>検索</Btn>}/>
+        <div className="px-5 pb-4 space-y-2">
+          {JI_OBS.map((o,i)=>(
+            <div key={i} className="flex items-start gap-3 border-t border-[#F3E6D9] pt-2.5 first:border-t-0 first:pt-0">
+              <div className="text-[12px] font-extrabold text-brand-500 w-10 shrink-0">{o.d}</div>
+              <Avatar name={o.who} color={JI_KIDS.find(k=>k.n===o.who)?.color} size={26}/>
+              <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="font-bold text-ink text-[13px]">{o.who}</span><Badge tone="blue">{o.ryo}</Badge></div><div className="text-[12px] text-gray-600 font-bold mt-0.5 leading-snug">{o.t}</div></div>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
 
-/* ② 個別支援計画書（ガイド型ステップ＋6か月モニタリング期限） */
+/* ② 個別支援計画書（ガイド型ステップ＋6か月モニタリング期限＋計画内容） */
 function JiPlan({go}){
   const steps = ['アセスメント','原案作成','担当者会議','説明・同意','交付','モニタリング'];
   const [active,setActive] = useState(1);
+  const due = JI_KIDS.slice().sort((a,b)=>0).map(k=>({n:k.n,d:k.mon,color:k.color}));
   return (
     <div className="space-y-5">
       <PageHead title="個別支援計画書" sub="ガイドに沿って進めるだけ。期限はシステムが先回りでお知らせします。"
-        action={<Btn icon="file">計画書をプレビュー</Btn>}/>
+        action={<Btn icon="file" onClick={()=>mockTap('計画書PDFをプレビュー（デモ）')}>計画書をプレビュー</Btn>}/>
       <Card className="p-4 border-amber-200 bg-amber-50/50">
-        <div className="flex items-center gap-2 text-[13px] font-bold text-amber-700"><Ic name="bell" className="w-4 h-4"/>モニタリング期限が近い児童が <span className="text-red-600">2名</span>（6か月ごとの見直し＝未実施は減算対象）。<button onClick={()=>mockTap('対象児童の一覧（デモ）')} className="underline ml-1">一覧を見る</button></div>
+        <div className="flex items-center gap-2 text-[13px] font-bold text-amber-700"><Ic name="bell" className="w-4 h-4"/>モニタリング期限が近い児童が <span className="text-red-600">2名</span>（6か月ごとの見直し＝未実施は減算対象）。<button onClick={()=>mockTap('期限間近の児童一覧（デモ）')} className="underline ml-1">対応する</button></div>
       </Card>
-      <Card className="p-5">
-        <div className="flex items-center gap-1 overflow-x-auto noscroll pb-2">
-          {steps.map((s,i)=>(
-            <React.Fragment key={s}>
-              <button onClick={()=>setActive(i)} className={cx('shrink-0 px-3 py-2 rounded-xl text-[12px] font-bold transition', i===active?'bg-brand-500 text-white':i<active?'bg-brand-50 text-brand-600':'bg-cream text-gray-400')}>
-                <span className="inline-flex items-center gap-1">{i<active&&<Ic name="check" className="w-3.5 h-3.5"/>}{s}</span>
-              </button>
-              {i<steps.length-1 && <Ic name="chevron" className="w-3 h-3 text-brand-200 shrink-0"/>}
-            </React.Fragment>
-          ))}
-        </div>
-        <div className="mt-3 space-y-4">
-          <div className="flex items-center gap-3"><Avatar name="ひかり" color={JI_KIDS[1].color} size={36}/><div><div className="font-bold text-ink text-[14px]">ひかり さんの個別支援計画</div><div className="text-[12px] text-muted font-bold">計画期間 {JI_KIDS[1].uplan} ・ ステップ {active+1}/6：{steps[active]}</div></div></div>
-          <div className="rounded-xl border border-[#F3E6D9] p-4 space-y-3">
-            <div className="flex items-center gap-2"><AIChip/><span className="text-[12px] text-muted font-bold">観察記録から支援目標を下書きしました（編集できます）</span></div>
-            {[['総合的な支援目標','身近な大人と安心できる関係をつくり、自分の気持ちを言葉や身ぶりで伝えられる場面を増やす。'],
-              ['認知・行動 の目標','見通しの持てる活動の中で、最後までやりきる経験を重ねる。'],
-              ['人間関係・社会性 の目標','小集団の遊びで、順番を待つ・かわるがわる使う体験を支援する。']].map(([t,v])=>(
-              <div key={t}><div className="text-[12px] font-bold text-warm mb-1">{t}</div><div className="rounded-lg bg-cream border border-[#F3E6D9] p-2.5 text-[13px] text-ink leading-relaxed">{v}</div></div>
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 p-5">
+          <div className="flex items-center gap-1 overflow-x-auto noscroll pb-2">
+            {steps.map((s,i)=>(
+              <React.Fragment key={s}>
+                <button onClick={()=>setActive(i)} className={cx('shrink-0 px-3 py-2 rounded-xl text-[12px] font-bold transition active:scale-95', i===active?'bg-brand-500 text-white':i<active?'bg-brand-50 text-brand-600':'bg-cream text-gray-400')}>
+                  <span className="inline-flex items-center gap-1">{i<active&&<Ic name="check" className="w-3.5 h-3.5"/>}{s}</span>
+                </button>
+                {i<steps.length-1 && <Ic name="chevron" className="w-3 h-3 text-brand-200 shrink-0"/>}
+              </React.Fragment>
             ))}
           </div>
-          <div className="flex flex-wrap gap-2 justify-end">
-            <Btn kind="ghost" icon="edit">手で修正</Btn>
-            <Btn kind="soft" icon="users">担当者会議に進む</Btn>
-            <Btn icon="check">保護者へ説明・同意（電子サイン）</Btn>
+          <div className="mt-3 space-y-4">
+            <div className="flex items-center gap-3"><Avatar name="ひかり" color={JI_KIDS[1].color} size={36}/><div><div className="font-bold text-ink text-[14px]">ひかり さんの個別支援計画</div><div className="text-[12px] text-muted font-bold">計画期間 {JI_KIDS[1].uplan} ・ ステップ {active+1}/6：{steps[active]}</div></div></div>
+            <div className="rounded-xl border border-[#F3E6D9] p-4 space-y-3">
+              <div className="flex items-center gap-2"><AIChip/><span className="text-[12px] text-muted font-bold">観察記録から支援目標を下書きしました（編集できます）</span></div>
+              {[['総合的な支援目標','身近な大人と安心できる関係をつくり、自分の気持ちを言葉や身ぶりで伝えられる場面を増やす。'],
+                ['認知・行動 の目標','見通しの持てる活動の中で、最後までやりきる経験を重ねる。'],
+                ['人間関係・社会性 の目標','小集団の遊びで、順番を待つ・かわるがわる使う体験を支援する。']].map(([t,v])=>(
+                <div key={t}><div className="text-[12px] font-bold text-warm mb-1">{t}</div><div className="rounded-lg bg-cream border border-[#F3E6D9] p-2.5 text-[13px] text-ink leading-relaxed">{v}</div></div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Btn kind="ghost" icon="edit" onClick={()=>mockTap('手で修正（デモ）')}>手で修正</Btn>
+              <Btn kind="soft" icon="users" onClick={()=>setActive(2)}>担当者会議に進む</Btn>
+              <Btn icon="check" onClick={()=>mockTap('保護者へ説明・電子サイン依頼（デモ）')}>保護者へ説明・同意</Btn>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+        <Card>
+          <CardHead icon="calendar" title="モニタリング予定"/>
+          <div className="px-5 pb-4 space-y-2">
+            {due.map((d,i)=>{
+              const near = i<2;
+              return (
+                <div key={d.n} className="flex items-center gap-2 border-t border-[#F3E6D9] pt-2 first:border-t-0 first:pt-0">
+                  <Avatar name={d.n} color={d.color} size={24}/>
+                  <span className="font-bold text-ink text-[13px] flex-1">{d.n}</span>
+                  <span className="text-[12px] font-bold text-muted">{d.d}</span>
+                  <Badge tone={near?'red':'green'}>{near?'期限間近':'予定'}</Badge>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
 
 /* ③ サービス提供実績記録（日次→実績票自動集計・加算・サイン） */
 function JiRecord({go}){
+  const [tab,setTab] = useState('日次');
   const rows = [
-    {n:'たいち', inT:'9:30', outT:'13:30', go1:true, add:['送迎(往復)'], sign:true},
-    {n:'ひかり', inT:'9:45', outT:'13:30', go1:true, add:['送迎(片道)','家族支援'], sign:true},
-    {n:'そら',   inT:'—',    outT:'—',     go1:false,add:['欠席時対応'], sign:false, abs:true},
-    {n:'あかり', inT:'10:00',outT:'14:00', go1:true, add:['送迎(往復)'], sign:false},
+    {n:'たいち', inT:'9:30', outT:'13:30', add:['送迎(往復)'], sign:true},
+    {n:'ひかり', inT:'9:45', outT:'13:30', add:['送迎(片道)','家族支援(個別)'], sign:true},
+    {n:'そら',   inT:'—',    outT:'—',     add:['欠席時対応'], sign:false, abs:true},
+    {n:'あかり', inT:'10:00',outT:'14:00', add:['送迎(往復)'], sign:false},
+    {n:'はやと', inT:'9:30', outT:'13:30', add:['送迎(往復)','延長支援'], sign:true},
+    {n:'みなと', inT:'9:40', outT:'13:30', add:['送迎(片道)'], sign:false},
   ];
   return (
     <div className="space-y-5">
       <PageHead title="サービス提供実績記録" sub="出席・送迎・加算をその場でタップ。月次の実績記録票へ自動集計します。"
-        action={<Btn icon="file">実績記録票を作成</Btn>}/>
-      <div className="grid sm:grid-cols-4 gap-3">
-        <Card className="p-4"><Stat label="本日の来所" value="3 / 4" tone="orange"/></Card>
-        <Card className="p-4"><Stat label="送迎(片道換算)" value="5" tone="ink"/></Card>
-        <Card className="p-4"><Stat label="加算 算定見込" value="8件" tone="green"/></Card>
-        <Card className="p-4"><Stat label="サイン未取得" value="2" tone="red"/></Card>
+        action={<Btn icon="file" onClick={()=>mockTap('サービス提供実績記録票を作成（デモ）')}>実績記録票を作成</Btn>}/>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="p-4"><Stat label="本日の来所" value="5 / 6" tone="orange"/></Card>
+        <Card className="p-4"><Stat label="送迎(片道換算)" value="9" tone="ink"/></Card>
+        <Card className="p-4"><Stat label="加算 算定見込" value="11件" tone="green"/></Card>
+        <Card className="p-4"><Stat label="サイン未取得" value="3" tone="red"/></Card>
       </div>
+      <Tabs tabs={['日次','月次サマリ']} active={tab} onChange={setTab}/>
+      {tab==='日次' ? (
       <Card>
-        <CardHead icon="check" title="本日の提供記録（6/15）" action={<Badge tone="purple">記録→請求に自動連動</Badge>}/>
+        <CardHead icon="check" title="本日の提供記録（6/16）" action={<Badge tone="purple">記録→請求に自動連動</Badge>}/>
         <div className="px-2 pb-3 overflow-x-auto">
-          <table className="w-full text-[13px] min-w-[560px]">
+          <table className="w-full text-[13px] min-w-[600px]">
             <thead><tr className="text-[11px] text-muted font-bold text-left">
               <th className="px-3 py-2">児童</th><th className="px-3 py-2">開始</th><th className="px-3 py-2">終了</th><th className="px-3 py-2">加算</th><th className="px-3 py-2">保護者確認</th>
             </tr></thead>
@@ -4197,95 +4265,134 @@ function JiRecord({go}){
                   <td className="px-3 py-2.5 font-bold text-ink">{r.inT}</td>
                   <td className="px-3 py-2.5 font-bold text-ink">{r.outT}</td>
                   <td className="px-3 py-2.5"><div className="flex flex-wrap gap-1">{r.add.map(a=><Badge key={a} tone="blue">{a}</Badge>)}</div></td>
-                  <td className="px-3 py-2.5">{r.sign?<Badge tone="green">サイン済</Badge>:<Btn kind="soft" className="!px-2 !py-1 !text-[11px]" icon="edit">サイン依頼</Btn>}</td>
+                  <td className="px-3 py-2.5">{r.sign?<Badge tone="green">サイン済</Badge>:<Btn kind="soft" className="!px-2 !py-1 !text-[11px]" icon="edit" onClick={()=>mockTap('保護者へサイン依頼（デモ）')}>サイン依頼</Btn>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
-      <Card className="p-4"><div className="text-[12px] font-bold text-warm flex items-center gap-1"><Ic name="ai" className="w-4 h-4 text-cat-purple"/>加算は記録時に要件を自動判定。算定もれ・記録もれは赤で先にお知らせします。</div></Card>
+      ) : (
+      <Card>
+        <CardHead icon="calendar" title="6月 月次サマリ（児童別 利用日数）"/>
+        <div className="px-5 pb-4 space-y-2.5">
+          {JI_KIDS.map(k=>{
+            const used = [12,9,15,6,8,11][k.id]; const capn = k.cap==='10日/月'?10:23;
+            return <div key={k.n}><div className="flex justify-between text-[12px] font-bold mb-1"><span className="text-ink flex items-center gap-1.5"><Avatar name={k.n} color={k.color} size={18}/>{k.n}</span><span className="text-muted">{used} / {capn}日（支給量）</span></div><Bar pct={used/capn*100} tone={used/capn>0.9?'amber':'brand'}/></div>;
+          })}
+        </div>
+      </Card>
+      )}
+      <Card className="p-4"><div className="text-[12px] font-bold text-warm flex items-center gap-1"><Ic name="ai" className="w-4 h-4 text-cat-purple"/>加算は記録時に要件を自動判定。算定もれ・記録もれ・支給量オーバーは先にお知らせします。</div></Card>
     </div>
   );
 }
 
-/* ④ 国保連請求（実績→明細→上限額管理・送信前チェック） */
+/* ④ 国保連請求（実績→明細→上限額管理・送信ステップ・送信前チェック） */
 function JiKokuho({go}){
   const [tab,setTab] = useState('実績');
+  const meisai = [
+    ['たいち','12','¥ 112,400','¥ 4,600','green'],
+    ['ひかり','9', '¥ 86,200', '¥ 4,600','green'],
+    ['そら',  '15','¥ 138,900','¥ 0',    'green'],
+    ['あかり','6', '¥ 57,300', '¥ 4,600','green'],
+    ['はやと','8', '¥ 74,100', '¥ 4,600','amber'],
+    ['みなと','11','¥ 101,500','¥ 0',    'green'],
+  ];
+  const flow = ['実績確定','請求明細','上限額管理','送信前チェック','国保連へ送信'];
   return (
     <div className="space-y-5">
       <PageHead title="国保連請求" sub="提供実績から請求明細・上限額管理まで。送信前にエラーを自動チェックします。"
-        action={<Btn icon="send">請求データを作成</Btn>}/>
+        action={<Btn icon="send" onClick={()=>mockTap('請求データ(CSV)を作成（デモ）')}>請求データを作成</Btn>}/>
       <Card className="p-4 bg-brand-50/40">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-[13px] font-bold text-ink"><Ic name="calendar" className="w-4 h-4 text-brand-500"/>2026年5月分 ・ 受付：6/1〜6/10（あと <span className="text-red-600">締切まで案内中</span>）</div>
+          <div className="flex items-center gap-2 text-[13px] font-bold text-ink"><Ic name="calendar" className="w-4 h-4 text-brand-500"/>2026年5月分 ・ 受付：6/1〜6/10（締切まで案内中）</div>
           <div className="flex items-center gap-2 text-[12px] font-bold text-green-700"><Ic name="check" className="w-4 h-4"/>送信前チェック：エラー 0 ／ 警告 1</div>
+        </div>
+        <div className="flex items-center gap-1 mt-3 overflow-x-auto noscroll">
+          {flow.map((s,i)=>(
+            <React.Fragment key={s}>
+              <span className={cx('shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-bold', i<3?'bg-brand-500 text-white':i===3?'bg-amber-100 text-amber-700':'bg-white text-gray-400 border border-[#F3E6D9]')}>{i<3&&'✓ '}{s}</span>
+              {i<flow.length-1&&<Ic name="chevron" className="w-3 h-3 text-brand-200 shrink-0"/>}
+            </React.Fragment>
+          ))}
         </div>
       </Card>
       <Tabs tabs={['実績','請求明細','上限額管理']} active={tab} onChange={setTab}/>
       {tab==='実績' && (
         <Card>
           <CardHead icon="check" title="提供実績サマリ（自動集計）"/>
-          <div className="px-5 pb-4 grid sm:grid-cols-4 gap-3">
-            <Stat label="利用児童" value="4名"/><Stat label="延べ利用日数" value="42日"/><Stat label="送迎(片道)" value="58"/><Stat label="加算合計" value="71件"/>
+          <div className="px-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Stat label="利用児童" value="6名"/><Stat label="延べ利用日数" value="61日"/><Stat label="送迎(片道)" value="86"/><Stat label="加算合計" value="103件"/>
           </div>
         </Card>
       )}
       {tab==='請求明細' && (
         <Card>
-          <CardHead icon="money" title="障害児給付費 明細書"/>
+          <CardHead icon="money" title="障害児給付費 明細書" action={<Badge tone="green">実績から自動作成</Badge>}/>
           <div className="px-2 pb-3 overflow-x-auto">
-            <table className="w-full text-[13px] min-w-[520px]">
-              <thead><tr className="text-[11px] text-muted font-bold text-left"><th className="px-3 py-2">児童</th><th className="px-3 py-2">日数</th><th className="px-3 py-2">基本+加算</th><th className="px-3 py-2">給付費(9割)</th><th className="px-3 py-2">利用者負担</th></tr></thead>
+            <table className="w-full text-[13px] min-w-[560px]">
+              <thead><tr className="text-[11px] text-muted font-bold text-left"><th className="px-3 py-2">児童</th><th className="px-3 py-2">日数</th><th className="px-3 py-2">給付費(9割)</th><th className="px-3 py-2">利用者負担</th><th className="px-3 py-2">状態</th></tr></thead>
               <tbody>
-                {[['たいち','12','—','¥ 112,400','¥ 4,600'],['ひかり','9','—','¥ 86,200','¥ 4,600'],['そら','15','—','¥ 138,900','¥ 0'],['あかり','6','—','¥ 57,300','¥ 4,600']].map(r=>(
-                  <tr key={r[0]} className="border-t border-[#F3E6D9]"><td className="px-3 py-2.5 font-bold text-ink">{r[0]}</td><td className="px-3 py-2.5">{r[1]}日</td><td className="px-3 py-2.5 text-muted">明細</td><td className="px-3 py-2.5 font-bold text-ink">{r[3]}</td><td className="px-3 py-2.5 font-bold text-brand-600">{r[4]}</td></tr>
+                {meisai.map(r=>(
+                  <tr key={r[0]} className="border-t border-[#F3E6D9]"><td className="px-3 py-2.5 font-bold text-ink">{r[0]}</td><td className="px-3 py-2.5">{r[1]}日</td><td className="px-3 py-2.5 font-bold text-ink">{r[2]}</td><td className="px-3 py-2.5 font-bold text-brand-600">{r[3]}</td><td className="px-3 py-2.5">{r[4]==='amber'?<Badge tone="amber">要確認</Badge>:<Badge tone="green">OK</Badge>}</td></tr>
                 ))}
+                <tr className="border-t-2 border-brand-200 bg-cream/50"><td className="px-3 py-2.5 font-extrabold text-ink">合計</td><td className="px-3 py-2.5 font-extrabold">61日</td><td className="px-3 py-2.5 font-extrabold text-ink">¥ 570,400</td><td className="px-3 py-2.5 font-extrabold text-brand-600">¥ 18,400</td><td className="px-3 py-2.5"></td></tr>
               </tbody>
             </table>
           </div>
+          <div className="px-5 pb-4 text-[12px] font-bold text-amber-700 flex items-center gap-1"><Ic name="bell" className="w-4 h-4"/>警告1件：はやと さん 送迎加算の算定回数を確認してください。</div>
         </Card>
       )}
       {tab==='上限額管理' && (
         <Card>
-          <CardHead icon="shield" title="利用者負担上限額管理結果"/>
+          <CardHead icon="shield" title="利用者負担上限額管理結果票"/>
           <div className="px-5 pb-4 space-y-2 text-[13px]">
-            {[['たいち','一般1（4,600円）','結果コード 1（当事業所で充当）','green'],['ひかり','一般2（37,200円）','結果コード 3（他事業所と調整）','amber'],['そら','生活保護（0円）','管理対象外','gray']].map(r=>(
-              <div key={r[0]} className="flex items-center justify-between border-t border-[#F3E6D9] pt-2"><span className="font-bold text-ink">{r[0]}</span><span className="text-muted font-bold">{r[1]}</span><Badge tone={r[3]}>{r[2]}</Badge></div>
+            {[['たいち','一般1（4,600円）','結果コード 1（当事業所で充当）','green'],
+              ['ひかり','一般2（37,200円）','結果コード 3（他事業所と調整）','amber'],
+              ['そら','生活保護（0円）','管理対象外','gray'],
+              ['あかり','一般1（4,600円）','結果コード 1（当事業所で充当）','green'],
+              ['みなと','生活保護（0円）','管理対象外','gray']].map(r=>(
+              <div key={r[0]} className="flex items-center justify-between gap-2 border-t border-[#F3E6D9] pt-2 first:border-t-0 first:pt-0"><span className="font-bold text-ink w-16 shrink-0">{r[0]}</span><span className="text-muted font-bold flex-1 text-[12px]">{r[1]}</span><Badge tone={r[3]}>{r[2]}</Badge></div>
             ))}
           </div>
         </Card>
       )}
-      <Card className="p-4"><div className="text-[12px] font-bold text-warm flex items-center gap-1"><Ic name="ai" className="w-4 h-4 text-cat-purple"/>実績→明細→上限管理を地続きで。外部ソフトへの二度入力をなくす設計です（請求の制度詳細は要件で確定）。</div></Card>
+      <Card className="p-4"><div className="text-[12px] font-bold text-warm flex items-center gap-1"><Ic name="ai" className="w-4 h-4 text-cat-purple"/>実績→明細→上限管理を地続きで。外部ソフトへの二度入力をなくす設計です（金額・単位はダミー／制度詳細は要件で確定）。</div></Card>
     </div>
   );
 }
 
-/* ⑤ 職員シフト・勤務一覧（人員配置基準チェック） */
+/* ⑤ 職員シフト・勤務一覧（人員配置基準チェック・常勤換算） */
 function JiShift({go}){
   const staff = [
-    {n:'佐藤（児発管）', role:'児童発達支援管理責任者', mon:'◯',tue:'◯',wed:'◯',thu:'◯',fri:'◯', note:'常勤・専任'},
-    {n:'田中（指導員）', role:'児童指導員',           mon:'◯',tue:'—',wed:'◯',thu:'◯',fri:'◯', note:''},
-    {n:'鈴木（保育士）', role:'保育士',               mon:'◯',tue:'◯',wed:'◯',thu:'—',fri:'◯', note:''},
-    {n:'山本（機能訓練）',role:'機能訓練担当(ST)',     mon:'—',tue:'◯',wed:'—',thu:'◯',fri:'—', note:'加算配置'},
+    {n:'佐藤（児発管）', role:'児童発達支援管理責任者', d:['◯','◯','◯','◯','◯'], note:'常勤・専任'},
+    {n:'田中（指導員）', role:'児童指導員',           d:['◯','—','◯','◯','◯'], note:'常勤'},
+    {n:'鈴木（保育士）', role:'保育士',               d:['◯','◯','◯','—','◯'], note:'常勤'},
+    {n:'山本（機能訓練）',role:'機能訓練担当(ST)',     d:['—','◯','—','◯','—'], note:'加算配置'},
+    {n:'伊藤（指導員）', role:'児童指導員',           d:['◯','◯','—','◯','◯'], note:'パート'},
   ];
-  const days=['mon','tue','wed','thu','fri'];
+  const days=['月','火','水','木','金'];
   return (
     <div className="space-y-5">
       <PageHead title="職員シフト・勤務一覧" sub="シフトを組むと、人員配置基準の充足を自動でチェックします。"
-        action={<Btn icon="file">勤務形態一覧表を出力</Btn>}/>
-      <Card className="p-4 bg-green-50/60 border-green-200"><div className="flex items-center gap-2 text-[13px] font-bold text-green-700"><Ic name="check" className="w-4 h-4"/>人員配置基準：充足（児発管 常勤専任1名 ・ 指導員/保育士 必要数を満たしています）</div></Card>
+        action={<Btn icon="file" onClick={()=>mockTap('勤務形態一覧表を出力（デモ）')}>勤務形態一覧表を出力</Btn>}/>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <Card className="p-4 bg-green-50/60 border-green-200"><div className="text-[12px] font-bold text-green-700 flex items-center gap-1"><Ic name="check" className="w-4 h-4"/>児発管：常勤専任 1名 ✓</div><div className="text-[11px] text-muted font-bold mt-1">基準を満たしています</div></Card>
+        <Card className="p-4 bg-green-50/60 border-green-200"><div className="text-[12px] font-bold text-green-700 flex items-center gap-1"><Ic name="check" className="w-4 h-4"/>指導員/保育士 ✓</div><div className="text-[11px] text-muted font-bold mt-1">常勤換算 3.6（必要2.0以上）</div></Card>
+        <Card className="p-4 bg-amber-50/60 border-amber-200"><div className="text-[12px] font-bold text-amber-700 flex items-center gap-1"><Ic name="bell" className="w-4 h-4"/>木曜の配置 要確認</div><div className="text-[11px] text-muted font-bold mt-1">指導員1名が休み希望</div></Card>
+      </div>
       <Card>
-        <CardHead icon="clock" title="今週のシフト（6/15週）"/>
+        <CardHead icon="clock" title="今週のシフト（6/16週）"/>
         <div className="px-2 pb-3 overflow-x-auto">
-          <table className="w-full text-[13px] min-w-[560px]">
-            <thead><tr className="text-[11px] text-muted font-bold text-left"><th className="px-3 py-2">職員</th><th className="px-3 py-2">月</th><th className="px-3 py-2">火</th><th className="px-3 py-2">水</th><th className="px-3 py-2">木</th><th className="px-3 py-2">金</th><th className="px-3 py-2">備考</th></tr></thead>
+          <table className="w-full text-[13px] min-w-[600px]">
+            <thead><tr className="text-[11px] text-muted font-bold text-left"><th className="px-3 py-2">職員</th>{days.map(d=><th key={d} className="px-3 py-2">{d}</th>)}<th className="px-3 py-2">区分</th></tr></thead>
             <tbody>
               {staff.map(s=>(
                 <tr key={s.n} className="border-t border-[#F3E6D9]">
                   <td className="px-3 py-2.5"><div className="font-bold text-ink">{s.n}</div><div className="text-[11px] text-muted font-bold">{s.role}</div></td>
-                  {days.map(d=><td key={d} className={cx('px-3 py-2.5 font-bold', s[d]==='◯'?'text-brand-600':'text-gray-300')}>{s[d]}</td>)}
-                  <td className="px-3 py-2.5">{s.note&&<Badge tone="purple">{s.note}</Badge>}</td>
+                  {s.d.map((v,i)=><td key={i} className={cx('px-3 py-2.5 font-bold', v==='◯'?'text-brand-600':'text-gray-300')}>{v}</td>)}
+                  <td className="px-3 py-2.5"><Badge tone="purple">{s.note}</Badge></td>
                 </tr>
               ))}
             </tbody>
@@ -4301,46 +4408,56 @@ function JiFinance({go}){
   return (
     <div className="space-y-5">
       <PageHead title="事業所 財務ダッシュボード" sub="給付費・利用者負担・稼働率・加算を一目で。"/>
-      <div className="grid sm:grid-cols-4 gap-3">
-        <Card className="p-4"><Stat label="5月 給付費(請求)" value="¥395,000" tone="orange"/></Card>
-        <Card className="p-4"><Stat label="利用者負担" value="¥13,800" tone="ink"/></Card>
-        <Card className="p-4"><Stat label="稼働率" value="78%" tone="green"/></Card>
-        <Card className="p-4"><Stat label="処遇改善加算" value="¥42,000" tone="ink"/></Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="p-4"><Stat label="5月 給付費(請求)" value="¥570,400" tone="orange"/></Card>
+        <Card className="p-4"><Stat label="利用者負担" value="¥18,400" tone="ink"/></Card>
+        <Card className="p-4"><Stat label="稼働率" value="81%" tone="green"/></Card>
+        <Card className="p-4"><Stat label="処遇改善加算" value="¥52,000" tone="ink"/></Card>
       </div>
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
-          <CardHead icon="chart" title="月別 稼働率の推移"/>
+          <CardHead icon="chart" title="月別 給付費の推移" action={<Badge tone="green">前月比 +6%</Badge>}/>
           <div className="px-5 pb-5 space-y-3">
-            {[['2月',71],['3月',74],['4月',69],['5月',78]].map(([m,p])=>(
-              <div key={m}><div className="flex justify-between text-[12px] font-bold mb-1"><span className="text-ink">{m}</span><span className="text-muted">{p}%</span></div><Bar pct={p} tone="brand"/></div>
+            {[['2月',498],['3月',521],['4月',539],['5月',570]].map(([m,v])=>(
+              <div key={m}><div className="flex justify-between text-[12px] font-bold mb-1"><span className="text-ink">{m}</span><span className="text-muted">¥{v}千</span></div><Bar pct={v/600*100} tone="brand"/></div>
             ))}
           </div>
         </Card>
         <Card>
           <CardHead icon="money" title="加算の内訳（5月）"/>
           <div className="px-5 pb-5 space-y-3">
-            {[['送迎加算',58,'green'],['欠席時対応加算',6,'amber'],['家族支援加算',7,'purple']].map(([t,p,tone])=>(
-              <div key={t}><div className="flex justify-between text-[12px] font-bold mb-1"><span className="text-ink">{t}</span><span className="text-muted">{p}件</span></div><Bar pct={Math.min(100,p*1.5)} tone={tone}/></div>
+            {[['送迎加算',86,'green'],['家族支援加算',9,'purple'],['欠席時対応加算',6,'amber'],['延長支援加算',2,'blue']].map(([t,p,tone])=>(
+              <div key={t}><div className="flex justify-between text-[12px] font-bold mb-1"><span className="text-ink">{t}</span><span className="text-muted">{p}件</span></div><Bar pct={Math.min(100,p*1.1)} tone={tone}/></div>
             ))}
           </div>
         </Card>
       </div>
+      <Card>
+        <CardHead icon="building" title="月次 収支サマリ（ダミー）"/>
+        <div className="px-5 pb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Stat label="収入(給付費+負担)" value="¥589千" tone="green"/>
+          <Stat label="人件費" value="¥412千" tone="ink"/>
+          <Stat label="その他経費" value="¥98千" tone="ink"/>
+          <Stat label="差引" value="¥79千" tone="orange"/>
+        </div>
+      </Card>
       <Card className="p-4"><div className="text-[12px] font-bold text-warm flex items-center gap-1"><Ic name="arrow" className="w-4 h-4"/>数値は請求・実績データから自動集計（このモックはダミー値）。会計連携は要件で確定。</div></Card>
     </div>
   );
 }
 
-/* ⑦ バス送迎案内（保護者向け到着案内＋編成） */
+/* ⑦ バス送迎案内（保護者向け到着案内＋編成＋名簿） */
 function JiBus({go}){
   const stops = [
     {t:'8:50', p:'たいち', place:'みどり町 公園前', st:'done'},
     {t:'9:05', p:'ひかり', place:'さくら台 2丁目', st:'now'},
     {t:'9:20', p:'あかり', place:'ひがし住宅 前',  st:'next'},
+    {t:'9:30', p:'はやと', place:'中央通り バス停', st:'next'},
   ];
   return (
     <div className="space-y-5">
       <PageHead title="バス送迎案内" sub="送迎の編成と、保護者向けの到着案内。送迎記録は加算に自動連動します。"
-        action={<Btn icon="bus">送迎ルートを編成</Btn>}/>
+        action={<Btn icon="bus" onClick={()=>mockTap('送迎ルートを編成（デモ）')}>送迎ルートを編成</Btn>}/>
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHead icon="bus" title="便A（午前）の運行状況" action={<Badge tone="green">運行中</Badge>}/>
@@ -4368,7 +4485,7 @@ function JiBus({go}){
               <div className="flex items-center gap-2 text-[13px] font-bold text-ink"><Ic name="bus" className="w-4 h-4 text-brand-500"/>ひかりさんのバスがまもなく到着します（約5分）</div>
               <div className="text-[12px] text-muted font-bold mt-1">さくら台2丁目 付近 ・ 9:05 予定</div>
             </div>
-            <Btn kind="soft" icon="calendar" className="w-full">保護者から「送迎変更」を受け付ける</Btn>
+            <Btn kind="soft" icon="calendar" className="w-full" onClick={()=>mockTap('保護者からの送迎変更を受付（デモ）')}>保護者から「送迎変更」を受け付ける</Btn>
             <div className="text-[12px] font-bold text-warm flex items-center gap-1"><Ic name="arrow" className="w-4 h-4"/>欠席連絡が入ると乗車名簿を自動で調整します。</div>
           </div>
         </Card>
@@ -4377,26 +4494,47 @@ function JiBus({go}){
   );
 }
 
-/* ⑧ お知らせ・配信（既読の見える化＋未読者へ再送） */
+/* ⑧ お知らせ・配信（既読の見える化＋未読者へ再送＋作成プレビュー） */
 function JiNotice({go}){
+  const list = [
+    ['個別支援計画の同意のお願い','個別配信・3名',2,'amber'],
+    ['7月の行事予定','全体配信',38,'green'],
+    ['送迎ルート変更のご連絡','グループ・便A',1,'amber'],
+    ['プール活動の持ち物','全体配信',40,'green'],
+  ];
   return (
     <div className="space-y-5">
       <PageHead title="お知らせ・配信" sub="全体・グループ・個別に配信。既読を見える化し、未読の保護者に再送できます。"
-        action={<Btn icon="send">新しいお知らせ</Btn>}/>
-      <Card>
-        <CardHead icon="bell" title="配信したお知らせ"/>
-        <div className="px-5 pb-4 space-y-3">
-          {[['個別支援計画の同意のお願い','個別配信・3名',2,'amber'],['7月の行事予定','全体配信',38,'green'],['送迎ルート変更のご連絡','グループ・便A',1,'amber']].map(([t,scope,unread,tone])=>(
-            <div key={t} className="flex items-center justify-between border border-[#F3E6D9] rounded-xl px-4 py-3">
-              <div className="min-w-0"><div className="font-bold text-ink text-[14px] truncate">{t}</div><div className="text-[12px] text-muted font-bold">{scope}</div></div>
-              <div className="flex items-center gap-2 shrink-0">
-                {unread>0 ? <Badge tone={tone}>未読 {unread}</Badge> : <Badge tone="green">全員既読</Badge>}
-                {unread>0 && <Btn kind="soft" className="!px-2.5 !py-1 !text-[11px]" icon="send">未読者へ再送</Btn>}
+        action={<Btn icon="send" onClick={()=>mockTap('新しいお知らせを作成（デモ）')}>新しいお知らせ</Btn>}/>
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHead icon="bell" title="配信したお知らせ"/>
+          <div className="px-5 pb-4 space-y-3">
+            {list.map(([t,scope,unread,tone])=>(
+              <div key={t} className="flex items-center justify-between gap-2 border border-[#F3E6D9] rounded-xl px-4 py-3">
+                <div className="min-w-0"><div className="font-bold text-ink text-[14px] truncate">{t}</div><div className="text-[12px] text-muted font-bold">{scope}</div></div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {unread>0 ? <Badge tone={tone}>未読 {unread}</Badge> : <Badge tone="green">全員既読</Badge>}
+                  {unread>0 && <Btn kind="soft" className="!px-2.5 !py-1 !text-[11px]" icon="send" onClick={()=>mockTap('未読の保護者へ再送（デモ）')}>未読者へ再送</Btn>}
+                </div>
               </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <CardHead icon="send" title="配信プレビュー"/>
+          <div className="px-5 pb-4 space-y-3">
+            <div className="rounded-2xl bg-cream border border-[#F3E6D9] p-3">
+              <div className="text-[13px] font-extrabold text-ink">7月の行事予定</div>
+              <div className="text-[12px] text-gray-600 font-bold mt-1 leading-snug">7月のおたよりをお届けします。プール開きは7月3日です。持ち物は別紙をご確認ください。</div>
             </div>
-          ))}
-        </div>
-      </Card>
+            <div className="flex flex-wrap gap-1.5">
+              {['全体','便Aグループ','個別'].map(s=><Badge key={s} tone="purple">{s}</Badge>)}
+            </div>
+            <Btn kind="soft" icon="clock" className="w-full" onClick={()=>mockTap('予約配信を設定（デモ）')}>予約配信を設定</Btn>
+          </div>
+        </Card>
+      </div>
       <Card className="p-4"><div className="text-[12px] font-bold text-warm flex items-center gap-1"><Ic name="check" className="w-4 h-4 text-green-500"/>「伝わったか」を取りこぼさない設計。緊急（けが・体調）は優先度を上げて確実にお届けします。</div></Card>
     </div>
   );
