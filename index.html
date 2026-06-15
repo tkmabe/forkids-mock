@@ -4170,7 +4170,8 @@ function JiAssess({go}){
 function JiPlan({go}){
   const steps = ['アセスメント','原案作成','担当者会議','説明・同意','交付','モニタリング'];
   const [active,setActive] = useState(1);
-  const due = JI_KIDS.slice().sort((a,b)=>0).map(k=>({n:k.n,d:k.mon,color:k.color}));
+  const parseMD=(s)=>{ const a=s.split('/').map(Number); return a[0]*100+a[1]; };
+  const due = JI_KIDS.map(k=>({n:k.n,d:k.mon,color:k.color})).sort((a,b)=>parseMD(a.d)-parseMD(b.d));
   return (
     <div className="space-y-5">
       <PageHead title="個別支援計画書" sub="ガイドに沿って進めるだけ。期限はシステムが先回りでお知らせします。"
