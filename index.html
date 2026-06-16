@@ -3969,10 +3969,9 @@ function Sidebar({screen, go, role, setRole, navOpen, setNavOpen, nav=NAV, servi
 function StaffApp({screen, go}){
   const [role,setRole]=useState('admin');
   const [navOpen,setNavOpen]=useState(false);
-  // サービス(幼稚園/児発/学童)は screen の名前空間から判定（j_*=児発, g_*=学童, それ以外=幼稚園）。
-  // SERVICES/JIHATSU_SCREENS/GAKUDO_SCREENS は 22_screens_jihatsu.jsx 定義（描画時には評価済）。
-  const service = (typeof JIHATSU_SCREENS!=='undefined' && JIHATSU_SCREENS[screen]) ? 'jihatsu'
-                : (typeof GAKUDO_SCREENS!=='undefined' && GAKUDO_SCREENS[screen]) ? 'gakudo' : 'youchien';
+  // サービス(幼稚園/児発)は screen の名前空間から判定（j_*=児発, それ以外=幼稚園）。
+  // SERVICES/JIHATSU_SCREENS は 22_screens_jihatsu.jsx 定義（描画時には評価済）。
+  const service = (typeof JIHATSU_SCREENS!=='undefined' && JIHATSU_SCREENS[screen]) ? 'jihatsu' : 'youchien';
   const SVC = (typeof SERVICES!=='undefined' && SERVICES[service]) || {nav:NAV, screens:STAFF_SCREENS, titles:SCREEN_TITLES, home:'teacher', gated:true};
   const setService = (id)=>{ go(SERVICES[id].home); };
   // 現在のロールでアクセス不可の画面に居る場合は、そのロールの既定ホームへ誘導（幼稚園のみ権限ゲート）。
@@ -3982,7 +3981,7 @@ function StaffApp({screen, go}){
   React.useEffect(()=>{ if(view!==screen) go(view); }, [view, screen]);
   const Screen = SVC.screens[view] || SVC.screens[SVC.home] || TeacherHome;
   const allowed = SVC.gated ? canAccess(role, view) : true;
-  const portalName = service==='jihatsu' ? '児発ポータル' : service==='gakudo' ? '学童（連携）' : '園ポータル';
+  const portalName = service==='jihatsu' ? '児発ポータル' : '園ポータル';
   return (
     <div className="flex h-full">
       {navOpen && <div className="md:hidden fixed inset-0 bg-black/40 z-30" onClick={()=>setNavOpen(false)}/>}
@@ -4002,7 +4001,7 @@ function StaffApp({screen, go}){
 /* ======================================================================
    児童発達支援(障害児通所) モック ＋ サービス切替（オプション構造の可視化）
    ----------------------------------------------------------------------
-   あべ氏指示(2026-06-15/16)：幼稚園メイン＋児発(＋学童)が「オプションで足せる」
+   あべ氏指示(2026-06-15/16)：幼稚園メイン＋児発が「オプションで足せる」
    構造を“触って分かる”UIに。打合せでそのまま見せられる完成度（リアルなサンプル）。
    fKidsの児発研究(docs/design/jihatsu_competitive_ui・17_jidou_hattatsu・18_kokuhoren)に整合：
    ・単一入力→多帳票自動波及（記録1回→実績票/国保連請求/連絡）
@@ -4049,7 +4048,6 @@ function JihatsuHome({go}){
   const plan = [
     {id:'youchien', t:'幼稚園', d:'基本機能（記録・要録・保護者連携）', state:'利用中', tone:'green', icon:'leaf'},
     {id:'jihatsu',  t:'児童発達支援', d:'受給者証・個別支援計画・国保連請求', state:'追加済（オプション）', tone:'orange', icon:'heart'},
-    {id:'gakudo',   t:'学童（こしょこしょ）', d:'卒園後の入退室・連絡・写真の継続', state:'連携（準備中）', tone:'blue', icon:'book'},
   ];
   return (
     <div className="space-y-5">
@@ -4065,10 +4063,10 @@ function JihatsuHome({go}){
 
       {/* プラン構成＝“オプションで足せる”を一目で */}
       <Card className="p-5 bg-gradient-to-br from-brand-50 to-white">
-        <SubHead icon="grid" title="この園のサービス構成（オプションで足せます）" right={<Badge tone="orange">2/3 利用中</Badge>}/>
-        <div className="grid sm:grid-cols-3 gap-3 mt-1">
+        <SubHead icon="grid" title="この園のサービス構成（オプションで足せます）" right={<Badge tone="orange">2/2 利用中</Badge>}/>
+        <div className="grid sm:grid-cols-2 gap-3 mt-1">
           {plan.map(p=>(
-            <button key={p.id} onClick={()=>{ if(p.id==='jihatsu') return; go(p.id==='youchien'?'teacher':'g_home'); }}
+            <button key={p.id} onClick={()=>{ if(p.id==='jihatsu') return; go('teacher'); }}
               className="text-left bg-white rounded-2xl border border-[#F3E6D9] p-3.5 hover:bg-brand-50 transition active:scale-[0.99]">
               <div className="flex items-center gap-2"><span className="w-9 h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center"><Ic name={p.icon} className="w-5 h-5"/></span><div className="font-bold text-ink text-[14px]">{p.t}</div></div>
               <div className="text-[12px] text-muted font-bold mt-1.5 leading-snug">{p.d}</div>
@@ -4076,7 +4074,7 @@ function JihatsuHome({go}){
             </button>
           ))}
         </div>
-        <div className="text-[12px] font-bold text-warm mt-3 flex items-center gap-1"><Ic name="arrow" className="w-4 h-4"/>左上の<span className="text-brand-600">サービス切替</span>で、いつでも 幼稚園／児童発達支援／学童 を行き来できます。</div>
+        <div className="text-[12px] font-bold text-warm mt-3 flex items-center gap-1"><Ic name="arrow" className="w-4 h-4"/>左上の<span className="text-brand-600">サービス切替</span>で、いつでも 幼稚園／児童発達支援 を行き来できます。</div>
       </Card>
 
       <SubHead icon="heart" title="児童発達支援の機能（8つ）"/>
@@ -4543,33 +4541,7 @@ function JiNotice({go}){
   );
 }
 
-/* ---- 学童（こしょこしょ連携）：オプション第3枠の存在を示す軽量プレースホルダ ---- */
-function GakudoHome({go}){
-  return (
-    <div className="space-y-5">
-      <PageHead title="学童（こしょこしょ 連携）" sub="既存の学童SaaS「こしょこしょ」と連携する枠です。"/>
-      <Card className="p-5 bg-gradient-to-br from-brand-50 to-white">
-        <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-brand-500 text-white flex items-center justify-center shrink-0"><Ic name="book" className="w-6 h-6"/></div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap"><h3 className="font-extrabold text-ink text-[16px]">学童モジュール（連携・準備中）</h3><Badge tone="blue">連携</Badge></div>
-            <p className="text-[13px] text-gray-600 font-bold mt-1 leading-relaxed">卒園後も同じ家族IDで、学童「こしょこしょ」の入退室・連絡・写真閲覧へつながる構想です。幼稚園→児発→学童を“ひとつづき”にする3つ目のオプション枠として用意しています（連携仕様は要件で確定）。</p>
-          </div>
-        </div>
-      </Card>
-      <div className="grid sm:grid-cols-3 gap-3">
-        {[['入退室','clock','打刻・お迎え記録'],['連絡帳','book','学童との連絡'],['写真の継続閲覧','photo','卒園後も見られる']].map(([t,ic,d])=>(
-          <div key={t} className="bg-white rounded-2xl border border-[#F3E6D9] shadow-card p-4 opacity-90">
-            <div className="flex items-center gap-2"><span className="w-9 h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center"><Ic name={ic} className="w-5 h-5"/></span><div><div className="font-bold text-ink text-[13px]">{t}</div><div className="text-[11px] text-muted font-bold">{d}</div></div></div>
-            <div className="mt-3"><Badge tone="gray">連携 準備中</Badge></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ---- 児発／学童 ナビ・レジストリ ---- */
+/* ---- 児発 ナビ・レジストリ ---- */
 const JIHATSU_SCREENS = {
   j_home:JihatsuHome, j_assess:JiAssess, j_plan:JiPlan, j_record:JiRecord,
   j_kokuho:JiKokuho, j_shift:JiShift, j_finance:JiFinance, j_bus:JiBus, j_notice:JiNotice,
@@ -4591,26 +4563,21 @@ const JIHATSU_NAV = [
     {id:'j_notice',label:'お知らせ・配信', icon:'bell'},
   ]},
 ];
-const GAKUDO_SCREENS = { g_home:GakudoHome };
-const GAKUDO_NAV = [ { group:'学童（こしょこしょ連携）', items:[ {id:'g_home', label:'連携の概要', icon:'book', star:true} ]} ];
-
 const JIHATSU_TITLES = {}; JIHATSU_NAV.forEach(g=>g.items.forEach(i=>JIHATSU_TITLES[i.id]=i.label));
-const GAKUDO_TITLES = {}; GAKUDO_NAV.forEach(g=>g.items.forEach(i=>GAKUDO_TITLES[i.id]=i.label));
 
-/* ---- サービス定義（幼稚園＝標準／児発＝オプション／学童＝連携） ---- */
+/* ---- サービス定義（幼稚園＝標準／児発＝オプション） ---- */
 const SERVICES = {
   youchien:{ id:'youchien', label:'幼稚園',   tag:'標準',   icon:'leaf',  nav:NAV,          screens:STAFF_SCREENS,   titles:SCREEN_TITLES,  home:'teacher', gated:true,  badge:'標準プラン（基本機能）' },
   jihatsu: { id:'jihatsu',  label:'児童発達', tag:'オプション', icon:'heart', nav:JIHATSU_NAV, screens:JIHATSU_SCREENS, titles:JIHATSU_TITLES, home:'j_home',  gated:false, badge:'オプション機能（追加で利用中）' },
-  gakudo:  { id:'gakudo',   label:'学童',     tag:'連携',   icon:'book',  nav:GAKUDO_NAV,   screens:GAKUDO_SCREENS,  titles:GAKUDO_TITLES,  home:'g_home',  gated:false, badge:'こしょこしょ連携（準備中）' },
 };
-const SERVICE_ORDER = ['youchien','jihatsu','gakudo'];
+const SERVICE_ORDER = ['youchien','jihatsu'];
 
 /* サービス切替（サイドバー上部に置く“触って分かる”オプション構造） */
 function ServiceSwitch({service, setService, go}){
   return (
     <div className="px-4 pb-2">
       <div className="text-[10px] font-bold text-warm mb-1 flex items-center gap-1"><Ic name="grid" className="w-3 h-3"/>サービス（園のプランで切替・オプション）</div>
-      <div className="grid grid-cols-3 gap-1 bg-white rounded-xl p-1 border border-[#F3E6D9]">
+      <div className="grid grid-cols-2 gap-1 bg-white rounded-xl p-1 border border-[#F3E6D9]">
         {SERVICE_ORDER.map(id=>{
           const s=SERVICES[id]; const on=service===id;
           return (
@@ -5424,7 +5391,7 @@ function Login({go}){
           <button onClick={()=>go('teacher')} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-[#F3E6D9] hover:border-brand-300 hover:bg-brand-50 transition mb-3">
             <div className="w-11 h-11 rounded-xl bg-cat-orange/50 flex items-center justify-center text-ink/70"><Ic name="teacher" className="w-6 h-6"/></div>
             <div className="flex-1"><div className="flex items-center gap-1.5"><span className="font-bold text-ink">園として</span><Badge tone="orange">保育者・主任・園長</Badge></div><div className="text-[12px] text-muted font-bold mt-0.5">記録・要録・保護者連携・台帳・園運営（役割で出し分け）</div>
-              <div className="flex items-center gap-1 mt-1.5 flex-wrap"><span className="text-[11px] font-bold text-warm">サービス：</span><Badge tone="green">幼稚園 標準</Badge><span className="text-[11px] text-warm font-bold">＋</span><Badge tone="orange">児童発達 オプション</Badge><Badge tone="blue">学童 連携</Badge></div>
+              <div className="flex items-center gap-1 mt-1.5 flex-wrap"><span className="text-[11px] font-bold text-warm">サービス：</span><Badge tone="green">幼稚園 標準</Badge><span className="text-[11px] text-warm font-bold">＋</span><Badge tone="orange">児童発達 オプション</Badge></div>
             </div>
             <Ic name="chevron" className="w-5 h-5 text-brand-400"/>
           </button>
@@ -7032,7 +6999,7 @@ function App(){
     if(target==='__parent'){ setMode('parent'); return; }
     if(target==='__operator'){ setMode('operator'); return; }
     if(target==='__public'){ setMode('public'); return; }
-    if(STAFF_SCREENS[target] || (typeof JIHATSU_SCREENS!=='undefined' && JIHATSU_SCREENS[target]) || (typeof GAKUDO_SCREENS!=='undefined' && GAKUDO_SCREENS[target])){ setScreen(target); setMode('staff'); return; }
+    if(STAFF_SCREENS[target] || (typeof JIHATSU_SCREENS!=='undefined' && JIHATSU_SCREENS[target])){ setScreen(target); setMode('staff'); return; }
   };
   return (
     <div className="h-full">
